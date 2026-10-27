@@ -44,6 +44,8 @@ from app.architecture_intelligence.kafka_consumer_attribution import attribution
 from app.sources.owner_ids import topic_owned_id
 
 Row = Mapping[str, Any]
+# A minted ref's kind and subject: the promise row, the attribution row, or (attribution, entry id).
+Minted = tuple[BindingEvidenceKind, Any]
 _CODE = LimitationCode
 _CATALOG = "event_catalog_v1"
 _KAFKA_STATE = "kafka_consumer_state_v1"
@@ -203,9 +205,12 @@ def project_binding_picture(
     *,
     snapshot: SnapshotRef,
     producer: Producer,
+    minted: dict[str, Minted] | None = None,
 ) -> BindingPictureAnswer:
     """The query answer for the snapshot whose canonical state is `state`. Refusals in order:
-    snapshot, catalog, Bounded Context, capture, cursor."""
+    snapshot, catalog, Bounded Context, capture, cursor. When `minted` is given, every ref issued
+    for this context (on all pages: rows are built before paging) is recorded there with its
+    subject row, so the evidence mode resolves exactly the refs a query issues."""
     cursor = decode_cursor(request.cursor) if request.cursor is not None else None
     asserted = {request.snapshot_id, cursor.snapshot_id if cursor else None} - {None}
     if asserted - {snapshot.snapshot_id}:
@@ -264,10 +269,13 @@ def project_binding_picture(
     }
     group_outcomes = {row["id"]: row for row in attribution.get("groups", [])}
 
-    def ref(kind: BindingEvidenceKind, ids: list[str]) -> str:
-        return binding_evidence_ref(
+    def ref(kind: BindingEvidenceKind, ids: list[str], subject: Any) -> str:
+        issued = binding_evidence_ref(
             snapshot_id=snapshot.snapshot_id, query_digest=digest, kind=kind, internal_ids=ids
         )
+        if minted is not None:
+            minted[issued] = (kind, subject)
+        return issued
 
     rows: list[BindingRow] = []
     for broker in requested:
@@ -385,7 +393,7 @@ def _row(
     catalog: _Catalog,
     selected: str,
     producers_of: Mapping[str, Mapping[str, set[str]]],
-    ref: Callable[[BindingEvidenceKind, list[str]], str],
+    ref: Callable[[BindingEvidenceKind, list[str], Any], str],
 ) -> BindingRow:
     attributions = sorted(candidate.attributions, key=lambda row: row["id"])
     if candidate.service_id is None:  # R6: an attachment whose attribution is not RESOLVED.
@@ -438,17 +446,23 @@ def _row(
         if attributions
         else (None if reason is AssessmentReason.TOPIC_NOT_DECLARED else candidate.scope_t),
         promise_evidence_refs=sorted(
-            ref(BindingEvidenceKind.CATALOG_PROMISE, [p["id"], *p["evidence_ids"]])
+            ref(BindingEvidenceKind.CATALOG_PROMISE, [p["id"], *p["evidence_ids"]], p)
             for p in candidate.promises
         ),
         attachment_evidence_refs=sorted(
-            ref(BindingEvidenceKind.KAFKA_ATTACHMENT, [row["id"], *row["attachment_evidence_ids"]])
+            ref(
+                BindingEvidenceKind.KAFKA_ATTACHMENT,
+                [row["id"], *row["attachment_evidence_ids"]],
+                row,
+            )
             for row in attributions
         ),
         mapping_evidence_refs=sorted(
             {
                 ref(
-                    BindingEvidenceKind.KAFKA_SERVICE_MAPPING, [entry["id"], *entry["evidence_ids"]]
+                    BindingEvidenceKind.KAFKA_SERVICE_MAPPING,
+                    [entry["id"], *entry["evidence_ids"]],
+                    (row, entry["id"]),
                 )
                 for row in attributions
                 for entry in row["mapping_entries"]

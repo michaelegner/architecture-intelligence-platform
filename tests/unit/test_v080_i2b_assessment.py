@@ -131,7 +131,7 @@ def build(
             "evidence": [
                 {
                     "id": "cev",
-                    "source_instance_id": "urn:x",
+                    "source_instance_id": "urn:aip:source:event-catalog:" + "a" * 64,
                     "environment": ENV,
                     "catalog_digest": "c" * 64,
                     "lookup_digest": "l" * 64,
@@ -170,7 +170,9 @@ def build(
 
 
 def run(state, context="ctx-c", **request):
-    query = BindingPictureQueryRequest(bounded_context_id=context, environment=ENV, **request)
+    query = BindingPictureQueryRequest(
+        mode="query", bounded_context_id=context, environment=ENV, **request
+    )
     return project_binding_picture(query, state, snapshot=SNAPSHOT, producer=PRODUCER).model_dump(
         mode="json"
     )

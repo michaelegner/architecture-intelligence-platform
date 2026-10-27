@@ -33,10 +33,14 @@ from app.architecture_intelligence.api_usage_projection import (
 )
 from app.architecture_intelligence.binding_picture_contracts import (
     BindingPictureAnswer,
+    BindingPictureEvidenceRequest,
     BindingPictureQueryRequest,
 )
 from app.architecture_intelligence.binding_picture_contracts import (
     LimitationCode as BindingLimitationCode,
+)
+from app.architecture_intelligence.binding_picture_evidence import (
+    resolve_binding_picture_evidence,
 )
 from app.architecture_intelligence.binding_picture_projection import (
     project_binding_picture,
@@ -1112,6 +1116,22 @@ class ArchitectureIntelligenceService:
             )
         snapshot, state = read
         return project_binding_picture(request, state, snapshot=snapshot, producer=self._producer)
+
+    def get_binding_picture_evidence(
+        self, request: BindingPictureEvidenceRequest
+    ) -> BindingPictureAnswer:
+        """v0.8 I2c - the binding-picture evidence mode (I2 spec §6): resolves only the refs the
+        same context's query issues at the current snapshot. Read-only."""
+        read = self._read_state_snapshot()
+        if read is None:
+            refusal = binding_refusal_answer(
+                self._producer, None, BindingLimitationCode.SNAPSHOT_NOT_AVAILABLE
+            )
+            return refusal.model_copy(update={"mode": "evidence"})
+        snapshot, state = read
+        return resolve_binding_picture_evidence(
+            request, state, snapshot=snapshot, producer=self._producer
+        )
 
     def get_destination_consumer_evidence(
         self, request: DestinationConsumersEvidenceRequest

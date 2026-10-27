@@ -47,9 +47,12 @@ the installed package - it isn't documented on the SDK's own doc pages - and sha
 
 from __future__ import annotations
 
+from collections.abc import Callable
+
 from mcp.server import CacheHint, MCPServer
 
 from app.architecture_intelligence.contracts import PRODUCER_NAME
+from app.architecture_intelligence.service import ArchitectureIntelligenceService
 from app.mcp import tools as mcp_tools
 from app.mcp.tools import register_tools
 from app.version import package_version
@@ -58,9 +61,25 @@ TOOL_NAMES = mcp_tools.TOOL_NAMES
 
 _TOOLS_LIST_CACHE_HINT = CacheHint(scope="public", ttl_ms=0)
 
-mcp_server: MCPServer = MCPServer(
-    name=PRODUCER_NAME,
-    version=package_version(),
-    cache_hints={"tools/list": _TOOLS_LIST_CACHE_HINT},
-)
-register_tools(mcp_server)
+
+def build_mcp_server(
+    *,
+    binding_picture: bool = False,
+    get_service: Callable[[], ArchitectureIntelligenceService] | None = None,
+) -> MCPServer:
+    """One MCP server with the registered tools. The default (flag off, process-global service)
+    is the module singleton below. v0.8 I2 D11: an app with `experimental.binding-picture` builds
+    its own server, which also lists `get_binding_picture` and dispatches to that app's service."""
+    server = MCPServer(
+        name=PRODUCER_NAME,
+        version=package_version(),
+        cache_hints={"tools/list": _TOOLS_LIST_CACHE_HINT},
+    )
+    if get_service is None:
+        register_tools(server, binding_picture=binding_picture)
+    else:
+        register_tools(server, get_service=get_service, binding_picture=binding_picture)
+    return server
+
+
+mcp_server: MCPServer = build_mcp_server()

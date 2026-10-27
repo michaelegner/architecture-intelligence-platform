@@ -40,6 +40,7 @@
           "type": "string"
         },
         "topic_id": {
+          "description": "Exact canonical Kafka Topic id (`topic:owned:\u2026`), not a topic name.",
           "maxLength": 512,
           "minLength": 1,
           "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
@@ -697,6 +698,7 @@
       "description": "Spec \u00a72: the exact query context. Page position, `limit` and `snapshot_id` are not part of\nit.",
       "properties": {
         "broker_id": {
+          "description": "Declared broker id (`x-aip-broker-id`, e.g. `kafka:cluster-a`), not a bootstrap address.",
           "maxLength": 256,
           "minLength": 1,
           "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
@@ -704,6 +706,7 @@
           "type": "string"
         },
         "destination_id": {
+          "description": "Exact canonical Kafka Topic id (`topic:owned:\u2026`), not a topic name.",
           "maxLength": 512,
           "minLength": 1,
           "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",

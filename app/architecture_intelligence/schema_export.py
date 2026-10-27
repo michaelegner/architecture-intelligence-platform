@@ -21,6 +21,10 @@ from app.architecture_intelligence.api_usage_contracts import (
     ApiConsumerUsageAnswer,
     ApiConsumerUsageRequest,
 )
+from app.architecture_intelligence.binding_picture_contracts import (
+    BindingPictureAnswer,
+    BindingPictureRequest,
+)
 from app.architecture_intelligence.broker_contracts import (
     ArchitectureAnswerV06,
     EvidenceDataV06,
@@ -68,6 +72,9 @@ DESTINATION_ANSWER_SCHEMA_PATH = (
     _DESTINATION_SCHEMA_DIR / "destination-consumers-answer.schema.json"
 )
 # v0.6.1 I2a: the Broker-aware pair lives beside the locality pair; the v0.5 files are immutable.
+_BINDING_SCHEMA_DIR = _SCHEMA_DIR.parent / "v0.8"
+BINDING_REQUEST_SCHEMA_PATH = _BINDING_SCHEMA_DIR / "binding-picture-request.schema.json"
+BINDING_ANSWER_SCHEMA_PATH = _BINDING_SCHEMA_DIR / "binding-picture-answer.schema.json"
 BROKER_DEPENDENCIES_SCHEMA_PATH = _LOCALITY_SCHEMA_DIR / "architecture-answer.schema.json"
 BROKER_EVIDENCE_SCHEMA_PATH = _LOCALITY_SCHEMA_DIR / "evidence-answer.schema.json"
 
@@ -114,6 +121,22 @@ def generate_destination_request_schema() -> dict[str, Any]:
 
 def generate_destination_answer_schema() -> dict[str, Any]:
     return DestinationConsumersAnswer.model_json_schema()
+
+
+def generate_binding_request_schema() -> dict[str, Any]:
+    return BindingPictureRequest.model_json_schema()
+
+
+def generate_binding_answer_schema() -> dict[str, Any]:
+    return BindingPictureAnswer.model_json_schema()
+
+
+def render_binding_request_schema() -> str:
+    return _render(generate_binding_request_schema())
+
+
+def render_binding_answer_schema() -> str:
+    return _render(generate_binding_answer_schema())
 
 
 def _render(schema: dict[str, Any]) -> str:
@@ -180,6 +203,9 @@ def main() -> None:
     DESTINATION_ANSWER_SCHEMA_PATH.write_text(render_destination_answer_schema())
     BROKER_DEPENDENCIES_SCHEMA_PATH.write_text(render_broker_dependencies_schema())
     BROKER_EVIDENCE_SCHEMA_PATH.write_text(render_broker_evidence_schema())
+    _BINDING_SCHEMA_DIR.mkdir(parents=True, exist_ok=True)
+    BINDING_REQUEST_SCHEMA_PATH.write_text(render_binding_request_schema())
+    BINDING_ANSWER_SCHEMA_PATH.write_text(render_binding_answer_schema())
 
 
 if __name__ == "__main__":

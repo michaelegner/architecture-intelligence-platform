@@ -66,7 +66,7 @@ def directory(source_id: str, root: Path) -> FilesystemSourceConfig:
 def answer(driver, **request) -> dict:
     service = ArchitectureIntelligenceService(driver, database=DATABASE, producer=PRODUCER)
     query = BindingPictureQueryRequest(
-        bounded_context_id="catalog-management", environment=ENV, **request
+        mode="query", bounded_context_id="catalog-management", environment=ENV, **request
     )
     return service.get_binding_picture(query).model_dump(mode="json")
 

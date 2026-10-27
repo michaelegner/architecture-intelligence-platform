@@ -1,0 +1,1270 @@
+{
+  "$defs": {
+    "AssessmentReason": {
+      "enum": [
+        "PROMISE_COVERAGE_MISSING",
+        "TOPIC_NOT_DECLARED",
+        "NO_MAPPING",
+        "SERVICE_NOT_DECLARED",
+        "SERVICE_IDENTITY_AMBIGUOUS",
+        "SERVICE_IDENTITY_CONFLICT",
+        "SERVICE_IDENTITY_PLACEHOLDER",
+        "MAPPING_SOURCE_DISAGREEMENT"
+      ],
+      "title": "AssessmentReason",
+      "type": "string"
+    },
+    "AssessmentStatus": {
+      "description": "D10: the closed doctrine \u00a74.3 enum. v0.8 never emits `CONTRADICTED` (no closed-world rule)\nor `OBSERVED_NOT_PROMISED` (no promise coverage).",
+      "enum": [
+        "PROMISED_AND_OBSERVED",
+        "PROMISED_NOT_OBSERVED",
+        "CONTRADICTED",
+        "OBSERVED_NOT_PROMISED",
+        "UNRESOLVED"
+      ],
+      "title": "AssessmentStatus",
+      "type": "string"
+    },
+    "AttachmentEvidence": {
+      "additionalProperties": false,
+      "description": "The broker path: group G attached to the queried Topic at T, from one accepted capture. No\nmember, client or host text exists in AIP state, so none can appear here.",
+      "properties": {
+        "capture_content_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Capture Content Sha256",
+          "type": "string"
+        },
+        "capture_source_instance_id": {
+          "pattern": "^urn:aip:source:kafka-consumer-state:[0-9a-f]{64}$",
+          "title": "Capture Source Instance Id",
+          "type": "string"
+        },
+        "capture_source_revision": {
+          "minLength": 1,
+          "title": "Capture Source Revision",
+          "type": "string"
+        },
+        "captured_at": {
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]+)?Z$",
+          "title": "Captured At",
+          "type": "string"
+        },
+        "consumer_id": {
+          "pattern": "^consumer:[0-9a-f]{64}$",
+          "title": "Consumer Id",
+          "type": "string"
+        },
+        "group_id": {
+          "minLength": 1,
+          "title": "Group Id",
+          "type": "string"
+        },
+        "kind": {
+          "const": "KAFKA_ATTACHMENT",
+          "title": "Kind",
+          "type": "string"
+        },
+        "topic_id": {
+          "description": "Exact canonical Kafka Topic id (`topic:owned:\u2026`), not a topic name.",
+          "maxLength": 512,
+          "minLength": 1,
+          "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+          "title": "Topic Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "consumer_id",
+        "group_id",
+        "topic_id",
+        "captured_at",
+        "capture_source_instance_id",
+        "capture_source_revision",
+        "capture_content_sha256"
+      ],
+      "title": "AttachmentEvidence",
+      "type": "object"
+    },
+    "AttributionReason": {
+      "description": "The I2 reasons, unrenamed.",
+      "enum": [
+        "SERVICE_IDENTITY_CONFLICT",
+        "MAPPING_SOURCE_DISAGREEMENT",
+        "SERVICE_IDENTITY_AMBIGUOUS",
+        "SERVICE_NOT_DECLARED",
+        "SERVICE_IDENTITY_PLACEHOLDER",
+        "NO_MAPPING"
+      ],
+      "title": "AttributionReason",
+      "type": "string"
+    },
+    "BindingEvidenceKind": {
+      "enum": [
+        "CATALOG_PROMISE",
+        "KAFKA_ATTACHMENT",
+        "KAFKA_SERVICE_MAPPING"
+      ],
+      "title": "BindingEvidenceKind",
+      "type": "string"
+    },
+    "BindingPictureData": {
+      "additionalProperties": false,
+      "properties": {
+        "capture_sources": {
+          "items": {
+            "$ref": "#/$defs/CaptureSource"
+          },
+          "title": "Capture Sources",
+          "type": "array"
+        },
+        "catalog_source": {
+          "$ref": "#/$defs/CatalogSource"
+        },
+        "page": {
+          "$ref": "#/$defs/Page"
+        },
+        "request_context": {
+          "$ref": "#/$defs/RequestContext"
+        },
+        "rows": {
+          "items": {
+            "$ref": "#/$defs/BindingRow"
+          },
+          "title": "Rows",
+          "type": "array"
+        }
+      },
+      "required": [
+        "request_context",
+        "catalog_source",
+        "capture_sources",
+        "rows",
+        "page"
+      ],
+      "title": "BindingPictureData",
+      "type": "object"
+    },
+    "BindingPictureEvidenceData": {
+      "additionalProperties": false,
+      "properties": {
+        "entries": {
+          "items": {
+            "$ref": "#/$defs/EvidenceEntry"
+          },
+          "maxItems": 20,
+          "minItems": 1,
+          "title": "Entries",
+          "type": "array",
+          "uniqueItems": true
+        },
+        "request_context": {
+          "$ref": "#/$defs/RequestContext"
+        }
+      },
+      "required": [
+        "request_context",
+        "entries"
+      ],
+      "title": "BindingPictureEvidenceData",
+      "type": "object"
+    },
+    "BindingRow": {
+      "additionalProperties": false,
+      "properties": {
+        "attachment_evidence_refs": {
+          "items": {
+            "pattern": "^binding-evidence:[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "title": "Attachment Evidence Refs",
+          "type": "array",
+          "uniqueItems": true
+        },
+        "broker_id": {
+          "title": "Broker Id",
+          "type": "string"
+        },
+        "captured_at": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Captured At"
+        },
+        "consumer_service_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Consumer Service Id"
+        },
+        "cross_broker_producers": {
+          "title": "Cross Broker Producers",
+          "type": "boolean"
+        },
+        "crossing": {
+          "$ref": "#/$defs/Crossing"
+        },
+        "declared_event_types": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Declared Event Types",
+          "type": "array"
+        },
+        "group_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Group Ids",
+          "type": "array",
+          "uniqueItems": true
+        },
+        "mapping_evidence_refs": {
+          "items": {
+            "pattern": "^binding-evidence:[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "title": "Mapping Evidence Refs",
+          "type": "array",
+          "uniqueItems": true
+        },
+        "producers": {
+          "items": {
+            "$ref": "#/$defs/ProducerEntry"
+          },
+          "title": "Producers",
+          "type": "array"
+        },
+        "promise_evidence_refs": {
+          "items": {
+            "pattern": "^binding-evidence:[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "title": "Promise Evidence Refs",
+          "type": "array",
+          "uniqueItems": true
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AssessmentReason"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "status": {
+          "$ref": "#/$defs/AssessmentStatus"
+        },
+        "topic_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Topic Id"
+        },
+        "topic_name": {
+          "title": "Topic Name",
+          "type": "string"
+        }
+      },
+      "required": [
+        "broker_id",
+        "topic_name",
+        "group_ids",
+        "crossing",
+        "status",
+        "declared_event_types",
+        "producers",
+        "cross_broker_producers",
+        "promise_evidence_refs",
+        "attachment_evidence_refs",
+        "mapping_evidence_refs"
+      ],
+      "title": "BindingRow",
+      "type": "object"
+    },
+    "CaptureSource": {
+      "additionalProperties": false,
+      "properties": {
+        "broker_id": {
+          "title": "Broker Id",
+          "type": "string"
+        },
+        "captured_at": {
+          "title": "Captured At",
+          "type": "string"
+        },
+        "source_instance_id": {
+          "title": "Source Instance Id",
+          "type": "string"
+        },
+        "source_revision": {
+          "title": "Source Revision",
+          "type": "string"
+        }
+      },
+      "required": [
+        "broker_id",
+        "source_instance_id",
+        "captured_at",
+        "source_revision"
+      ],
+      "title": "CaptureSource",
+      "type": "object"
+    },
+    "CatalogSource": {
+      "additionalProperties": false,
+      "properties": {
+        "catalog_digest": {
+          "title": "Catalog Digest",
+          "type": "string"
+        },
+        "lookup_digest": {
+          "title": "Lookup Digest",
+          "type": "string"
+        },
+        "source_instance_id": {
+          "pattern": "^urn:aip:source:event-catalog:[0-9a-f]{64}$",
+          "title": "Source Instance Id",
+          "type": "string"
+        },
+        "source_revision": {
+          "title": "Source Revision",
+          "type": "string"
+        }
+      },
+      "required": [
+        "source_instance_id",
+        "catalog_digest",
+        "lookup_digest",
+        "source_revision"
+      ],
+      "title": "CatalogSource",
+      "type": "object"
+    },
+    "Crossing": {
+      "description": "I2 \u00a75 (D9): classification against the selected Bounded Context. It never states delivery.",
+      "enum": [
+        "INBOUND",
+        "INSIDE",
+        "OUTBOUND",
+        "NONE",
+        "UNRESOLVED"
+      ],
+      "title": "Crossing",
+      "type": "string"
+    },
+    "EvidenceEntry": {
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "else": {
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "kind"
+                  ]
+                },
+                {
+                  "required": [
+                    "evidence"
+                  ]
+                }
+              ]
+            }
+          },
+          "if": {
+            "properties": {
+              "status": {
+                "const": "RESOLVED"
+              }
+            },
+            "required": [
+              "status"
+            ]
+          },
+          "then": {
+            "required": [
+              "kind",
+              "evidence"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "CATALOG_PROMISE"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "properties": {
+              "evidence": {
+                "properties": {
+                  "kind": {
+                    "const": "CATALOG_PROMISE"
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "KAFKA_ATTACHMENT"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "properties": {
+              "evidence": {
+                "properties": {
+                  "kind": {
+                    "const": "KAFKA_ATTACHMENT"
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "KAFKA_SERVICE_MAPPING"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "properties": {
+              "evidence": {
+                "properties": {
+                  "kind": {
+                    "const": "KAFKA_SERVICE_MAPPING"
+                  }
+                }
+              }
+            }
+          }
+        }
+      ],
+      "description": "One requested ref. Forged, cross-context and stale refs are all `NOT_RESOLVED`.",
+      "properties": {
+        "evidence": {
+          "anyOf": [
+            {
+              "discriminator": {
+                "mapping": {
+                  "CATALOG_PROMISE": "#/$defs/PromiseEvidence",
+                  "KAFKA_ATTACHMENT": "#/$defs/AttachmentEvidence",
+                  "KAFKA_SERVICE_MAPPING": "#/$defs/MappingEvidence"
+                },
+                "propertyName": "kind"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/PromiseEvidence"
+                },
+                {
+                  "$ref": "#/$defs/AttachmentEvidence"
+                },
+                {
+                  "$ref": "#/$defs/MappingEvidence"
+                }
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Evidence"
+        },
+        "kind": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/BindingEvidenceKind"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "ref": {
+          "pattern": "^binding-evidence:[0-9a-f]{64}$",
+          "title": "Ref",
+          "type": "string"
+        },
+        "status": {
+          "$ref": "#/$defs/EvidenceStatus"
+        }
+      },
+      "required": [
+        "ref",
+        "status"
+      ],
+      "title": "EvidenceEntry",
+      "type": "object"
+    },
+    "EvidenceStatus": {
+      "enum": [
+        "RESOLVED",
+        "NOT_RESOLVED"
+      ],
+      "title": "EvidenceStatus",
+      "type": "string"
+    },
+    "Limitation": {
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "$ref": "#/$defs/LimitationCode"
+        },
+        "message": {
+          "minLength": 1,
+          "title": "Message",
+          "type": "string"
+        }
+      },
+      "required": [
+        "code",
+        "message"
+      ],
+      "title": "Limitation",
+      "type": "object"
+    },
+    "LimitationCode": {
+      "description": "I2 \u00a76: refusals and limitations of the binding-picture answer.",
+      "enum": [
+        "SNAPSHOT_NOT_AVAILABLE",
+        "NO_ACCEPTED_CATALOG",
+        "UNKNOWN_BOUNDED_CONTEXT",
+        "NO_ACCEPTED_CAPTURE",
+        "CURSOR_QUERY_MISMATCH",
+        "CAPTURE_SCOPE_LIMITED",
+        "PROMISES_ASSUMED_CONFIRMED",
+        "PRODUCER_SIDE_DECLARED_ONLY",
+        "EVENT_HANDLING_NOT_ESTABLISHED",
+        "CROSS_BROKER_DELIVERY_NOT_ESTABLISHED",
+        "MORE_ROWS_AVAILABLE",
+        "EVIDENCE_REF_NOT_RESOLVED"
+      ],
+      "title": "LimitationCode",
+      "type": "string"
+    },
+    "MappingEvidence": {
+      "additionalProperties": false,
+      "description": "The mapping path: one accepted mapping entry for group G, as written by the operator, and the\nentry's own reading in this snapshot (a declared Service id, or the reason it has none).",
+      "oneOf": [
+        {
+          "required": [
+            "service_id"
+          ]
+        },
+        {
+          "required": [
+            "reason"
+          ]
+        }
+      ],
+      "properties": {
+        "artifact_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Artifact Sha256",
+          "type": "string"
+        },
+        "consumer_id": {
+          "pattern": "^consumer:[0-9a-f]{64}$",
+          "title": "Consumer Id",
+          "type": "string"
+        },
+        "group_id": {
+          "minLength": 1,
+          "title": "Group Id",
+          "type": "string"
+        },
+        "kind": {
+          "const": "KAFKA_SERVICE_MAPPING",
+          "title": "Kind",
+          "type": "string"
+        },
+        "mapping_source_instance_id": {
+          "pattern": "^urn:aip:source:kafka-service-mapping:[0-9a-f]{64}$",
+          "title": "Mapping Source Instance Id",
+          "type": "string"
+        },
+        "mapping_source_revision": {
+          "minLength": 1,
+          "title": "Mapping Source Revision",
+          "type": "string"
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AttributionReason"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "service_id": {
+          "anyOf": [
+            {
+              "pattern": "^service:[^\\s\\x00-\\x1f\\x7f]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Service Id"
+        },
+        "service_name": {
+          "minLength": 1,
+          "title": "Service Name",
+          "type": "string"
+        },
+        "service_namespace": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Service Namespace"
+        }
+      },
+      "required": [
+        "kind",
+        "consumer_id",
+        "group_id",
+        "service_name",
+        "mapping_source_instance_id",
+        "mapping_source_revision",
+        "artifact_sha256"
+      ],
+      "title": "MappingEvidence",
+      "type": "object"
+    },
+    "Outcome": {
+      "enum": [
+        "ANSWERED",
+        "PARTIAL",
+        "NOT_ANSWERED"
+      ],
+      "title": "Outcome",
+      "type": "string"
+    },
+    "Page": {
+      "additionalProperties": false,
+      "properties": {
+        "limit": {
+          "title": "Limit",
+          "type": "integer"
+        },
+        "next_cursor": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Next Cursor"
+        },
+        "returned": {
+          "title": "Returned",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "limit",
+        "returned"
+      ],
+      "title": "Page",
+      "type": "object"
+    },
+    "Producer": {
+      "additionalProperties": false,
+      "properties": {
+        "build_revision": {
+          "title": "Build Revision",
+          "type": "string"
+        },
+        "name": {
+          "const": "architecture-intelligence-platform",
+          "title": "Name",
+          "type": "string"
+        },
+        "version": {
+          "title": "Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "version",
+        "build_revision"
+      ],
+      "title": "Producer",
+      "type": "object"
+    },
+    "ProducerEntry": {
+      "additionalProperties": false,
+      "properties": {
+        "bounded_context_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Bounded Context Id"
+        },
+        "broker_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Broker Ids",
+          "type": "array"
+        },
+        "declared_event_types": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Declared Event Types",
+          "type": "array"
+        },
+        "service_id": {
+          "title": "Service Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "service_id",
+        "broker_ids",
+        "declared_event_types"
+      ],
+      "title": "ProducerEntry",
+      "type": "object"
+    },
+    "PromiseEvidence": {
+      "additionalProperties": false,
+      "description": "The promise path (I2 \u00a76): one catalog promise, the lookup step that turns its event into a\ntopic, and the catalog source. It shows how a declared promise becomes a candidate binding; it\nnever shows that an event type is handled.",
+      "properties": {
+        "catalog_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Catalog Digest",
+          "type": "string"
+        },
+        "catalog_source_instance_id": {
+          "pattern": "^urn:aip:source:event-catalog:[0-9a-f]{64}$",
+          "title": "Catalog Source Instance Id",
+          "type": "string"
+        },
+        "direction": {
+          "enum": [
+            "SENDS",
+            "RECEIVES"
+          ],
+          "title": "Direction",
+          "type": "string"
+        },
+        "event_id": {
+          "title": "Event Id",
+          "type": "string"
+        },
+        "event_version": {
+          "title": "Event Version",
+          "type": "string"
+        },
+        "file": {
+          "title": "File",
+          "type": "string"
+        },
+        "kind": {
+          "const": "CATALOG_PROMISE",
+          "title": "Kind",
+          "type": "string"
+        },
+        "lookup_commit": {
+          "title": "Lookup Commit",
+          "type": "string"
+        },
+        "lookup_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Lookup Digest",
+          "type": "string"
+        },
+        "lookup_path": {
+          "title": "Lookup Path",
+          "type": "string"
+        },
+        "lookup_repository": {
+          "title": "Lookup Repository",
+          "type": "string"
+        },
+        "service_name": {
+          "title": "Service Name",
+          "type": "string"
+        },
+        "source_revision": {
+          "title": "Source Revision",
+          "type": "string"
+        },
+        "topic": {
+          "title": "Topic",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "catalog_source_instance_id",
+        "catalog_digest",
+        "lookup_digest",
+        "source_revision",
+        "file",
+        "service_name",
+        "direction",
+        "event_id",
+        "event_version",
+        "topic",
+        "lookup_repository",
+        "lookup_commit",
+        "lookup_path"
+      ],
+      "title": "PromiseEvidence",
+      "type": "object"
+    },
+    "RequestContext": {
+      "additionalProperties": false,
+      "description": "The exact query context after defaults: the broker ids are the requested ones, or every\nbroker with an accepted capture in the environment. The cursor and every ref bind it.",
+      "properties": {
+        "bounded_context_id": {
+          "maxLength": 256,
+          "minLength": 1,
+          "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+          "title": "Bounded Context Id",
+          "type": "string"
+        },
+        "broker_ids": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 8,
+          "minItems": 1,
+          "title": "Broker Ids",
+          "type": "array",
+          "uniqueItems": true
+        },
+        "environment": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+          "title": "Environment",
+          "type": "string"
+        }
+      },
+      "required": [
+        "bounded_context_id",
+        "environment",
+        "broker_ids"
+      ],
+      "title": "RequestContext",
+      "type": "object"
+    },
+    "SnapshotRef": {
+      "additionalProperties": false,
+      "properties": {
+        "model_revision": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Model Revision",
+          "type": "string"
+        },
+        "snapshot_id": {
+          "pattern": "^aip:snapshot:v1:[0-9a-f]{64}$",
+          "title": "Snapshot Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "snapshot_id",
+        "model_revision"
+      ],
+      "title": "SnapshotRef",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "data": {
+            "type": "null"
+          }
+        },
+        "required": [
+          "data"
+        ]
+      },
+      "then": {
+        "properties": {
+          "limitations": {
+            "maxItems": 1,
+            "minItems": 1
+          },
+          "outcome": {
+            "const": "NOT_ANSWERED"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "data": {
+            "type": "object"
+          },
+          "mode": {
+            "const": "query"
+          }
+        },
+        "required": [
+          "mode",
+          "data"
+        ]
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "required": [
+              "rows"
+            ]
+          },
+          "outcome": {
+            "const": "PARTIAL"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "data": {
+            "type": "null"
+          }
+        },
+        "required": [
+          "data"
+        ]
+      },
+      "then": {
+        "properties": {
+          "limitations": {
+            "items": {
+              "properties": {
+                "code": {
+                  "enum": [
+                    "CURSOR_QUERY_MISMATCH",
+                    "NO_ACCEPTED_CAPTURE",
+                    "NO_ACCEPTED_CATALOG",
+                    "SNAPSHOT_NOT_AVAILABLE",
+                    "UNKNOWN_BOUNDED_CONTEXT"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "snapshot": {
+            "type": "null"
+          }
+        },
+        "required": [
+          "snapshot"
+        ]
+      },
+      "then": {
+        "properties": {
+          "limitations": {
+            "contains": {
+              "properties": {
+                "code": {
+                  "const": "SNAPSHOT_NOT_AVAILABLE"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "data": {
+            "type": "object"
+          },
+          "mode": {
+            "const": "evidence"
+          }
+        },
+        "required": [
+          "mode",
+          "data"
+        ]
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "required": [
+              "entries"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "mode": {
+            "const": "evidence"
+          },
+          "outcome": {
+            "const": "ANSWERED"
+          }
+        },
+        "required": [
+          "mode",
+          "outcome"
+        ]
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "properties": {
+              "entries": {
+                "items": {
+                  "properties": {
+                    "status": {
+                      "const": "RESOLVED"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "limitations": {
+            "maxItems": 0
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "data": {
+            "type": "object"
+          },
+          "mode": {
+            "const": "evidence"
+          },
+          "outcome": {
+            "const": "NOT_ANSWERED"
+          }
+        },
+        "required": [
+          "mode",
+          "outcome",
+          "data"
+        ]
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "properties": {
+              "entries": {
+                "items": {
+                  "properties": {
+                    "status": {
+                      "const": "NOT_RESOLVED"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "mode": {
+            "const": "evidence"
+          },
+          "outcome": {
+            "const": "PARTIAL"
+          }
+        },
+        "required": [
+          "mode",
+          "outcome"
+        ]
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "properties": {
+              "entries": {
+                "allOf": [
+                  {
+                    "contains": {
+                      "properties": {
+                        "status": {
+                          "const": "RESOLVED"
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "contains": {
+                      "properties": {
+                        "status": {
+                          "const": "NOT_RESOLVED"
+                        }
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "description": "The envelope. `data` is null if and only if the answer is a refusal. An evaluated query is\nalways `PARTIAL`: captures cover their allow-lists at their own T, and the promises are assumed\nconfirmed, so no answer claims completeness. An evaluated evidence answer is `ANSWERED` when\nevery ref resolved, `PARTIAL` when some did and `NOT_ANSWERED` when none did.\n\nSortedness, which JSON Schema cannot state, is part of the contract: rows by `broker_id`,\n`topic_name` and consumer; every ref list, `group_ids` and `broker_ids` ascending; evidence\nentries in request order; limitations by code.",
+  "properties": {
+    "data": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/BindingPictureData"
+        },
+        {
+          "$ref": "#/$defs/BindingPictureEvidenceData"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Data"
+    },
+    "limitations": {
+      "items": {
+        "$ref": "#/$defs/Limitation"
+      },
+      "title": "Limitations",
+      "type": "array",
+      "uniqueItems": true
+    },
+    "mode": {
+      "enum": [
+        "query",
+        "evidence"
+      ],
+      "title": "Mode",
+      "type": "string"
+    },
+    "outcome": {
+      "$ref": "#/$defs/Outcome"
+    },
+    "producer": {
+      "$ref": "#/$defs/Producer"
+    },
+    "schema_version": {
+      "const": "0.8.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "snapshot": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/SnapshotRef"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "tool": {
+      "const": "get_binding_picture",
+      "title": "Tool",
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "producer",
+    "tool",
+    "mode",
+    "outcome",
+    "snapshot",
+    "data",
+    "limitations"
+  ],
+  "title": "BindingPictureAnswer",
+  "type": "object"
+}

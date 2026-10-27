@@ -296,6 +296,34 @@ none can be returned.
 The REST parity routes are `POST /api/destination-consumers` and
 `POST /api/destination-consumers/evidence`, with the same closed-body rules as the API usage routes.
 
+## `get_binding_picture` (experimental, v0.8 I2)
+
+An experimental seventh tool. It exists only when `config.yaml` sets:
+
+```yaml
+architecture_intelligence:
+  experimental:
+    binding-picture: true
+```
+
+Off (the default), `tools/list`, REST and every answer are unchanged, and the six tools above are
+the whole surface. On, the app builds its own MCP server, which lists `get_binding_picture` in
+lexicographic order and adds `POST /api/binding-picture` and `POST /api/binding-picture/evidence`.
+
+- **Query** (`mode: "query"`): `bounded_context_id` (a catalog domain id, such as
+  `catalog-management`), `environment`, and optional `broker_ids` (declared broker ids). Each row is
+  one consumer Service × Topic × broker:
+  - its crossing: `INBOUND`, `INSIDE`, `OUTBOUND`, `NONE` or `UNRESOLVED`;
+  - its status: `PROMISED_AND_OBSERVED`, `PROMISED_NOT_OBSERVED`, or `UNRESOLVED` with a reason
+    such as `PROMISE_COVERAGE_MISSING`;
+  - the declared producers and evidence refs.
+- **Evidence** (`mode: "evidence"`): resolves the answer's `binding-evidence:` refs at the same
+  snapshot. The promise path also shows the event → topic lookup entry.
+- **Limits:** an attachment is not event handling, producers are declared only, and delivery
+  between brokers is never established (`CROSS_BROKER_DELIVERY_NOT_ESTABLISHED`).
+- **Contract:** the frozen schemas are in `schemas/architecture_intelligence/v0.8/`. The semantics
+  are experimental and not a v1.0 contract. See `docs/specifications/0.8.0/i2-assessment-projection-and-tool.md`.
+
 ## Connecting a negotiated client
 
 A standard MCP client — the kind a mainstream coding-agent tool ships out of the box, or a hand-

@@ -150,6 +150,13 @@ class MCPConfig(_ConfigModel):
     )
 
 
+class ExperimentalConfig(_ConfigModel):
+    """v0.8 I2 D11: experimental capabilities, all off by default. `binding-picture` registers the
+    `get_binding_picture` MCP tool and its REST routes; off, every public surface is unchanged."""
+
+    binding_picture: bool = Field(default=False, alias="binding-picture")
+
+
 class AppConfig(_ConfigModel):
     sources: SourcesConfig = Field(default_factory=SourcesConfig)
     graph: GraphConfig = Field(default_factory=GraphConfig)
@@ -159,6 +166,7 @@ class AppConfig(_ConfigModel):
     telemetry: TelemetryConfig = Field(default_factory=TelemetryConfig)
     runtime_analysis: RuntimeAnalysisConfig = Field(default_factory=RuntimeAnalysisConfig)
     mcp: MCPConfig = Field(default_factory=MCPConfig)
+    experimental: ExperimentalConfig = Field(default_factory=ExperimentalConfig)
 
 
 class Secrets(BaseModel):

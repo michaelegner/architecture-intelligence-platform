@@ -5,6 +5,7 @@
       "description": "`mode: \"evidence\"` (spec \u00a74): the exact snapshot, the same query context and 1-20 refs. The\nservice rebuilds the ref map of that context at that snapshot; there is no ref history.",
       "properties": {
         "broker_id": {
+          "description": "Declared broker id (`x-aip-broker-id`, e.g. `kafka:cluster-a`), not a bootstrap address.",
           "maxLength": 256,
           "minLength": 1,
           "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
@@ -12,6 +13,7 @@
           "type": "string"
         },
         "destination_id": {
+          "description": "Exact canonical Kafka Topic id (`topic:owned:\u2026`), not a topic name.",
           "maxLength": 512,
           "minLength": 1,
           "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
@@ -63,6 +65,7 @@
       "description": "`mode: \"query\"` (spec \u00a72).",
       "properties": {
         "broker_id": {
+          "description": "Declared broker id (`x-aip-broker-id`, e.g. `kafka:cluster-a`), not a bootstrap address.",
           "maxLength": 256,
           "minLength": 1,
           "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
@@ -85,6 +88,7 @@
           "title": "Cursor"
         },
         "destination_id": {
+          "description": "Exact canonical Kafka Topic id (`topic:owned:\u2026`), not a topic name.",
           "maxLength": 512,
           "minLength": 1,
           "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",

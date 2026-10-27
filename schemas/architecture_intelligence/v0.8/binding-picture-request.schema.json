@@ -1,0 +1,171 @@
+{
+  "$defs": {
+    "BindingPictureEvidenceRequest": {
+      "additionalProperties": false,
+      "description": "`mode: \"evidence\"` (I2 \u00a76): the exact snapshot, the same query context and 1-20 sorted,\nunique refs. The service rebuilds that context's ref map at that snapshot; no ref history.",
+      "properties": {
+        "bounded_context_id": {
+          "maxLength": 256,
+          "minLength": 1,
+          "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+          "title": "Bounded Context Id",
+          "type": "string"
+        },
+        "broker_ids": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "maxItems": 8,
+              "minItems": 1,
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Broker Ids",
+          "uniqueItems": true
+        },
+        "environment": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+          "title": "Environment",
+          "type": "string"
+        },
+        "evidence_refs": {
+          "items": {
+            "pattern": "^binding-evidence:[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "maxItems": 20,
+          "minItems": 1,
+          "title": "Evidence Refs",
+          "type": "array",
+          "uniqueItems": true
+        },
+        "mode": {
+          "const": "evidence",
+          "title": "Mode",
+          "type": "string"
+        },
+        "snapshot_id": {
+          "pattern": "^aip:snapshot:v1:[0-9a-f]{64}$",
+          "title": "Snapshot Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "mode",
+        "snapshot_id",
+        "bounded_context_id",
+        "environment",
+        "evidence_refs"
+      ],
+      "title": "BindingPictureEvidenceRequest",
+      "type": "object"
+    },
+    "BindingPictureQueryRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "bounded_context_id": {
+          "maxLength": 256,
+          "minLength": 1,
+          "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+          "title": "Bounded Context Id",
+          "type": "string"
+        },
+        "broker_ids": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "maxItems": 8,
+              "minItems": 1,
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Broker Ids",
+          "uniqueItems": true
+        },
+        "cursor": {
+          "anyOf": [
+            {
+              "maxLength": 2048,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Cursor"
+        },
+        "environment": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[^\\s\\x00-\\x1f\\x7f]+$",
+          "title": "Environment",
+          "type": "string"
+        },
+        "limit": {
+          "default": 100,
+          "maximum": 200,
+          "minimum": 1,
+          "title": "Limit",
+          "type": "integer"
+        },
+        "mode": {
+          "const": "query",
+          "title": "Mode",
+          "type": "string"
+        },
+        "snapshot_id": {
+          "anyOf": [
+            {
+              "pattern": "^aip:snapshot:v1:[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Snapshot Id"
+        }
+      },
+      "required": [
+        "mode",
+        "bounded_context_id",
+        "environment"
+      ],
+      "title": "BindingPictureQueryRequest",
+      "type": "object"
+    }
+  },
+  "description": "The single MCP `request` argument: one of the two modes, discriminated on `mode`.",
+  "discriminator": {
+    "mapping": {
+      "evidence": "#/$defs/BindingPictureEvidenceRequest",
+      "query": "#/$defs/BindingPictureQueryRequest"
+    },
+    "propertyName": "mode"
+  },
+  "oneOf": [
+    {
+      "$ref": "#/$defs/BindingPictureQueryRequest"
+    },
+    {
+      "$ref": "#/$defs/BindingPictureEvidenceRequest"
+    }
+  ],
+  "title": "BindingPictureRequest"
+}

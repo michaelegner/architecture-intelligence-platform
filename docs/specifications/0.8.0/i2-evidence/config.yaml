@@ -35,3 +35,6 @@ architecture_intelligence:
     architecture_manifest: true
   llm:
     enabled: false
+  # v0.8 I2 D11: the experimental get_binding_picture tool and its REST routes.
+  experimental:
+    binding-picture: true

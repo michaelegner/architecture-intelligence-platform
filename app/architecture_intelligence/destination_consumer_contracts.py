@@ -137,11 +137,29 @@ _UNIQUE: JsonDict = {"uniqueItems": True}
 _Timestamp = Annotated[str, Field(pattern=_TIMESTAMP_PATTERN)]
 _ConsumerId = Annotated[str, Field(pattern=_CONSUMER_ID_PATTERN)]
 _EvidenceRef = Annotated[str, Field(pattern=_EVIDENCE_REF_PATTERN)]
+# v0.8 I2c (I2 spec §7, B8): the only change to this frozen v0.7.1 contract - two descriptions that
+# name the identifier each field expects.
+DESTINATION_ID_DESCRIPTION = "Exact canonical Kafka Topic id (`topic:owned:…`), not a topic name."
+BROKER_ID_DESCRIPTION = (
+    "Declared broker id (`x-aip-broker-id`, e.g. `kafka:cluster-a`), not a bootstrap address."
+)
 _DestinationId = Annotated[
-    str, Field(min_length=1, max_length=_MAX_ID_LENGTH, pattern=_OPAQUE_ID_PATTERN)
+    str,
+    Field(
+        min_length=1,
+        max_length=_MAX_ID_LENGTH,
+        pattern=_OPAQUE_ID_PATTERN,
+        description=DESTINATION_ID_DESCRIPTION,
+    ),
 ]
 _BrokerId = Annotated[
-    str, Field(min_length=1, max_length=_MAX_BROKER_ID_LENGTH, pattern=_OPAQUE_ID_PATTERN)
+    str,
+    Field(
+        min_length=1,
+        max_length=_MAX_BROKER_ID_LENGTH,
+        pattern=_OPAQUE_ID_PATTERN,
+        description=BROKER_ID_DESCRIPTION,
+    ),
 ]
 _Environment = Annotated[
     str, Field(min_length=1, max_length=_MAX_ENVIRONMENT_LENGTH, pattern=ENVIRONMENT_PATTERN)

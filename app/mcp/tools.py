@@ -49,6 +49,14 @@ from app.architecture_intelligence.api_usage_contracts import (
     ApiConsumerUsageQueryRequest,
     ApiConsumerUsageRequest,
 )
+from app.architecture_intelligence.binding_picture_contracts import (
+    TOOL_NAME as BINDING_PICTURE_TOOL_NAME,
+)
+from app.architecture_intelligence.binding_picture_contracts import (
+    BindingPictureAnswer,
+    BindingPictureQueryRequest,
+    BindingPictureRequest,
+)
 from app.architecture_intelligence.broker_contracts import EvidenceAnswer, ServiceDependenciesAnswer
 from app.architecture_intelligence.contracts import (
     TOOL_NAMES,
@@ -91,6 +99,7 @@ def register_tools(
     server: MCPServer,
     *,
     get_service: Callable[[], ArchitectureIntelligenceService] = wiring.get_service,
+    binding_picture: bool = False,
 ) -> None:
     """Registration order IS `tools/list` order - confirmed live that the SDK reports tools in
     registration order, not sorted. I3 spec §24 requires lexicographic order: since v0.7.0 I3.3
@@ -147,6 +156,35 @@ def register_tools(
         """
         _reject_malformed_observation_context(request.observation_context)
         return get_service().get_architecture_drift(request)
+
+    if binding_picture:
+        # v0.8 I2 D11: the experimental seventh tool, only with `experimental.binding-picture`.
+        # Registered here so `tools/list` stays in lexicographic order.
+        @server.tool(
+            name=BINDING_PICTURE_TOOL_NAME,
+            description=(
+                "EXPERIMENTAL (v0.8). The binding picture of one Bounded Context: for each "
+                "consumer Service x Topic x broker, whether the binding crosses the context "
+                "(INBOUND, INSIDE, OUTBOUND, NONE, UNRESOLVED), whether a catalog promise covers "
+                "it, and what the broker capture establishes (PROMISED_AND_OBSERVED, "
+                "PROMISED_NOT_OBSERVED, or UNRESOLVED with a reason such as "
+                "PROMISE_COVERAGE_MISSING for an observed, undeclared binding). An attachment is "
+                "not event handling, producers are declared only, and delivery between brokers is "
+                "never established. bounded_context_id is a catalog domain id such as "
+                "catalog-management; broker_ids are declared broker ids (x-aip-broker-id, such as "
+                'kafka:...), not bootstrap addresses. With request.mode "evidence", the same tool '
+                "resolves sorted, duplicate-free evidence refs from such an answer at the supplied "
+                "snapshot."
+            ),
+            annotations=_READ_ONLY_ANNOTATIONS,
+        )
+        def get_binding_picture(request: BindingPictureRequest) -> BindingPictureAnswer:
+            """v0.8 I2c (I2 spec §7): constructs no new semantics. It dispatches on `request.mode` to
+            exactly one service method and returns that answer unchanged as `structuredContent`."""
+            parsed = request.root
+            if isinstance(parsed, BindingPictureQueryRequest):
+                return get_service().get_binding_picture(parsed)
+            return get_service().get_binding_picture_evidence(parsed)
 
     @server.tool(
         name=DESTINATION_CONSUMERS_TOOL_NAME,
@@ -291,6 +329,9 @@ def register_tools(
     _reject_unexpected_arguments(server, LOCALITY_TOOL_NAME)
     _reject_unexpected_arguments(server, API_USAGE_TOOL_NAME)
     _reject_unexpected_arguments(server, DESTINATION_CONSUMERS_TOOL_NAME)
+    if binding_picture:
+        _close_input_schema(server, BINDING_PICTURE_TOOL_NAME)
+        _reject_unexpected_arguments(server, BINDING_PICTURE_TOOL_NAME)
 
 
 def _reject_malformed_observation_context(context: ObservationContextInput | None) -> None:
