@@ -9,7 +9,7 @@
 source "$(dirname "$0")/../lib.sh"
 INFRA="${SOKOL111_INFRA:?set SOKOL111_INFRA to the ecommerce-infrastructure checkout}"
 require "flow B runs (step 7)" -- passed 07-mm2-flow-b-p1b
-require "Tilt does not run" -- bash -c '! pgrep -f "tilt up" >/dev/null'
+require "Tilt does not run" -- tilt_stopped
 for name in catalog image; do
   chart="ecommerce-$name-service"
   record 08 "deps-$name" -- helm dependency build "$INFRA/helm/$chart"

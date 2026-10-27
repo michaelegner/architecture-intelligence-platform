@@ -8,7 +8,9 @@ import hashlib
 import importlib.util
 import json
 import re
+import shutil
 import subprocess
+import time
 from pathlib import Path
 
 import pytest
@@ -113,6 +115,8 @@ def test_replication_factor_one_everywhere_and_short_explicit_intervals(flow: st
     for key in checker.INTERVAL_KEYS:
         assert props[key] == "10", key
     assert props["offset.lag.max"] == "1"
+    # Connect commits the replicated source offsets at this cadence (default 60 s > the deadline).
+    assert int(props["offset.flush.interval.ms"]) < 1000 * 40
 
 
 def test_the_wait_deadline_derives_from_the_committed_intervals() -> None:
@@ -150,6 +154,58 @@ def test_the_flow_allow_lists_are_disjoint_and_the_probe_is_alone() -> None:
     assert topics("mm2-probe") == {"aip-probe.events"}
     assert FLOWS["mm2-probe"]["rpprobe->kprobe.groups"] == "aip-probe-group"
     assert FLOWS["mm2-flow-b"]["kafka->redpanda.groups"] == "^$"
+
+
+# --- P5 ownership and the Tilt guard ------------------------------------------------------------------
+
+
+def _bash_array(text: str, name: str) -> list[str]:
+    line = re.search(rf"^{name}=\((.*)\)$", text, re.MULTILINE)[1]
+    return [item.strip('"').replace("$TOPIC", "aip-probe.events") for item in line.split()]
+
+
+def test_p5_proves_absence_of_every_name_it_may_delete_before_arming_the_teardown() -> None:
+    text = (HARNESS / "preflight/p5.sh").read_text()
+    topics = checker.internal_topics("mm2-probe")
+    assert sorted(_bash_array(text, "KAFKA_TOPICS")) == sorted(
+        ["aip-probe.events", *topics["target"]]
+    )
+    assert _bash_array(text, "REDPANDA_TOPICS") == ["aip-probe.events", *topics["source"]]
+    trap = text.index("trap teardown EXIT")
+    before, teardown = text[:trap], text[text.index("teardown() {") : trap]
+    for guard in (
+        'for topic in "${REDPANDA_TOPICS[@]}"; do\n  require "Redpanda has no topic $topic yet" -- absent_redpanda_topic "$topic"',
+        'for topic in "${KAFKA_TOPICS[@]}"; do\n  require "Kafka has no topic $topic yet" -- absent_kafka_topic "$topic"',
+        'absent_redpanda_group "$GROUP"\n',
+        'absent_kafka_group "$GROUP"\n',
+    ):
+        assert guard in before[: before.index("teardown() {")], guard
+    # The teardown deletes only the guarded names: no literal topic or group name of its own.
+    deletes = "\n".join(line for line in teardown.splitlines() if "probe-stop" not in line)
+    assert "aip-probe" not in deletes and "mm2-" not in deletes
+    assert text.index("record P5 create-topic") > trap
+
+
+def test_the_tilt_guard_never_matches_itself_and_sees_a_running_tilt(tmp_path) -> None:
+    if subprocess.run(["pgrep", "-x", "tilt"], check=False, capture_output=True).returncode == 0:
+        pytest.skip("a real Tilt runs on this machine")
+    # The check's own shell carries the text "tilt up"; it must not count as a running Tilt.
+    shell = f'I3_RAW_DIR="{tmp_path}" source "{HARNESS / "lib.sh"}"; : tilt up; tilt_stopped'
+    assert subprocess.run(["bash", "-c", shell], check=False).returncode == 0
+    # A process named tilt (a copy of sleep) counts.
+    fake_tilt = tmp_path / "tilt"
+    fake_tilt.symlink_to(shutil.which("sleep") or "/bin/sleep")
+    fake = subprocess.Popen([str(fake_tilt), "30"])
+    try:
+        for _ in range(50):
+            found = subprocess.run(["pgrep", "-x", "tilt"], check=False, capture_output=True)
+            if found.returncode == 0:
+                break
+            time.sleep(0.05)
+        assert subprocess.run(["bash", "-c", shell], check=False).returncode == 1
+    finally:
+        fake.kill()
+        fake.wait()
 
 
 # --- Helm overlays (D13) -------------------------------------------------------------------------------

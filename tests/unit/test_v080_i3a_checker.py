@@ -132,10 +132,30 @@ def test_p1b_finds_missing_and_wrong_rf_topics(tmp_path) -> None:
     source = write(
         tmp_path, "s.txt", "NAME  PARTITIONS  REPLICAS\nmm2-offset-syncs.kafka.internal  1  1\n"
     )
-    result = checker.check_p1b("mm2-flow-a", target, source, "kafka")
-    assert result["result"] == "FAILED"
+    result = checker.check_p1b("mm2-flow-a", target, source, "kafka", 0, 40)
+    assert result["result"] == "FAILED"  # a wrong RF fails at once, even before the deadline
     assert any("mm2-flow-a-status" in p and "RF 3" in p for p in result["problems"])
     assert any("redpanda.checkpoints.internal" in p and "missing" in p for p in result["problems"])
+
+
+def test_p1b_missing_topics_are_pending_until_the_deadline(tmp_path) -> None:
+    def kafka_listing(names: list[str]) -> str:
+        return "".join(
+            f"Topic: {n}\tTopicId: x\tPartitionCount: 1\tReplicationFactor: 1\tConfigs:\n"
+            for n in names
+        )
+
+    some = ["mm2-flow-a-configs", "mm2-flow-a-offsets"]
+    target = write(tmp_path, "t.txt", kafka_listing(some))
+    source = write(tmp_path, "s.txt", "NAME  PARTITIONS  REPLICAS\n")
+    assert checker.check_p1b("mm2-flow-a", target, source, "kafka", 10, 40)["result"] == "PENDING"
+    assert checker.check_p1b("mm2-flow-a", target, source, "kafka", 40, 40)["result"] == "FAILED"
+    full = [*some, "mm2-flow-a-status", "redpanda.checkpoints.internal"]
+    target = write(tmp_path, "t2.txt", kafka_listing(full))
+    source = write(
+        tmp_path, "s2.txt", "NAME  PARTITIONS  REPLICAS\nmm2-offset-syncs.kafka.internal  1  1\n"
+    )
+    assert checker.check_p1b("mm2-flow-a", target, source, "kafka", 10, 40)["result"] == "PASSED"
 
 
 # --- Replication and lag ------------------------------------------------------------------------------
@@ -316,6 +336,19 @@ def test_the_cli_exit_codes_follow_the_verdict(tmp_path) -> None:
     ]
     assert checker.main([*base, "--elapsed", "0"]) == 3
     assert checker.main([*base, "--elapsed", "40"]) == 2
+
+
+def test_kafka_state_of_an_empty_group_with_a_blank_strategy_is_pending(tmp_path) -> None:
+    text = (
+        "GROUP                     COORDINATOR (ID)       ASSIGNMENT-STRATEGY  STATE   #MEMBERS\n"
+        "ecommerce-catalog-service kafka:29092 (1)                             Empty   0\n"
+        "ecommerce-image-service   kafka:29092 (1)        cooperative-sticky   Stable  1\n"
+    )
+    describe = write(tmp_path, "k.txt", text)
+    groups = ["ecommerce-catalog-service", "ecommerce-image-service"]
+    pending = checker.check_state(describe, "kafka", groups, ["Stable"], 10, 120)
+    assert pending["result"] == "PENDING"
+    assert pending["states"]["ecommerce-catalog-service"] == "Empty"
 
 
 def test_kafka_state_describe_is_parsed(tmp_path) -> None:

@@ -35,6 +35,10 @@ RF_KEYS = (
     "status.storage.replication.factor",
 )
 MAX_INTERVAL_SECONDS = 30
+# Kafka Connect commits the source offsets that the replication checks read every
+# offset.flush.interval.ms (default 60 000 ms, past the 40 s deadline), so each flow sets it.
+FLUSH_KEY = "offset.flush.interval.ms"
+FLUSH_MS = "10000"
 
 # I3 spec §3 Connect worker-state table: flow -> (source alias, target alias, internal topics on the
 # target, offset-syncs topic on the source). The checkpoints topic is "<source>.checkpoints.internal".
@@ -117,6 +121,7 @@ def check_p1a(paths: list[Path]) -> dict:
             "emit.heartbeats.enabled": "false",
             "sync.group.offsets.enabled": "true" if flow in SYNCING_FLOWS else "false",
             **dict.fromkeys(RF_KEYS, "1"),
+            FLUSH_KEY: FLUSH_MS,
         }
         for key, value in expected.items():
             if props.get(key) != value:
@@ -169,9 +174,17 @@ def rpk_topic_rf(text: str) -> dict[str, int]:
     return found
 
 
-def check_p1b(flow: str, target_listing: Path, source_listing: Path, target_kind: str) -> dict:
+def check_p1b(
+    flow: str,
+    target_listing: Path,
+    source_listing: Path,
+    target_kind: str,
+    elapsed: int | None = None,
+    deadline: int | None = None,
+) -> dict:
     """P1b: after the flow's first start, every internal topic of the flow exists on its cluster with
-    replication factor 1."""
+    replication factor 1. MirrorMaker 2 creates the topics after the worker starts, so a missing
+    topic is PENDING until the deadline; an observed wrong replication factor fails at once."""
     parse = {"kafka": kafka_topic_rf, "redpanda": rpk_topic_rf}
     source_kind = "redpanda" if target_kind == "kafka" else "kafka"
     on_target = parse[target_kind](target_listing.read_text())
@@ -183,10 +196,11 @@ def check_p1b(flow: str, target_listing: Path, source_listing: Path, target_kind
         for topic in topics[role]
         if listing.get(topic) != 1
     ]
+    wrong_rf = any("RF " in problem for problem in problems)
     return verdict(
         "p1b",
         "every internal topic of the flow exists with replication factor 1",
-        FAILED if problems else PASSED,
+        timed(not problems, wrong_rf, elapsed, deadline),
         [str(target_listing), str(source_listing)],
         flow=flow,
         problems=problems,
@@ -312,9 +326,10 @@ def group_rows(text: str, fmt: str) -> dict[str, dict]:
                 # `kafka-consumer-groups.sh --describe --state`: one row per group.
                 state_header, header = cells, None
                 continue
-            if state_header and len(cells) >= len(state_header):
-                state = cells[state_header.index("STATE")]
-                groups.setdefault(cells[0], {"state": None, "rows": {}})["state"] = state
+            if state_header and len(cells) >= 3 and cells[-1].isdigit():
+                # STATE and #MEMBERS are always the last two cells; an Empty group's blank
+                # assignment strategy makes the row shorter than the header.
+                groups.setdefault(cells[0], {"state": None, "rows": {}})["state"] = cells[-2]
                 continue
             if header and len(cells) >= len(header) - 3 and cells[2].isdigit():
                 row = dict(zip(header, cells, strict=False))
@@ -618,7 +633,12 @@ def main(argv: list[str] | None = None) -> int:
         "p1a": lambda: check_p1a(args.properties),
         "p3": lambda: check_p3(args.flow_a, args.flow_b),
         "p1b": lambda: check_p1b(
-            args.flow, args.target_listing, args.source_listing, args.target_kind
+            args.flow,
+            args.target_listing,
+            args.source_listing,
+            args.target_kind,
+            args.elapsed,
+            args.deadline,
         ),
         "replication": lambda: check_replication(
             args.offsets, args.source_end, args.format, args.topic, args.elapsed, args.deadline

@@ -31,8 +31,8 @@ Nothing in this package has run live yet; the staged run is I3b.
   the overlay. Before it applies the ConfigMap, it records the live one and checks that both have the
   same name and namespace and that the only changed line is `kafka.brokers`. Then it scales the
   deployment back to 1.
-- **Tilt must be stopped after the S1 bring-up**, or it re-applies the old values; step 8 checks
-  this. Stop `tilt up` with Ctrl-C and never run `tilt down`: the Tiltfile also manages the
+- **Tilt must be stopped after the S1 bring-up**, or it re-applies the old values. Step 8 checks
+  that no process is named `tilt` (`pgrep -x`, so a shell that only carries the text cannot match). Stop `tilt up` with Ctrl-C and never run `tilt down`: the Tiltfile also manages the
   Sokol111 Compose stacks (`docker_compose(...)`, including Redpanda), and `tilt down` removes them.
 
 ## Pins
@@ -55,6 +55,8 @@ The Kafka 4.1 defaults (600 s topic and group refresh, 60 s checkpoints and grou
 are too slow for a staged run. Every worker sets them to 10 s:
 `refresh.topics.interval.seconds`, `refresh.groups.interval.seconds`,
 `emit.checkpoints.interval.seconds`, `sync.group.offsets.interval.seconds`; `offset.lag.max=1`.
+Kafka Connect commits the replicated source offsets, which the replication checks read, every
+`offset.flush.interval.ms` (default 60 000 ms); every worker sets it to 10 000 ms.
 `offset.lag.max` is a resync threshold, not a replay guarantee (I3 §13): the replay amount is
 measured or estimated (`checker.py handoff`).
 
@@ -93,7 +95,7 @@ and in I4 the agent, runs them one by one. Every script needs `I3_RAW_DIR` (the 
 |---|---|
 | `preflight/p1a.sh`, `p3.sh` | Static checks of the three property files (P1a, P3) |
 | `preflight/p4.sh` | Starts `kafka`; `kafka:29092` answers from a Compose container and from a k3d probe pod (`--rm`) |
-| `preflight/p5.sh` | The group-offset-sync probe on `mm2-probe`, then the teardown of exactly what the probe created, also on failure |
+| `preflight/p5.sh` | The group-offset-sync probe on `mm2-probe`. Before it starts, every name the teardown may delete (the probe topic, group and internal topics, on both brokers) must be absent; the teardown, armed only then, removes exactly those, also on failure |
 | `steps/01.sh` … `09.sh` | Parent §4.2, one step each (step 8 needs `SOKOL111_INFRA`) |
 | `capture.sh c1-prime \| a-r \| a-k` | One capture through `harness/kafka-capture/capture.py`, with G before and G′ after (on Kafka both `--describe` and `--describe --state`); A-R also checks that the moved groups read `Empty` or `Dead`; each capture rewrites `checks.json` |
 | `functional_test.py` | The §6 functional test through Connect-RPC; `--dry-run` prints the planned calls |

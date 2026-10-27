@@ -147,4 +147,11 @@ p1b() {  # p1b NN FLOW TARGET-KIND
   check "$nn" "$flow-p1b" --collect _p1b_listings -- p1b --flow "$flow" --target-listing "$target" \
     --source-listing "$source" --target-kind "$target_kind"
 }
+# Absence checks: P5 creates only names that none of these finds before it starts.
 absent_redpanda_topic() { ! rpk topic describe "$1" >/dev/null 2>&1; }
+absent_kafka_topic() { ! ktool "$KAFKA" kafka-topics.sh --describe --topic "$1" >/dev/null 2>&1; }
+absent_redpanda_group() { ! rpk group list | awk 'NR > 1 {print $2}' | grep -qx -- "$1"; }
+absent_kafka_group() { ! ktool "$KAFKA" kafka-consumer-groups.sh --list | grep -qx -- "$1"; }
+# Tilt is stopped: no process is named `tilt`. Matching the process name, not the command line,
+# keeps a shell that only carries the text "tilt up" (this check's own, for one) from matching.
+tilt_stopped() { ! pgrep -x tilt >/dev/null; }
