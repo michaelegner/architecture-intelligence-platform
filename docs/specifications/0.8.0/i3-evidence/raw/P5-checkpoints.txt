@@ -1,0 +1,1 @@
+Checkpoint{consumerGroupId=aip-probe-group, topicPartition=aip-probe.events-0, upstreamOffset=3, downstreamOffset=3, metadata=rpk-d25ddc57-65d0-431e-aa55-3fa1b82f79ae}

@@ -1,0 +1,3 @@
+utc: 2026-10-27T18:59:26Z
+command: bash -c printf 'probe-1\nprobe-2\nprobe-3\n' | docker exec -i redpanda rpk topic produce aip-probe.events
+exit: 0

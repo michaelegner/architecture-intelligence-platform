@@ -44,6 +44,7 @@ QUALIFICATION_MODULES = frozenset(
         "test_v072_i2_sokol111_replay.py",
         "test_v080_i1_c1_replay.py",
         "test_v080_i2b_c1_binding_picture.py",
+        "test_v080_i3b_replay.py",
     }
 )
 

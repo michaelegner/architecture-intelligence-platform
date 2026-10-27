@@ -1,0 +1,1 @@
+configmap/ecommerce-image-service-config configured

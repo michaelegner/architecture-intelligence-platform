@@ -1,0 +1,32 @@
+{
+  "deadline": 40,
+  "elapsed": 64,
+  "entries": [
+    {
+      "a": 3,
+      "c": 3,
+      "checkpoint": {
+        "downstream": 3,
+        "upstream": 3
+      },
+      "group": "aip-probe-group",
+      "partition": 0,
+      "passed": true,
+      "replay": {
+        "kind": "NO_BOUND",
+        "reason": "no offset sync at or above the final upstream offset"
+      },
+      "topic": "aip-probe.events"
+    }
+  ],
+  "kind": "handoff",
+  "result": "PASSED",
+  "rule": "checkpoint upstream = (a) and (c) = checkpoint downstream, per group and partition",
+  "sources": [
+    "<AIP checkout>/docs/specifications/0.8.0/i3-evidence/raw/P5-checkpoints.txt",
+    "<AIP checkout>/docs/specifications/0.8.0/i3-evidence/raw/P5-offset-syncs.txt",
+    "<AIP checkout>/docs/specifications/0.8.0/i3-evidence/raw/P5-source-group.txt",
+    "<AIP checkout>/docs/specifications/0.8.0/i3-evidence/raw/P5-target-group.txt"
+  ],
+  "topic": "aip-probe.events"
+}

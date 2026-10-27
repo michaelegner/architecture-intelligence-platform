@@ -1,0 +1,18 @@
+{
+    "apiVersion": "v1",
+    "data": {
+        "config.yaml": "logger:\n  level: \"debug\"\n  development: true\nmulti-tenancy:\n  enabled: true\nmongo:\n  host: \"mongo\"\n  database: \"catalog\"\n  replica-set: rs0\nsecurity:\n  jwks:\n    jwks-url: \"http://logto:3001/oidc/jwks\"\n    issuer: \"http://localhost:3001/oidc\"\n    audience: \"https://api.sokolshop.com\"\n  client-credentials:\n    token-url: \"http://logto:3001/oidc/token\"\n    resource: \"https://api.sokolshop.com\"\n    scopes:\n      - \"openid\"\n      - \"tenants:read\"\nkafka:\n  brokers: \"kafka:29092\"\n  consumers-config:\n    default-group-id: \"ecommerce-catalog-service\"\n    default-auto-offset-reset: \"earliest\"\n    consumers:\n      - name: \"tenant-events\"\n        topic: \"tenant.tenant.events\"\n        max-retries: 5\n        initial-backoff: 2s\n        max-backoff: 30s\n        enable-dlq: true\nobservability:\n  otel-collector-endpoint: \"alloy.observability.svc:4317\"\n  tracing:\n    enabled: true\n  metrics:\n    enabled: false\n  profiling:\n    enabled: true\n    endpoint: \"http://alloy.observability.svc:4040\"\ntenant:\n  grpc:\n    address: \"ecommerce-tenant-service:8080\"\n"
+    },
+    "kind": "ConfigMap",
+    "metadata": {
+        "labels": {
+            "app.kubernetes.io/instance": "ecommerce-catalog-service",
+            "app.kubernetes.io/managed-by": "Helm",
+            "app.kubernetes.io/name": "ecommerce-catalog-service",
+            "app.kubernetes.io/version": "latest",
+            "helm.sh/chart": "ecommerce-catalog-service-0.0.1"
+        },
+        "name": "ecommerce-catalog-service-config",
+        "namespace": "dev"
+    }
+}

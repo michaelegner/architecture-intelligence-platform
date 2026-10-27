@@ -1,0 +1,234 @@
+{
+  "adaptations": [
+    "k3d CA bundle path (local clone)",
+    "--kubelet-arg=fail-cgroupv1=false (cgroup v1 host)",
+    "logto-seed build without network: host (Compose bake)",
+    "logto-seed re-run (tilt trigger logto-seed): first run stored no client secrets",
+    "MinIO and mc from bitnamilegacy, pinned by digest; entrypoint, data path, healthcheck, MC_CONFIG_DIR (owner decision)",
+    "host DNS: 127.0.0.1 plus the ingress Host header (*.127.0.0.1.nip.io does not resolve on this host)"
+  ],
+  "captures": {
+    "a-k": {
+      "broker_id": "kafka:sokol111-kafka",
+      "captured_at": "2026-10-27T19:19:22Z",
+      "environment": "local",
+      "file": "captures/a-k/kafka-consumer-state.json",
+      "groups": {
+        "ecommerce-catalog-service": "Stable",
+        "ecommerce-image-service": "Stable"
+      },
+      "sha256": "782ef6f12e3e2f33ec9135d54ad16308f96e53fb6743e0444e678ae2a218fa2b"
+    },
+    "a-r": {
+      "broker_id": "kafka:sokol111-local",
+      "captured_at": "2026-10-27T19:19:02Z",
+      "environment": "local",
+      "file": "captures/a-r/kafka-consumer-state.json",
+      "groups": {
+        "ecommerce-catalog-service": "Empty",
+        "ecommerce-category-query-service": "Stable",
+        "ecommerce-image-service": "Empty",
+        "ecommerce-product-query-service": "Stable"
+      },
+      "sha256": "b3c3eaa7ea8c79f6bd24f316391aaf479d5fa98f916f02f0f4b7426be9ece70e"
+    },
+    "c1-prime": {
+      "broker_id": "kafka:sokol111-local",
+      "captured_at": "2026-10-27T17:49:03Z",
+      "environment": "local",
+      "file": "captures/c1-prime/kafka-consumer-state.json",
+      "groups": {
+        "ecommerce-catalog-service": "Stable",
+        "ecommerce-category-query-service": "Stable",
+        "ecommerce-image-service": "Stable",
+        "ecommerce-product-query-service": "Stable"
+      },
+      "sha256": "bac59702076ab56d4e34f6883b47097530df380a8179d7d91d1d2ae1ea28f58d"
+    }
+  },
+  "endpoints": {
+    "connect_to": "127.0.0.1",
+    "host_headers": {
+      "catalog": "ecommerce-catalog-service.127.0.0.1.nip.io",
+      "category-query": "ecommerce-category-query-service.127.0.0.1.nip.io",
+      "image": "ecommerce-image-service.127.0.0.1.nip.io",
+      "product-query": "ecommerce-product-query-service.127.0.0.1.nip.io",
+      "tenant": "ecommerce-tenant-service.127.0.0.1.nip.io"
+    },
+    "kafka_host_bootstrap": "localhost:19092",
+    "logto_token_url": "http://localhost:3001/oidc/token",
+    "redpanda_host_bootstrap": "localhost:9092"
+  },
+  "functional_test": {
+    "run_id": "s3r1",
+    "shop": "i3-s3r1",
+    "utc": "2026-10-27T19:16:33Z",
+    "verdict": "raw/FT-functional.check.json"
+  },
+  "harness_revision_rule": "each stage's revision is the newest commit before its first recorded .meta time",
+  "harness_revisions": [
+    {
+      "committed": "2026-10-27T16:13:03Z",
+      "ran_on_it": "S1 and C1-prime; from 17:47 the working tree also held the uncommitted changes that became 836e5f9, and the probe S1-15 (17:51:35Z) ran on them",
+      "sha": "9a1af65db4fcbe3dc04d9ab1ed688235f98c1517"
+    },
+    {
+      "committed": "2026-10-27T17:56:16Z",
+      "ran_on_it": "P1a, P3, P4 attempt 1",
+      "sha": "836e5f9c6ea229b4dbf9e1462707cd8654ebd954"
+    },
+    {
+      "committed": "2026-10-27T18:57:47Z",
+      "ran_on_it": "P4 attempt 2, P5, steps 1-9, the functional test, A-R, A-K",
+      "sha": "7e45f3fff7691511af283bee48d8836a8368dfdf"
+    }
+  ],
+  "images": {
+    "cluster_pods": "raw/S1-13-cluster-images.txt",
+    "compose_containers": [
+      {
+        "container": "imgproxy",
+        "image": "darthsim/imgproxy:v3.25",
+        "repo_digests": [
+          "darthsim/imgproxy@sha256:617e4355d5d0ec6255fdb0bae55a106703b32bee7309e257e280647b85b0bda9"
+        ]
+      },
+      {
+        "container": "logto",
+        "image": "svhd/logto:latest",
+        "repo_digests": [
+          "svhd/logto@sha256:097cd47689546461edb4637fb6eee60b9ab6d3d4c08ebb20bc44a1b1809b82c0"
+        ]
+      },
+      {
+        "container": "logto-db",
+        "image": "postgres:17-alpine",
+        "repo_digests": [
+          "postgres@sha256:b0f9560a2de083e2cc7382e75f808c7381a32852a7ec49117deedb300e552b24"
+        ]
+      },
+      {
+        "container": "minio",
+        "image": "bitnamilegacy/minio@sha256:451fe6858cb770cc9d0e77ba811ce287420f781c7c1b806a386f6896471a349c",
+        "repo_digests": [
+          "bitnamilegacy/minio@sha256:451fe6858cb770cc9d0e77ba811ce287420f781c7c1b806a386f6896471a349c"
+        ]
+      },
+      {
+        "container": "mongo",
+        "image": "mongo:7.0",
+        "repo_digests": [
+          "mongo@sha256:c53852c00c23ca9f23fc39690350ffa9a80e3642fe8f96879726d8da0abe80a7"
+        ]
+      },
+      {
+        "container": "redpanda",
+        "image": "redpandadata/redpanda:v24.3.1",
+        "repo_digests": [
+          "redpandadata/redpanda@sha256:f2f8bb89f1a0747cc6f86440cb3a0916e981e136e1d72392bab179f73492fb0f"
+        ]
+      }
+    ],
+    "kafka_and_mirrormaker2": "apache/kafka:4.1.2@sha256:5cc2a2fd93fa2687b44015eee04fb2c3edd9e526bd64bf8bec5ff1e268772e0e",
+    "minio_init": "bitnamilegacy/minio-client@sha256:00dcc4e58ada0df45bb7d9ee435af98295f96c27c3c68292ce78ec700a87b511"
+  },
+  "note": "Observed facts of the I3b live run, kept apart from expected-after.json (I3 \u00a78).",
+  "schema": "aip-v08-i3-observed-metadata/1",
+  "sokol111_revisions": [
+    {
+      "commit": "3abcf9ba4d4fd89c2ee247c0c2212c9453427352",
+      "repository": "Sokol111/ecommerce-admin-ui"
+    },
+    {
+      "commit": "e9f147483e6e33ec512851d478169d2985614b09",
+      "repository": "Sokol111/ecommerce-catalog-service"
+    },
+    {
+      "commit": "7cecb3e1131dbd5199ce25e9cf101d75d3365171",
+      "repository": "Sokol111/ecommerce-catalog-service-api"
+    },
+    {
+      "commit": "6cb5373dd90ae57512e96a03893a3a3e9b75450d",
+      "repository": "Sokol111/ecommerce-category-query-service"
+    },
+    {
+      "commit": "1638e1def7f298928c9cadbadb7f41053c439cf5",
+      "repository": "Sokol111/ecommerce-category-query-service-api"
+    },
+    {
+      "commit": "d54bf55eba79566286b57b630f5d5b0d68b64302",
+      "repository": "Sokol111/ecommerce-commons"
+    },
+    {
+      "commit": "f1b97e8402e8183b131847f8a4db8bb00dddb33a",
+      "repository": "Sokol111/ecommerce-image-service"
+    },
+    {
+      "commit": "2167948573ced4b2854d8aed93fb83b242cf2e7f",
+      "repository": "Sokol111/ecommerce-image-service-api"
+    },
+    {
+      "commit": "07c059908b99e08448cf1c2c7dad6a865fe5ccf0",
+      "repository": "Sokol111/ecommerce-infrastructure"
+    },
+    {
+      "commit": "cfcb1042f99a1ed16c6517dd60a7210c4314f102",
+      "repository": "Sokol111/ecommerce-platform-ui"
+    },
+    {
+      "commit": "b8f5137b9e6fae3bacbe0319e0c23edfd0d25f19",
+      "repository": "Sokol111/ecommerce-product-query-service"
+    },
+    {
+      "commit": "692895e8f23a7d8b87befa7ae345d05f74ebe6a9",
+      "repository": "Sokol111/ecommerce-product-query-service-api"
+    },
+    {
+      "commit": "dbeacdbfff49c84c74f042d5e981461ec373bc1b",
+      "repository": "Sokol111/ecommerce-tenant-service"
+    },
+    {
+      "commit": "d9b90972f77b6a2df7ebee0f52e0cd8124937fe7",
+      "repository": "Sokol111/ecommerce-tenant-service-api"
+    },
+    {
+      "commit": "df9beb0e065384ed8ce13ec273b05f3a40001d08",
+      "repository": "Sokol111/ecommerce-ui"
+    },
+    {
+      "commit": "f6b4c1ce723cb3be83eda73d74b2bacb9c584f17",
+      "repository": "Sokol111/ecommerce-workspace"
+    }
+  ],
+  "stages": {
+    "S1": {
+      "checkpoint": "2026-10-27T17:52Z",
+      "start": "2026-10-27T16:13:29Z"
+    },
+    "S2": {
+      "checkpoint": "2026-10-27T19:03Z",
+      "start": "2026-10-27T18:44:47Z"
+    },
+    "S3": {
+      "checkpoint": "2026-10-27T19:20Z",
+      "start": "2026-10-27T19:12Z"
+    }
+  },
+  "tools": {
+    "capture_client": "confluent-kafka==2.16.0",
+    "helm": {
+      "archive_sha256": "1e4ab49e429626cf6c6958d914248b78c9730803c2751b87627e171dc800e7bb",
+      "version": "v3.22.0"
+    },
+    "host": "raw/S1-01-host.txt",
+    "k3d": {
+      "sha256": "06d8f25bc3a971c4eb29e0ff08429b180402db0f4dec838c9eac427e296800a0",
+      "version": "v5.9.0"
+    },
+    "tilt": {
+      "archive_sha256": "e39513f958705d30524d55f68b1d46fbef2b46a0da568efd00e6383dee6be44f",
+      "version": "v0.37.8"
+    }
+  },
+  "traffic_shop": "i3shop"
+}

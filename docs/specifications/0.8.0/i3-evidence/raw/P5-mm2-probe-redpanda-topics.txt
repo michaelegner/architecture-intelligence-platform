@@ -1,0 +1,7 @@
+NAME                              PARTITIONS  REPLICAS
+aip-probe.events                  1           1
+catalog.attribute.events          1           1
+catalog.category.events           1           1
+catalog.product.events            1           1
+mm2-offset-syncs.kprobe.internal  1           1
+tenant.tenant.events              1           1

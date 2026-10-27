@@ -24,7 +24,7 @@ require "Kafka has no group $GROUP yet" -- absent kafka-group "$GROUP"
 
 teardown() {
   if present container mm2-probe; then
-    record P5 probe-stop -- frozen_compose --profile mm2-probe rm -sf mm2-probe || true
+    record P5 probe-stop -- frozen_compose --profile mm2-probe rm -sfv mm2-probe || true
   fi
   local topic
   for topic in "${REDPANDA_TOPICS[@]}"; do

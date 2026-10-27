@@ -1,0 +1,9 @@
+GROUP        aip-probe-group
+COORDINATOR  0
+STATE        Empty
+BALANCER     
+MEMBERS      0
+TOTAL-LAG    0
+
+TOPIC             PARTITION  CURRENT-OFFSET  LOG-START-OFFSET  LOG-END-OFFSET  LAG   MEMBER-ID  CLIENT-ID  HOST
+aip-probe.events  0          3               0                 3               0                           

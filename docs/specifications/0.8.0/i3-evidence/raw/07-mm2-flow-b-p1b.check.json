@@ -1,0 +1,11 @@
+{
+  "flow": "mm2-flow-b",
+  "kind": "p1b",
+  "problems": [],
+  "result": "PASSED",
+  "rule": "every internal topic of the flow exists with replication factor 1",
+  "sources": [
+    "<AIP checkout>/docs/specifications/0.8.0/i3-evidence/raw/07-mm2-flow-b-kafka-topics.txt",
+    "<AIP checkout>/docs/specifications/0.8.0/i3-evidence/raw/07-mm2-flow-b-redpanda-topics.txt"
+  ]
+}

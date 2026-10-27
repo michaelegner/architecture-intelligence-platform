@@ -1,0 +1,3 @@
+
+GROUP                   COORDINATOR (ID)          ASSIGNMENT-STRATEGY  STATE                #MEMBERS
+ecommerce-image-service kafka:29092  (1)          cooperative-sticky   Stable               2

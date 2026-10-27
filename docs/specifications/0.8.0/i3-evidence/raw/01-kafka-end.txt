@@ -1,0 +1,3 @@
+catalog.attribute.events:0:0
+catalog.category.events:0:0
+catalog.product.events:0:0

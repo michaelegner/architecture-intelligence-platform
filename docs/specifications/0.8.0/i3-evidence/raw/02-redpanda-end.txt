@@ -1,0 +1,3 @@
+# topic: tenant.tenant.events
+PARTITION  LEADER  EPOCH  REPLICAS  LOG-START-OFFSET  HIGH-WATERMARK
+0          0       1      [0]       0                 1

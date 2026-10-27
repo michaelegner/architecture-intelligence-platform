@@ -1,0 +1,21 @@
+{
+  "deadline": 40,
+  "elapsed": 17,
+  "kind": "replication",
+  "missing_topics": [],
+  "partitions": [
+    {
+      "caught_up": true,
+      "end": 1,
+      "last_replicated": 0,
+      "partition": 0,
+      "topic": "tenant.tenant.events"
+    }
+  ],
+  "result": "PASSED",
+  "rule": "last replicated source offset + 1 = source end offset, per source partition",
+  "sources": [
+    "<AIP checkout>/docs/specifications/0.8.0/i3-evidence/raw/02-flow-a-offsets.txt",
+    "<AIP checkout>/docs/specifications/0.8.0/i3-evidence/raw/02-redpanda-end.txt"
+  ]
+}

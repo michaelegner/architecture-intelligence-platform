@@ -1,0 +1,97 @@
+Topic: redpanda.checkpoints.internal	TopicId: l-Z-yMcoSg-Owr84lGKE1Q	PartitionCount: 1	ReplicationFactor: 1	Configs: min.insync.replicas=1,cleanup.policy=compact
+	Topic: redpanda.checkpoints.internal	Partition: 0	Leader: 1	Replicas: 1	Isr: 1	Elr: 	LastKnownElr: 
+Topic: heartbeats	TopicId: BHtwKpsCTOWsRx7RNmTJBQ	PartitionCount: 1	ReplicationFactor: 1	Configs: min.insync.replicas=1,cleanup.policy=compact
+	Topic: heartbeats	Partition: 0	Leader: 1	Replicas: 1	Isr: 1	Elr: 	LastKnownElr: 
+Topic: catalog.attribute.events	TopicId: 2Xv0cvS0Q_K4WonbX6SU_w	PartitionCount: 1	ReplicationFactor: 1	Configs: min.insync.replicas=1
+	Topic: catalog.attribute.events	Partition: 0	Leader: 1	Replicas: 1	Isr: 1	Elr: 	LastKnownElr: 
+Topic: mm2-flow-a-configs	TopicId: NS_zvwY_R6yFuWxa1y3Ucw	PartitionCount: 1	ReplicationFactor: 1	Configs: min.insync.replicas=1,cleanup.policy=compact
+	Topic: mm2-flow-a-configs	Partition: 0	Leader: 1	Replicas: 1	Isr: 1	Elr: 	LastKnownElr: 
+Topic: catalog.product.events	TopicId: nKx_jvnYRQ-4Ol3hfSRgRg	PartitionCount: 1	ReplicationFactor: 1	Configs: min.insync.replicas=1
+	Topic: catalog.product.events	Partition: 0	Leader: 1	Replicas: 1	Isr: 1	Elr: 	LastKnownElr: 
+Topic: catalog.category.events	TopicId: WQNiN3CNSRCBXoRl51US6Q	PartitionCount: 1	ReplicationFactor: 1	Configs: min.insync.replicas=1
+	Topic: catalog.category.events	Partition: 0	Leader: 1	Replicas: 1	Isr: 1	Elr: 	LastKnownElr: 
+Topic: mm2-flow-a-offsets	TopicId: QMcOVNBdRh-3_lF0S7_S8A	PartitionCount: 25	ReplicationFactor: 1	Configs: min.insync.replicas=1,cleanup.policy=compact
+	Topic: mm2-flow-a-offsets	Partition: 0	Leader: 1	Replicas: 1	Isr: 1	Elr: 	LastKnownElr: 
+	Topic: mm2-flow-a-offsets	Partition: 1	Leader: 1	Replicas: 1	Isr: 1	Elr: 	LastKnownElr: 
+	Topic: mm2-flow-a-offsets	Partition: 2	Leader: 1	Replicas: 1	Isr: 1	Elr: 	LastKnownElr: 
+	Topic: mm2-flow-a-offsets	Partition: 3	Leader: 1	Replicas: 1	Isr: 1	Elr: 	LastKnownElr: 
+	Topic: mm2-flow-a-offsets	Partition: 4	Leader: 1	Replicas: 1	Isr: 1	Elr: 	LastKnownElr: 
+	Topic: mm2-flow-a-offsets	Partition: 5	Leader: 1	Replicas: 1	Isr: 1	Elr: 	LastKnownElr: 
+	Topic: mm2-flow-a-offsets	Partition: 6	Leader: 1	Replicas: 1	Isr: 1	Elr: 	LastKnownElr: 
+	Topic: mm2-flow-a-offsets	Partition: 7	Leader: 1	Replicas: 1	Isr: 1	Elr: 	LastKnownElr: 
+	Topic: mm2-flow-a-offsets	Partition: 8	Leader: 1	Replicas: 1	Isr: 1	Elr: 	LastKnownElr: 
+	Topic: mm2-flow-a-offsets	Partition: 9	Leader: 1	Replicas: 1	Isr: 1	Elr: 	LastKnownElr: 
+	Topic: mm2-flow-a-offsets	Partition: 10	Leader: 1	Replicas: 1	Isr: 1	Elr: 	LastKnownElr: 
+	Topic: mm2-flow-a-offsets	Partition: 11	Leader: 1	Replicas: 1	Isr: 1	Elr: 	LastKnownElr: 
+	Topic: mm2-flow-a-offsets	Partition: 12	Leader: 1	Replicas: 1	Isr: 1	Elr: 	LastKnownElr: 
+	Topic: mm2-flow-a-offsets	Partition: 13	Leader: 1	Replicas: 1	Isr: 1	Elr: 	LastKnownElr: 
+	Topic: mm2-flow-a-offsets	Partition: 14	Leader: 1	Replicas: 1	Isr: 1	Elr: 	LastKnownElr: 
+	Topic: mm2-flow-a-offsets	Partition: 15	Leader: 1	Replicas: 1	Isr: 1	Elr: 	LastKnownElr: 
+	Topic: mm2-flow-a-offsets	Partition: 16	Leader: 1	Replicas: 1	Isr: 1	Elr: 	LastKnownElr: 
+	Topic: mm2-flow-a-offsets	Partition: 17	Leader: 1	Replicas: 1	Isr: 1	Elr: 	LastKnownElr: 
+	Topic: mm2-flow-a-offsets	Partition: 18	Leader: 1	Replicas: 1	Isr: 1	Elr: 	LastKnownElr: 
+	Topic: mm2-flow-a-offsets	Partition: 19	Leader: 1	Replicas: 1	Isr: 1	Elr: 	LastKnownElr: 
+	Topic: mm2-flow-a-offsets	Partition: 20	Leader: 1	Replicas: 1	Isr: 1	Elr: 	LastKnownElr: 
+	Topic: mm2-flow-a-offsets	Partition: 21	Leader: 1	Replicas: 1	Isr: 1	Elr: 	LastKnownElr: 
+	Topic: mm2-flow-a-offsets	Partition: 22	Leader: 1	Replicas: 1	Isr: 1	Elr: 	LastKnownElr: 
+	Topic: mm2-flow-a-offsets	Partition: 23	Leader: 1	Replicas: 1	Isr: 1	Elr: 	LastKnownElr: 
+	Topic: mm2-flow-a-offsets	Partition: 24	Leader: 1	Replicas: 1	Isr: 1	Elr: 	LastKnownElr: 
+Topic: mm2-flow-a-status	TopicId: VzyDdyteRyuEfBIqhEMhSA	PartitionCount: 5	ReplicationFactor: 1	Configs: min.insync.replicas=1,cleanup.policy=compact
+	Topic: mm2-flow-a-status	Partition: 0	Leader: 1	Replicas: 1	Isr: 1	Elr: 	LastKnownElr: 
+	Topic: mm2-flow-a-status	Partition: 1	Leader: 1	Replicas: 1	Isr: 1	Elr: 	LastKnownElr: 
+	Topic: mm2-flow-a-status	Partition: 2	Leader: 1	Replicas: 1	Isr: 1	Elr: 	LastKnownElr: 
+	Topic: mm2-flow-a-status	Partition: 3	Leader: 1	Replicas: 1	Isr: 1	Elr: 	LastKnownElr: 
+	Topic: mm2-flow-a-status	Partition: 4	Leader: 1	Replicas: 1	Isr: 1	Elr: 	LastKnownElr: 
+Topic: tenant.tenant.events	TopicId: ev5OjeAFThC2wnIVMRbhlQ	PartitionCount: 1	ReplicationFactor: 1	Configs: min.insync.replicas=1
+	Topic: tenant.tenant.events	Partition: 0	Leader: 1	Replicas: 1	Isr: 1	Elr: 	LastKnownElr: 
+Topic: __consumer_offsets	TopicId: geaii7PDSQ-jbHTxNYVajg	PartitionCount: 50	ReplicationFactor: 1	Configs: compression.type=producer,min.insync.replicas=1,cleanup.policy=compact,segment.bytes=104857600
+	Topic: __consumer_offsets	Partition: 0	Leader: 1	Replicas: 1	Isr: 1	Elr: 	LastKnownElr: 
+	Topic: __consumer_offsets	Partition: 1	Leader: 1	Replicas: 1	Isr: 1	Elr: 	LastKnownElr: 
+	Topic: __consumer_offsets	Partition: 2	Leader: 1	Replicas: 1	Isr: 1	Elr: 	LastKnownElr: 
+	Topic: __consumer_offsets	Partition: 3	Leader: 1	Replicas: 1	Isr: 1	Elr: 	LastKnownElr: 
+	Topic: __consumer_offsets	Partition: 4	Leader: 1	Replicas: 1	Isr: 1	Elr: 	LastKnownElr: 
+	Topic: __consumer_offsets	Partition: 5	Leader: 1	Replicas: 1	Isr: 1	Elr: 	LastKnownElr: 
+	Topic: __consumer_offsets	Partition: 6	Leader: 1	Replicas: 1	Isr: 1	Elr: 	LastKnownElr: 
+	Topic: __consumer_offsets	Partition: 7	Leader: 1	Replicas: 1	Isr: 1	Elr: 	LastKnownElr: 
+	Topic: __consumer_offsets	Partition: 8	Leader: 1	Replicas: 1	Isr: 1	Elr: 	LastKnownElr: 
+	Topic: __consumer_offsets	Partition: 9	Leader: 1	Replicas: 1	Isr: 1	Elr: 	LastKnownElr: 
+	Topic: __consumer_offsets	Partition: 10	Leader: 1	Replicas: 1	Isr: 1	Elr: 	LastKnownElr: 
+	Topic: __consumer_offsets	Partition: 11	Leader: 1	Replicas: 1	Isr: 1	Elr: 	LastKnownElr: 
+	Topic: __consumer_offsets	Partition: 12	Leader: 1	Replicas: 1	Isr: 1	Elr: 	LastKnownElr: 
+	Topic: __consumer_offsets	Partition: 13	Leader: 1	Replicas: 1	Isr: 1	Elr: 	LastKnownElr: 
+	Topic: __consumer_offsets	Partition: 14	Leader: 1	Replicas: 1	Isr: 1	Elr: 	LastKnownElr: 
+	Topic: __consumer_offsets	Partition: 15	Leader: 1	Replicas: 1	Isr: 1	Elr: 	LastKnownElr: 
+	Topic: __consumer_offsets	Partition: 16	Leader: 1	Replicas: 1	Isr: 1	Elr: 	LastKnownElr: 
+	Topic: __consumer_offsets	Partition: 17	Leader: 1	Replicas: 1	Isr: 1	Elr: 	LastKnownElr: 
+	Topic: __consumer_offsets	Partition: 18	Leader: 1	Replicas: 1	Isr: 1	Elr: 	LastKnownElr: 
+	Topic: __consumer_offsets	Partition: 19	Leader: 1	Replicas: 1	Isr: 1	Elr: 	LastKnownElr: 
+	Topic: __consumer_offsets	Partition: 20	Leader: 1	Replicas: 1	Isr: 1	Elr: 	LastKnownElr: 
+	Topic: __consumer_offsets	Partition: 21	Leader: 1	Replicas: 1	Isr: 1	Elr: 	LastKnownElr: 
+	Topic: __consumer_offsets	Partition: 22	Leader: 1	Replicas: 1	Isr: 1	Elr: 	LastKnownElr: 
+	Topic: __consumer_offsets	Partition: 23	Leader: 1	Replicas: 1	Isr: 1	Elr: 	LastKnownElr: 
+	Topic: __consumer_offsets	Partition: 24	Leader: 1	Replicas: 1	Isr: 1	Elr: 	LastKnownElr: 
+	Topic: __consumer_offsets	Partition: 25	Leader: 1	Replicas: 1	Isr: 1	Elr: 	LastKnownElr: 
+	Topic: __consumer_offsets	Partition: 26	Leader: 1	Replicas: 1	Isr: 1	Elr: 	LastKnownElr: 
+	Topic: __consumer_offsets	Partition: 27	Leader: 1	Replicas: 1	Isr: 1	Elr: 	LastKnownElr: 
+	Topic: __consumer_offsets	Partition: 28	Leader: 1	Replicas: 1	Isr: 1	Elr: 	LastKnownElr: 
+	Topic: __consumer_offsets	Partition: 29	Leader: 1	Replicas: 1	Isr: 1	Elr: 	LastKnownElr: 
+	Topic: __consumer_offsets	Partition: 30	Leader: 1	Replicas: 1	Isr: 1	Elr: 	LastKnownElr: 
+	Topic: __consumer_offsets	Partition: 31	Leader: 1	Replicas: 1	Isr: 1	Elr: 	LastKnownElr: 
+	Topic: __consumer_offsets	Partition: 32	Leader: 1	Replicas: 1	Isr: 1	Elr: 	LastKnownElr: 
+	Topic: __consumer_offsets	Partition: 33	Leader: 1	Replicas: 1	Isr: 1	Elr: 	LastKnownElr: 
+	Topic: __consumer_offsets	Partition: 34	Leader: 1	Replicas: 1	Isr: 1	Elr: 	LastKnownElr: 
+	Topic: __consumer_offsets	Partition: 35	Leader: 1	Replicas: 1	Isr: 1	Elr: 	LastKnownElr: 
+	Topic: __consumer_offsets	Partition: 36	Leader: 1	Replicas: 1	Isr: 1	Elr: 	LastKnownElr: 
+	Topic: __consumer_offsets	Partition: 37	Leader: 1	Replicas: 1	Isr: 1	Elr: 	LastKnownElr: 
+	Topic: __consumer_offsets	Partition: 38	Leader: 1	Replicas: 1	Isr: 1	Elr: 	LastKnownElr: 
+	Topic: __consumer_offsets	Partition: 39	Leader: 1	Replicas: 1	Isr: 1	Elr: 	LastKnownElr: 
+	Topic: __consumer_offsets	Partition: 40	Leader: 1	Replicas: 1	Isr: 1	Elr: 	LastKnownElr: 
+	Topic: __consumer_offsets	Partition: 41	Leader: 1	Replicas: 1	Isr: 1	Elr: 	LastKnownElr: 
+	Topic: __consumer_offsets	Partition: 42	Leader: 1	Replicas: 1	Isr: 1	Elr: 	LastKnownElr: 
+	Topic: __consumer_offsets	Partition: 43	Leader: 1	Replicas: 1	Isr: 1	Elr: 	LastKnownElr: 
+	Topic: __consumer_offsets	Partition: 44	Leader: 1	Replicas: 1	Isr: 1	Elr: 	LastKnownElr: 
+	Topic: __consumer_offsets	Partition: 45	Leader: 1	Replicas: 1	Isr: 1	Elr: 	LastKnownElr: 
+	Topic: __consumer_offsets	Partition: 46	Leader: 1	Replicas: 1	Isr: 1	Elr: 	LastKnownElr: 
+	Topic: __consumer_offsets	Partition: 47	Leader: 1	Replicas: 1	Isr: 1	Elr: 	LastKnownElr: 
+	Topic: __consumer_offsets	Partition: 48	Leader: 1	Replicas: 1	Isr: 1	Elr: 	LastKnownElr: 
+	Topic: __consumer_offsets	Partition: 49	Leader: 1	Replicas: 1	Isr: 1	Elr: 	LastKnownElr: 

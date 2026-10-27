@@ -1,0 +1,11 @@
+GROUP        ecommerce-product-query-service
+COORDINATOR  0
+STATE        Stable
+BALANCER     cooperative-sticky
+MEMBERS      3
+TOTAL-LAG    0
+
+TOPIC                     PARTITION  CURRENT-OFFSET  LOG-START-OFFSET  LOG-END-OFFSET  LAG   MEMBER-ID                                 CLIENT-ID  HOST
+catalog.attribute.events  0          42              0                 42              0     kgo-b5367c23-7081-43c2-b751-0a09b7a1362b  kgo        172.20.0.3
+catalog.product.events    0          242             0                 242             0     kgo-f5f6ef7f-2e95-47c2-9fa3-4b95a4e82e29  kgo        172.20.0.3
+tenant.tenant.events      0          2               0                 2               0     kgo-d8d07b80-08d0-4d5c-9023-969eab4ea02a  kgo        172.20.0.3

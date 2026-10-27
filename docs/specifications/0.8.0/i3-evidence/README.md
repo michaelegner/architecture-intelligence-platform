@@ -1,8 +1,10 @@
 # v0.8 I3 evidence package
 
 **Governs:** [I3 specification](../i3-two-broker-environment-and-live-captures.md) Draft 0.2, §2–§8.
-**Status:** I3a: the authored environment, the scripts, the checker and the committed reference.
-Nothing in this package has run live yet; the staged run is I3b.
+**Status:** frozen after the I3b live run of 2026-10-27 (stages S1–S3 in
+[`run-record.md`](run-record.md)). The run files are covered by [`SHA256SUMS`](SHA256SUMS), and the
+observed facts are in [`observed-metadata.json`](observed-metadata.json), kept apart from the
+reference. `tests/integration/test_v080_i3b_replay.py` (qualification tier) replays the package.
 
 ## What is in this package
 
@@ -14,7 +16,12 @@ Nothing in this package has run live yet; the staged run is I3b.
 | `environment/upstream-values/` | The two upstream values files, copied unchanged from `Sokol111/ecommerce-infrastructure@07c059908b99e08448cf1c2c7dad6a865fe5ccf0` (`environments/local/values/`), so the one-line difference is testable | upstream |
 | `declarations/` | The after-wave declarations: byte copies of `../i2-vectors/two-broker/declarations/` (I1 §4.1 rules) | I3a |
 | `expected-after.json`, `expected-after.sha256` | The expected after-wave semantic rows (I2 §8.2), committed before any run and never edited (C7) | I3a |
-| `raw/`, `captures/`, `checks.json`, `observed-metadata.json` | The run record | I3b |
+| `raw/` | Every recorded command: `NN-name.txt` (stdout), `.meta` (UTC, command, exit code), `.err` (stderr, only when not empty); `*.check.json` verdicts. Local path prefixes are replaced by `<AIP checkout>` and `<run home>`; nothing else is edited | I3b, real |
+| `captures/c1-prime/`, `captures/a-r/`, `captures/a-k/` | The three consumer-state captures (I3 §7), each with G and G′ in `raw/` | I3b, real |
+| `checks.json` | All 22 checker verdicts, `PASSED` | I3b |
+| `observed-metadata.json` | Capture T values and digests, harness revisions, Sokol111 revisions, image references, tools, endpoints, adaptations | I3b |
+| `run-record.md` | The stage checkpoints S1–S4: what ran, what was found, what was decided | I3b |
+| `SHA256SUMS` | The run files above, computed over the final bytes after sanitizing and the secret scan | I3b |
 
 ## Adaptations (disclosure)
 
@@ -31,9 +38,26 @@ Nothing in this package has run live yet; the staged run is I3b.
   the overlay. Before it applies the ConfigMap, it records the live one and checks that both have the
   same name and namespace and that the only changed line is `kafka.brokers`. Then it scales the
   deployment back to 1.
+- **Adaptations made during the run** (details in [`run-record.md`](run-record.md); all are in the
+  local clone or on the host, none in a Sokol111 repository):
+  - the v0.7.2 host adaptations: the k3d CA path, `--kubelet-arg=fail-cgroupv1=false` (cgroup v1
+    host), and no `network: host` in the `logto-seed` build;
+  - **MinIO** (owner decision): `minio/minio` and `minio/mc` no longer exist on Docker Hub,
+    `quay.io/minio` needs a login, and `dl.min.io` returns 410. Bitnami's frozen builds are used,
+    pinned by digest. `compose/storage.yml` sets their entrypoint, data path and `MC_CONFIG_DIR`, and
+    uses a bash `/dev/tcp` healthcheck because the image has no `curl`;
+  - **`logto-seed` run twice:** with Logto 1.45.0 the first run stores no client secrets, and
+    the second reads them from existing apps (`tilt trigger logto-seed`);
+  - **host DNS:** `*.127.0.0.1.nip.io` does not resolve on this host. Calls go to `127.0.0.1` with
+    the ingress host name in `Host` (`functional_test.py --connect-to`).
 - **Tilt must be stopped after the S1 bring-up**, or it re-applies the old values. Step 8 checks
   that no process is named `tilt` (`pgrep -x`, so a shell that only carries the text cannot match). Stop `tilt up` with Ctrl-C and never run `tilt down`: the Tiltfile also manages the
   Sokol111 Compose stacks (`docker_compose(...)`, including Redpanda), and `tilt down` removes them.
+
+**Credentials in the package.** No token, client secret or password is recorded. The scan before
+`SHA256SUMS` checked every file against the five real Logto client secrets (0 hits), and for JWTs
+and private keys. `minioadmin` / `minioadmin123` appear because they are Sokol111's published
+local-development MinIO defaults, in its public values and Compose file.
 
 ## Pins
 
@@ -43,11 +67,18 @@ Nothing in this package has run live yet; the staged run is I3b.
 | Sokol111 infrastructure | `ecommerce-infrastructure@07c059908b99e08448cf1c2c7dad6a865fe5ccf0` |
 | Service APIs (functional test) | catalog `7cecb3e1131dbd5199ce25e9cf101d75d3365171`, image `2167948573ced4b2854d8aed93fb83b242cf2e7f`, product-query `692895e8f23a7d8b87befa7ae345d05f74ebe6a9`, category-query `1638e1def7f298928c9cadbadb7f41053c439cf5`, tenant `d9b90972f77b6a2df7ebee0f52e0cd8124937fe7` |
 
-**I3b obligation: MinIO and imgproxy.** Sokol111's `compose/storage.yml` uses `latest` tags for
-MinIO and `minio-init`, and v0.7.2 never started them. I3a invents no pin. I3b records the exact
-resolved image references (`repository@sha256:…`) of MinIO, `minio-init` and imgproxy in this
-package. The I4 reset procedure (I3 §12 handoff) uses those references and never pulls `latest`
-again. The I3 completion record checks this.
+**MinIO and imgproxy (the I3b obligation, met).** The run used and recorded these references; the I4
+reset procedure uses them and never pulls `latest`:
+
+| Container | Reference |
+|---|---|
+| `minio` | `bitnamilegacy/minio@sha256:451fe6858cb770cc9d0e77ba811ce287420f781c7c1b806a386f6896471a349c` |
+| `minio-init` | `bitnamilegacy/minio-client@sha256:00dcc4e58ada0df45bb7d9ee435af98295f96c27c3c68292ce78ec700a87b511` |
+| `imgproxy` | `darthsim/imgproxy@sha256:617e4355d5d0ec6255fdb0bae55a106703b32bee7309e257e280647b85b0bda9` (`v3.25`) |
+| `logto` | `svhd/logto@sha256:097cd47689546461edb4637fb6eee60b9ab6d3d4c08ebb20bc44a1b1809b82c0` (`latest` upstream, Logto 1.45.0) |
+
+The other Compose references are in [`raw/S1-12`](raw/S1-12-compose-images.txt) and
+`observed-metadata.json`.
 
 ## MirrorMaker 2 timing
 

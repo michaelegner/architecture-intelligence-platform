@@ -1,0 +1,18 @@
+{
+  "flow_a_topics": [
+    "tenant.tenant.events"
+  ],
+  "flow_b_topics": [
+    "catalog.attribute.events",
+    "catalog.category.events",
+    "catalog.product.events"
+  ],
+  "kind": "p3",
+  "overlap": [],
+  "result": "PASSED",
+  "rule": "flow A and flow B topic allow-lists are disjoint",
+  "sources": [
+    "<AIP checkout>/docs/specifications/0.8.0/i3-evidence/environment/mm2-flow-a.properties",
+    "<AIP checkout>/docs/specifications/0.8.0/i3-evidence/environment/mm2-flow-b.properties"
+  ]
+}

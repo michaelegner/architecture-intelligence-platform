@@ -203,6 +203,9 @@ def test_p5_proves_absence_of_every_name_it_may_delete_before_arming_the_teardow
     )
     assert "aip-probe" not in deletes and "mm2-" not in deletes
     assert text.index("record P5 create-topic") > trap
+    # The apache/kafka image declares VOLUMEs: removing the container must remove its anonymous
+    # volumes too (I3b teardown found three left behind by `rm -sf`).
+    assert "rm -sfv mm2-probe" in teardown
     # The teardown removes the probe container, so none may exist before, not even a stopped one.
     assert (
         'require "no probe container exists, running or stopped" -- absent container mm2-probe'

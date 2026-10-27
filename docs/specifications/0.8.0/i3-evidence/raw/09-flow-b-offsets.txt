@@ -1,0 +1,6 @@
+["MirrorSourceConnector",{"cluster":"kafka","partition":0,"topic":"catalog.category.events"}]	{"offset":4}
+["MirrorSourceConnector",{"cluster":"kafka","partition":0,"topic":"catalog.category.events"}]	{"offset":5}
+["MirrorSourceConnector",{"cluster":"kafka","partition":0,"topic":"catalog.product.events"}]	{"offset":41}
+["MirrorSourceConnector",{"cluster":"kafka","partition":0,"topic":"catalog.product.events"}]	{"offset":121}
+["MirrorSourceConnector",{"cluster":"kafka","partition":0,"topic":"catalog.attribute.events"}]	{"offset":20}
+["MirrorSourceConnector",{"cluster":"kafka","partition":0,"topic":"catalog.attribute.events"}]	{"offset":21}

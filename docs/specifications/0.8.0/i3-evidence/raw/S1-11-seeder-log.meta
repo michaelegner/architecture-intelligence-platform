@@ -1,0 +1,3 @@
+utc: 2026-10-27T17:48:35Z
+command: kubectl -n dev logs job/seeder-i3shop-s9qnk
+exit: 0

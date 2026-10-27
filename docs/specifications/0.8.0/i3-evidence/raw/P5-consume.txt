@@ -1,0 +1,21 @@
+{
+  "topic": "aip-probe.events",
+  "value": "probe-1",
+  "timestamp": 1793127566653,
+  "partition": 0,
+  "offset": 0
+}
+{
+  "topic": "aip-probe.events",
+  "value": "probe-2",
+  "timestamp": 1793127566653,
+  "partition": 0,
+  "offset": 1
+}
+{
+  "topic": "aip-probe.events",
+  "value": "probe-3",
+  "timestamp": 1793127566653,
+  "partition": 0,
+  "offset": 2
+}

@@ -1,0 +1,48 @@
+{
+  "deadline": 40,
+  "elapsed": 27,
+  "entries": [
+    {
+      "a": 1,
+      "c": 1,
+      "checkpoint": {
+        "downstream": 1,
+        "upstream": 1
+      },
+      "group": "ecommerce-catalog-service",
+      "partition": 0,
+      "passed": true,
+      "replay": {
+        "kind": "NO_BOUND",
+        "reason": "no offset sync at or above the final upstream offset"
+      },
+      "topic": "tenant.tenant.events"
+    },
+    {
+      "a": 1,
+      "c": 1,
+      "checkpoint": {
+        "downstream": 1,
+        "upstream": 1
+      },
+      "group": "ecommerce-image-service",
+      "partition": 0,
+      "passed": true,
+      "replay": {
+        "kind": "NO_BOUND",
+        "reason": "no offset sync at or above the final upstream offset"
+      },
+      "topic": "tenant.tenant.events"
+    }
+  ],
+  "kind": "handoff",
+  "result": "PASSED",
+  "rule": "checkpoint upstream = (a) and (c) = checkpoint downstream, per group and partition",
+  "sources": [
+    "<AIP checkout>/docs/specifications/0.8.0/i3-evidence/raw/06-checkpoints.txt",
+    "<AIP checkout>/docs/specifications/0.8.0/i3-evidence/raw/06-offset-syncs.txt",
+    "<AIP checkout>/docs/specifications/0.8.0/i3-evidence/raw/06-source-groups.txt",
+    "<AIP checkout>/docs/specifications/0.8.0/i3-evidence/raw/06-target-groups.txt"
+  ],
+  "topic": "tenant.tenant.events"
+}

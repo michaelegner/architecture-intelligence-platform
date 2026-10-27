@@ -1,0 +1,3 @@
+utc: 2026-10-27T18:59:26Z
+command: rpk topic consume aip-probe.events -g aip-probe-group -n 3
+exit: 0
