@@ -441,14 +441,16 @@ class _Response:
         return None
 
 
-def _live_driver(monkeypatch, fake: _FakeServices):
+def _live_driver(monkeypatch, fake: _FakeServices, connect_to: str | None = None):
     monkeypatch.setattr(functional.urllib.request, "urlopen", fake)
-    endpoints = dict.fromkeys(set(functional.ENDPOINT_OF.values()), "http://svc")
+    endpoints = {
+        name: f"http://{name}.example.test" for name in set(functional.ENDPOINT_OF.values())
+    }
     token_commands = {
         "s2s": "echo SECRET-S2S",
         "user": "echo SECRET-USER",
     }
-    return functional.Driver("r1", endpoints, token_commands, False)
+    return functional.Driver("r1", endpoints, token_commands, False, connect_to)
 
 
 def test_a_live_run_enters_the_shop_after_registration_and_records_no_secret(monkeypatch) -> None:
@@ -459,11 +461,15 @@ def test_a_live_run_enters_the_shop_after_registration_and_records_no_secret(mon
     rpc = [req for req in fake.sent if req.get_method() == "POST"]
     tenant = [req for req in rpc if "/tenant.v1." in req.full_url]
     others = [req for req in rpc if "/tenant.v1." not in req.full_url]
-    # The tenant calls (RegisterTenant, then GetRegistrationStatus until COMPLETED) come first and
-    # carry the platform token and no shop header.
+    # The tenant calls come first and carry no shop header: RegisterTenant needs tenants:write (the
+    # platform token), GetRegistrationStatus tenants:read (the service token).
     assert rpc[: len(tenant)] == tenant
+    assert tenant[0].full_url.endswith("/RegisterTenant")
+    assert tenant[0].get_header("Authorization") == "Bearer SECRET-S2S"
+    for req in tenant[1:]:
+        assert req.full_url.endswith("/GetRegistrationStatus")
+        assert req.get_header("Authorization") == "Bearer SECRET-USER"
     for req in tenant:
-        assert req.get_header("Authorization") == "Bearer SECRET-S2S"
         assert req.get_header("X-tenant-slug") is None
     # Every catalog, image and query call carries the service token and the new shop's slug,
     # as the environment's own seeder does.
@@ -478,6 +484,22 @@ def test_a_live_run_enters_the_shop_after_registration_and_records_no_secret(mon
     assert fake.bodies["UpdateCategory"]["version"] == 0
     assert fake.bodies["UpdateAttribute"]["version"] == 0
     assert "<" not in json.dumps(fake.bodies)
+
+
+def test_connect_to_sends_the_ingress_host_in_host(monkeypatch) -> None:
+    fake = _FakeServices()
+    steps = functional.run(_live_driver(monkeypatch, fake, connect_to="127.0.0.1"), timeout=5)
+    assert [step["result"] for step in steps] == ["PASSED"] * 3
+    rpc = [req for req in fake.sent if req.get_method() == "POST"]
+    for req in rpc:
+        assert req.full_url.startswith("http://127.0.0.1/"), req.full_url
+        assert req.get_header("Host", "").endswith(".example.test"), req.full_url
+    hosts = {req.full_url.rsplit("/", 1)[-1]: req.get_header("Host") for req in rpc}
+    assert hosts["RegisterTenant"] == "tenant.example.test"
+    assert hosts["CreateProduct"] == "catalog.example.test"
+    # The presigned upload URL is used as signed: its host is not rewritten.
+    upload = next(r.full_url for r in fake.sent if r.get_method() == "PUT")
+    assert upload.startswith("http://minio/")
 
 
 def test_a_missing_id_fails_the_step_with_a_clear_reason(monkeypatch) -> None:
@@ -529,7 +551,9 @@ def test_the_token_command_prints_only_the_token(monkeypatch, capsys) -> None:
     assert rc == 0 and out == "TKN\n" and err == ""
     form = dict(item.split("=", 1) for item in posted[0].data.decode().split("&"))
     assert form["grant_type"] == "client_credentials" and form["client_id"] == "eid"
-    assert "cross-tenant" in form["scope"].replace("+", " ")
+    scope = form["scope"].replace("+", " ").replace("%3A", ":").split()
+    # tenants:read is needed by GetRegistrationStatus (run record S1).
+    assert {"cross-tenant", "tenants:read", "products:write", "images:write"} <= set(scope)
     assert posted[0].full_url == "http://localhost:3001/oidc/token"
 
 

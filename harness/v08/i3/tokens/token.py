@@ -18,15 +18,16 @@ import sys
 import urllib.parse
 import urllib.request
 
-# app -> (secret key prefix in logto-credentials, requested scope). The ecommerce scope is the
-# seeder's; both apps are MachineToMachine apps of the pinned logto-seed seed.json.
+# app -> (secret key prefix in logto-credentials, requested scope). Both apps are MachineToMachine
+# apps of the pinned logto-seed seed.json. The ecommerce scope is the seeder's plus tenants:read,
+# which GetRegistrationStatus needs; the app's service_account role grants it.
 APPS = {
     "platform": ("platform", "tenants:write"),
     "ecommerce": (
         "ecommerce-m2m",
         (
-            "cross-tenant products:read products:write categories:read categories:write "
-            "attributes:read attributes:write images:write"
+            "cross-tenant tenants:read products:read products:write categories:read "
+            "categories:write attributes:read attributes:write images:write"
         ),
     ),
 }
