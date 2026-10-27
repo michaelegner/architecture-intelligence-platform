@@ -4,6 +4,14 @@
 source "$(dirname "$0")/../lib.sh"
 require "the Sokol111 Redpanda container runs" -- docker exec redpanda rpk cluster health
 record P4 kafka-up -- frozen_compose up -d kafka
+# The broker needs a few seconds after `up -d` (run record S2, attempt 1): wait, bounded.
+start=$SECONDS
+until ktool "$KAFKA" kafka-broker-api-versions.sh >/dev/null 2>&1; do
+  (( SECONDS - start < KAFKA_START_DEADLINE_SECONDS )) ||
+    stop "P4: kafka:29092 did not answer within $KAFKA_START_DEADLINE_SECONDS s of the start"
+  sleep 2
+done
+record P4 kafka-ready -- echo "kafka:29092 answered $((SECONDS - start)) s after up -d (deadline $KAFKA_START_DEADLINE_SECONDS s)"
 record P4 from-compose -- ktool "$KAFKA" kafka-broker-api-versions.sh ||
   stop "P4: kafka:29092 does not answer from a Compose container"
 KAFKA_IMAGE="$(sed -n 's/^    image: \(apache\/kafka:.*\)$/\1/p' "$ENV_DIR/docker-compose.i3.yml" | head -1)"

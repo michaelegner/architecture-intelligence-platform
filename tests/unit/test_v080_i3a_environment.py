@@ -95,6 +95,17 @@ def test_each_step_checks_its_precondition_before_acting() -> None:
         assert first_require < min(i for i in acting if i >= 0), number
 
 
+def test_p4_waits_for_the_broker_before_probing_it() -> None:
+    text = (HARNESS / "preflight/p4.sh").read_text()
+    up, wait = text.index("frozen_compose up -d kafka"), text.index("until ktool")
+    probe = text.index("record P4 from-compose")
+    assert up < wait < probe
+    assert "KAFKA_START_DEADLINE_SECONDS" in text[wait:probe]
+    assert re.search(
+        r"^KAFKA_START_DEADLINE_SECONDS=\d+$", (HARNESS / "lib.sh").read_text(), re.MULTILINE
+    )
+
+
 # --- MirrorMaker 2 workers (I3 §3; plan corrections 1 and 2) -------------------------------------------
 
 
