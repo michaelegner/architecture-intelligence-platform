@@ -396,3 +396,15 @@ def test_configmap_passes_only_for_the_broker_line_on_the_same_configmap(tmp_pat
     assert (
         checker.check_configmap(live, write(tmp_path, "bad.json", "not json"))["result"] == "FAILED"
     )
+
+
+def test_p1a_rejects_a_bare_flush_interval_that_never_reaches_the_worker(tmp_path) -> None:
+    for flow in ("mm2-flow-a", "mm2-flow-b", "mm2-probe"):
+        target = checker.WORKER_STATE[flow][1]
+        text = (ENV / f"{flow}.properties").read_text()
+        bare = text.replace(f"{target}.offset.flush.interval.ms", "offset.flush.interval.ms")
+        path = tmp_path / f"{flow}.properties"
+        path.write_text(bare)
+        result = checker.check_p1a([path])
+        assert result["result"] == "FAILED"
+        assert any("bare offset.flush.interval.ms" in p for p in result["problems"])

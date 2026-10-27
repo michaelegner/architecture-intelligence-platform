@@ -11,7 +11,7 @@ REDPANDA_TOPICS=("$TOPIC" mm2-offset-syncs.kprobe.internal)
 KAFKA_TOPICS=("$TOPIC" mm2-probe-configs mm2-probe-offsets mm2-probe-status rpprobe.checkpoints.internal)
 require "flow A is stopped" -- not_running mm2-flow-a
 require "flow B is stopped" -- not_running mm2-flow-b
-require "the probe flow is stopped" -- not_running mm2-probe
+require "no probe container exists, running or stopped" -- no_container mm2-probe
 for topic in "${REDPANDA_TOPICS[@]}"; do
   require "Redpanda has no topic $topic yet" -- absent_redpanda_topic "$topic"
 done

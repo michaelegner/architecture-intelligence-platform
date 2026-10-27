@@ -36,7 +36,9 @@ RF_KEYS = (
 )
 MAX_INTERVAL_SECONDS = 30
 # Kafka Connect commits the source offsets that the replication checks read every
-# offset.flush.interval.ms (default 60 000 ms, past the 40 s deadline), so each flow sets it.
+# offset.flush.interval.ms (default 60 000 ms, past the 40 s deadline), so each flow sets it. The
+# dedicated MM2 worker takes it only target-prefixed (`<target>.offset.flush.interval.ms`): at
+# 4.1.2, MirrorMakerConfig.workerConfig forwards a bare top-level key only for a fixed prefix list.
 FLUSH_KEY = "offset.flush.interval.ms"
 FLUSH_MS = "10000"
 
@@ -121,11 +123,15 @@ def check_p1a(paths: list[Path]) -> dict:
             "emit.heartbeats.enabled": "false",
             "sync.group.offsets.enabled": "true" if flow in SYNCING_FLOWS else "false",
             **dict.fromkeys(RF_KEYS, "1"),
-            FLUSH_KEY: FLUSH_MS,
+            f"{target}.{FLUSH_KEY}": FLUSH_MS,
         }
         for key, value in expected.items():
             if props.get(key) != value:
                 problems.append(f"{flow}: {key} must be {value!r}")
+        if FLUSH_KEY in props:
+            problems.append(
+                f"{flow}: a bare {FLUSH_KEY} never reaches the worker; set {target}.{FLUSH_KEY}"
+            )
         for key in INTERVAL_KEYS:
             if not props.get(key, "").isdigit() or not 0 < int(props[key]) <= MAX_INTERVAL_SECONDS:
                 problems.append(f"{flow}: {key} must be set explicitly, 1-{MAX_INTERVAL_SECONDS} s")

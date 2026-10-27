@@ -135,6 +135,9 @@ recorded_ok() {  # recorded_ok NN-NAME: an earlier recorded command exited 0
 not_running() {  # not_running SERVICE: the Compose service has no running container
   [[ -z "$(frozen_compose ps -q --status running "$1")" ]]
 }
+no_container() {  # no_container SERVICE: the Compose service has no container at all, stopped included
+  [[ -z "$(frozen_compose ps -a -q "$1")" ]]
+}
 # P1b: after a flow's first start, every internal topic of the flow exists with RF 1.
 p1b() {  # p1b NN FLOW TARGET-KIND
   local nn="$1" flow="$2" target_kind="$3"

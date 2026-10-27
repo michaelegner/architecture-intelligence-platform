@@ -56,7 +56,11 @@ are too slow for a staged run. Every worker sets them to 10 s:
 `refresh.topics.interval.seconds`, `refresh.groups.interval.seconds`,
 `emit.checkpoints.interval.seconds`, `sync.group.offsets.interval.seconds`; `offset.lag.max=1`.
 Kafka Connect commits the replicated source offsets, which the replication checks read, every
-`offset.flush.interval.ms` (default 60 000 ms); every worker sets it to 10 000 ms.
+`offset.flush.interval.ms` (default 60 000 ms); every worker sets it to 10 000 ms. The dedicated
+MirrorMaker 2 worker takes it only with the target cluster's prefix
+(`kafka.`, `redpanda.`, `kprobe.offset.flush.interval.ms`): at 4.1.2,
+`MirrorMakerConfig.workerConfig` forwards a bare top-level key only for a fixed list of prefixes,
+so P1a rejects a bare key.
 `offset.lag.max` is a resync threshold, not a replay guarantee (I3 §13): the replay amount is
 measured or estimated (`checker.py handoff`).
 
@@ -95,7 +99,7 @@ and in I4 the agent, runs them one by one. Every script needs `I3_RAW_DIR` (the 
 |---|---|
 | `preflight/p1a.sh`, `p3.sh` | Static checks of the three property files (P1a, P3) |
 | `preflight/p4.sh` | Starts `kafka`; `kafka:29092` answers from a Compose container and from a k3d probe pod (`--rm`) |
-| `preflight/p5.sh` | The group-offset-sync probe on `mm2-probe`. Before it starts, every name the teardown may delete (the probe topic, group and internal topics, on both brokers) must be absent; the teardown, armed only then, removes exactly those, also on failure |
+| `preflight/p5.sh` | The group-offset-sync probe on `mm2-probe`. Before it starts, every name the teardown may delete must be absent: the probe container (running or stopped), and the probe topic, group and internal topics on both brokers; the teardown, armed only then, removes exactly those, also on failure |
 | `steps/01.sh` … `09.sh` | Parent §4.2, one step each (step 8 needs `SOKOL111_INFRA`) |
 | `capture.sh c1-prime \| a-r \| a-k` | One capture through `harness/kafka-capture/capture.py`, with G before and G′ after (on Kafka both `--describe` and `--describe --state`); A-R also checks that the moved groups read `Empty` or `Dead`; each capture rewrites `checks.json` |
 | `functional_test.py` | The §6 functional test through Connect-RPC; `--dry-run` prints the planned calls |

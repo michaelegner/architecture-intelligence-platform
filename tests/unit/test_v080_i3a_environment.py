@@ -115,8 +115,11 @@ def test_replication_factor_one_everywhere_and_short_explicit_intervals(flow: st
     for key in checker.INTERVAL_KEYS:
         assert props[key] == "10", key
     assert props["offset.lag.max"] == "1"
-    # Connect commits the replicated source offsets at this cadence (default 60 s > the deadline).
-    assert int(props["offset.flush.interval.ms"]) < 1000 * 40
+    # The worker commits the replicated source offsets at this cadence (default 60 s > the deadline).
+    # Only the target-prefixed key reaches the dedicated MM2 worker; a bare key is ignored.
+    target = checker.WORKER_STATE[flow][1]
+    assert int(props[f"{target}.offset.flush.interval.ms"]) < 1000 * 40
+    assert "offset.flush.interval.ms" not in props
 
 
 def test_the_wait_deadline_derives_from_the_committed_intervals() -> None:
@@ -184,6 +187,11 @@ def test_p5_proves_absence_of_every_name_it_may_delete_before_arming_the_teardow
     deletes = "\n".join(line for line in teardown.splitlines() if "probe-stop" not in line)
     assert "aip-probe" not in deletes and "mm2-" not in deletes
     assert text.index("record P5 create-topic") > trap
+    # The teardown removes the probe container, so none may exist before, not even a stopped one.
+    assert (
+        'require "no probe container exists, running or stopped" -- no_container mm2-probe'
+        in before
+    )
 
 
 def test_the_tilt_guard_never_matches_itself_and_sees_a_running_tilt(tmp_path) -> None:
