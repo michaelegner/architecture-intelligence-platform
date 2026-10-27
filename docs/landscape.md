@@ -117,7 +117,7 @@ visualization, provenance, or retrieval?
 [Agent API Profile](#christian-posta--agent-api-profile) ·
 [MCP](#model-context-protocol-mcp) ·
 [Deterministic contextual tools](#tudor-girba--deterministic-contextual-tools-for-system-understanding) ·
-[Contextual tools beyond code reading](#simon-wardley--contextual-tools-beyond-code-reading) ·
+[Situation awareness and contextual tools](#simon-wardley--contextual-tools-beyond-code-reading) ·
 [MCP-washing](#erik-wilde--beyond-mcp-washing-and-ai-ready-apis) ·
 [Procedural Graphs](#lu-et-al--procedural-graphs) ·
 [Agent-ready traceability and API boundaries](#daniel-kocot--agent-ready-apis-traceability-and-preserved-intent) ·
@@ -125,7 +125,7 @@ visualization, provenance, or retrieval?
 [Deterministic integration](#kin-lane--agents-should-write-code-to-integrate-not-infer-it-at-runtime) ·
 [Competitive landscape harness](#kin-lane--competitive-landscape-harness) ·
 [Start with the flow](#kin-lane--start-with-the-flow-not-the-agent) ·
-[Supervisory engineering](#annie-vella--the-middle-loop-and-supervisory-engineering) ·
+[Supervisory engineering and situation awareness](#annie-vella--the-middle-loop-and-supervisory-engineering) ·
 [Software engineering retreat](#thoughtworks--future-of-software-engineering-retreat) ·
 [UI Atlas](#ui-atlas--ai-successors) ·
 [Thoughtworks AI/works](#thoughtworks-aiworks) ·
@@ -1963,31 +1963,42 @@ This strengthens the existing Moldable Architecture Knowledge direction and adds
 
 **Sources**
 
+- [On Evolution, Maps and Bad Choices (2015)](https://blog.gardeviance.org/2015/05/on-evolution-maps-and-numpties.html)
+- [What is a map, what isn't? (2015)](https://blog.gardeviance.org/2015/05/what-is-map-what-isnt.html)
 - [Reading code to understand a system is already beyond repair](https://www.linkedin.com/posts/simonwardley_for-those-wondering-about-my-warning-from-activity-7473097333409300481-7H4j)
 - [Software engineering needs contextual tools, not one generic toolset](https://www.linkedin.com/posts/simonwardley_x-whats-the-worse-thing-about-software-activity-7470403677426585600-RyeL)
 
 **Core idea**
 
-Wardley argues that reading code is an increasingly untenable way to understand large systems,
-especially as AI accelerates code production. The deeper problem is the toolset: software
-development relies too heavily on generic tools and human reconstruction instead of contextual
-tools built to answer the question at hand. At larger scale, maintaining situational awareness
-requires tools that expose structure and consequences without requiring linear inspection of the
-code base.
+Wardley treats **situational awareness** as a prerequisite for strategic action: understand the
+landscape, component dependencies and their position relative to user needs, then consider how
+components may evolve before deciding what to do. A Wardley Map represents **position and movement**;
+a static systems dependency diagram does not thereby become a Wardley Map. Maps support orientation,
+communication and judgment rather than mechanically prescribing decisions.
+
+His more recent argument for contextual software-development tools addresses an adjacent problem:
+reading code or consulting generic tooling is not enough to maintain a useful understanding of
+large, rapidly changing systems. Question-specific views can expose relevant structure and
+consequences without requiring a person to reconstruct everything manually.
 
 **Why this matters to AIP**
 
-This complements Girba's question-driven contextual-tool model with a product-scale framing:
-architecture understanding should be an explicit capability of the development environment, not a
-mental model reconstructed from enough code before time runs out.
+For a concrete cross-boundary change, a bounded architectural projection can help an engineer or
+coding agent *orient*: which participants and relationships matter, which claims are established,
+what commitments apply and where uncertainty remains. This is a specialized contribution to
+situation awareness, **not** a representation of a Wardley Map's user-value positioning or
+evolution axis.
 
-AIP fits as one such contextual tool for **distributed architecture**. It does not replace source
-analysis. It answers the questions whose relevant evidence spans autonomous components and
-heterogeneous sources, then exposes the bounded investigation context a coding agent still needs.
+Annie Vella's human-factors account complements Wardley's strategic view: automation can preserve
+the visibility of system changes while eroding comprehension of their significance. More evidence
+or more telemetry is not automatically better situation awareness; relevant relationships must be
+presented with sufficient meaning, provenance and limits to support sound decisions.
 
-The implication is not that AIP should build a universal map. Its role is narrower: provide
-deterministic, evidence-qualified projections for concrete distributed-architecture questions so
-agents and humans can orient themselves before deciding where deeper inspection is required.
+**AIP boundary**
+
+AIP provides question-specific, evidence-qualified architectural premises; engineers and agents
+reason about future consequences and choose actions. It neither predicts Wardley-style evolution
+nor builds a general strategy-mapping or supervisory-control platform.
 
 ### OpenAI — Harness Engineering and Agent Legibility
 
@@ -2816,29 +2827,46 @@ UI Atlas models UI states, controls, and transitions; AIP models architectural r
 
 ### Annie Vella — The Middle Loop and Supervisory Engineering
 
-**Source**
+**Sources**
 
 - [The Middle Loop (2026-03-13)](https://annievella.com/posts/the-middle-loop/)
+- [Verification Without Inspection (2026-07-31)](https://annievella.com/posts/verification-without-inspection/)
+- *Supervisory Engineering Work* (2026-10-23; direct article URL not yet verified; see [Annie Vella's blog](https://annievella.com/posts/))
 
 **Core idea**
 
-Vella describes the directing, evaluating and correcting of AI-generated work as supervisory
-engineering between the inner development loop and outer delivery loop. Her longitudinal
-study reports a relative shift from creation toward verification; the time-allocation
-observations are self-reports, not instrumented time measurements. Faster generation does
-not automatically yield more time spent on architecture.
+Vella's *Middle Loop* describes directing AI, evaluating its output and correcting it as
+supervisory engineering between implementation and delivery. Her longitudinal research reports a
+relative shift from creation toward verification based on participants' self-reported task focus;
+it does not establish that developers gained more time for architectural design.
+
+*Supervisory Engineering Work* connects this role to human-factors research on supervisory
+control (Sheridan and Verplank) and the **out-of-the-loop performance problem** (Endsley and Kiris).
+Increased automation can preserve **perception** of system changes while weakening
+**comprehension** of their meaning; operators may then struggle to intervene. Her proposed
+response includes deliberately chosen automation levels, appropriate signals, intervention
+mechanisms and training. These are human-factors findings and design considerations, not
+evidence that any one architecture tool improves situation awareness.
+
+*Verification Without Inspection* explores formal methods as a way to establish that generated
+implementations or agent actions satisfy specified properties, while acknowledging that deciding
+on the *right* specification remains difficult. Mathematical proof of a modeled property is
+different from establishing what is true of an observed distributed system.
 
 **Why this matters to AIP**
 
-The human engineer and coding agent need to assess the architectural consequences of a
-change across autonomous components, not merely accept a locally passing implementation.
-AIP may supply attributable cross-boundary premises in that supervisory workflow. It does
-not itself direct, supervise, review, approve, or verify generated code.
+Wardley's situational-awareness lens and Vella's supervisory-control lens intersect at the
+difference between **seeing a change** and **understanding its consequences**. A question-specific
+binding picture can make relevant cross-boundary relationships, attributable commitments,
+observation scope and unresolved questions comprehensible to a supervising human or coding agent.
+Evidence-qualified architectural premises may also inform external specifications and checks;
+they are not themselves formal proofs of implementation correctness or runtime behavior.
 
 **AIP boundary**
 
-The middle loop identifies a downstream consumer for evidence-qualified architecture
-answers, not a mandate to build a harness, code-review product, or approval system.
+AIP supplies inspectable architectural premises, not supervisory control, action authorization,
+verification of generated code, a formal-methods prover or a complete model of future behavior.
+Human and agent reasoning remains responsible for projected consequences and intervention.
 
 
 ### Thoughtworks — Future of Software Engineering Retreat
