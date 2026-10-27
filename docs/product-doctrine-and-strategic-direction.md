@@ -3,7 +3,7 @@
 **Status:** Working product strategy  
 **Project:** Architecture Intelligence Platform (AIP)  
 **Distributed focus:** architecture across autonomous service/component boundaries  
-**Revision:** 2026-10-24 — pivot to the binding picture: promises and qualified Current State across autonomous boundaries, and their assessment (see [Pivot status](#pivot-status))  
+**Revision:** 2026-10-27 — clarified situational awareness as a product responsibility; retains the 2026-10-24 binding-picture pivot (see [Pivot status](#pivot-status))  
 **Scope:** release-independent product doctrine and strategic direction  
 **Roadmap authority:** release sequencing and shipped/planned status remain in [ROADMAP.md](../ROADMAP.md)
 
@@ -320,8 +320,27 @@ A projection must not silently strengthen a claim that something was **observed 
 that it is **true everywhere**. Likewise, evidence that a **consumer uses X** must not be transformed
 into a claim that the **provider promised X**.
 
+### Architectural knowledge must enable situational awareness
+
+> **AIP must not merely establish trustworthy architectural knowledge. It must make that knowledge
+> understandable in the context of the architectural question being asked.**
+
+A useful projection makes the relevant participants, cross-boundary relationships, attributable
+commitments, observations, and unresolved questions comprehensible **for the user's concrete
+decision**. The consumer should not have to reconstruct their architectural significance from
+disconnected evidence records, a generic dependency graph, or raw tool output.
+
+The question shapes the representation: a provider examining reliance on a promise, a consumer
+checking the terms of that promise, and an architect planning a boundary migration need different
+views of the same qualified knowledge. The projection should make clear *which bindings matter to
+this question*, *what the evidence establishes*, and *what still needs investigation*. It must not
+invent consequences, intent, or certainty that the inputs cannot support. Deciding what to do
+remains with the engineer or agent.
+
 The product concept **Moldable Architecture Knowledge** is retained in this narrower sense: the same
 local knowledge may support different bounded projections when different questions are asked.
+Contextual presentation may be structured data for an agent, an interactive view, or a concise
+human-readable explanation; no single visualization format is required.
 
 Consumers may mold the question, selection, projection, composition, and representation. They may not
 mold the underlying evidence, qualification, provenance, or claim meaning.
@@ -518,9 +537,10 @@ Assessment, or consumes promises from an adjacent product and assesses them.
 
 The primary validation question has two parts:
 
-> **H1 (value):** With the binding picture, do provider teams, consumer teams and the agents that act
-> for them have fewer surprises and less avoidable coordination before a safe use or change than with
-> their current means, without more unsupported claims?
+> **H1 (value):** With the binding picture, can provider teams, consumer teams and the agents that act
+> for them understand the relevant cross-boundary bindings and their significance for a concrete
+> question, with fewer surprises and less avoidable coordination before a safe use or change than
+> with their current means, without more unsupported claims?
 
 > **H2 (sustainability):** Can promises and Bounded Context membership be confirmed and kept current
 > at an owner effort lower than the coordination they remove?
@@ -528,6 +548,13 @@ The primary validation question has two parts:
 A **surprise** is a dependent, condition, owner or binding that is discovered late or after the
 change. **Avoidable coordination** is a contact whose answer existed but could not be reached from
 the available sources. Either hypothesis can fail, and either failure falsifies the position.
+
+**Comprehension is a necessary part of H1, not a substitute for decision value.** In a bounded
+customer task, check whether users can identify the relevant boundary, explain why particular
+bindings matter, distinguish established from promised or unresolved relationships, and identify
+where further investigation is required. Compare accuracy, unsupported claims, investigation
+effort, and the resulting decision with the customer's existing tools. A technically correct
+projection that still requires the customer to reconstruct the problem has not met this criterion.
 
 Validation needs a **target customer**: a real organisation with several teams that use each other's
 capabilities. A public system cannot validate owner effort or coordination cost, and source
@@ -694,9 +721,9 @@ center.
 
 ### Product positioning
 
-> **AIP establishes the binding picture across distributed-system boundaries: what autonomous
-> participants promise to each other, what the evidence establishes, and what the evidence supports
-> about the difference.**
+> **AIP establishes the binding picture across distributed-system boundaries and makes it
+> understandable for a concrete architectural question: what autonomous participants promise to
+> each other, what the evidence establishes, and what remains unresolved.**
 
 ### Customer problem
 
@@ -719,6 +746,13 @@ center.
 
 > **Projection may combine local views, but it must not erase their locality, authority, provenance,
 > qualification, or uncertainty.**
+
+### Situational-awareness principle
+
+> **AIP must make evidence-qualified architectural knowledge comprehensible in the context of the
+> question being asked, so users understand which bindings matter and what the available evidence
+> does and does not establish. Contextual representation must not manufacture architectural facts
+> or substitute for the user's decision.**
 
 ### Integration principle
 
