@@ -9,7 +9,8 @@ labelled `agent-reported`, transcribed by the operator into a small file:
 
 Next to it stand the operator's own S4 reads, each with its source: (a), the final committed offset
 on Redpanda; every checkpoint for the group and partition (upstream, downstream); the offset syncs;
-and the group's current position on Kafka. The relations that can still be checked are:
+and the group's current position on Kafka. The reported entries must cover exactly the tenant-topic
+partitions of both moved groups in the source capture. The relations that can still be checked are:
 
 - some checkpoint has upstream = (a) and downstream = the agent-reported (c);
 - the current Kafka position >= that downstream offset.
@@ -25,6 +26,8 @@ from pathlib import Path
 
 from _i3 import checker
 
+MOVED_GROUPS = ("ecommerce-catalog-service", "ecommerce-image-service")
+TENANT_TOPIC = "tenant.tenant.events"
 CHECKPOINT = re.compile(
     r"consumerGroupId=([^,]+), topicPartition=([^,]+), upstreamOffset=(\d+), downstreamOffset=(\d+)"
 )
@@ -55,6 +58,22 @@ def check_handoff_after(
     target = checker.group_rows(target_groups.read_text(), "kafka")
     history = checkpoint_history(checkpoint_dump.read_text())
     syncs = checker.offset_syncs(sync_dump.read_text())
+    # The hand-off must cover every tenant-topic partition of both moved groups, as the operator's
+    # own source capture shows them; the agent's report may neither omit nor repeat one.
+    expected = sorted(
+        (group, topic, partition)
+        for group in MOVED_GROUPS
+        for (topic, partition) in source.get(group, {"rows": {}})["rows"]
+        if topic == TENANT_TOPIC
+    )
+    keys = [(e["group"], e["topic"], e["partition"]) for e in reported]
+    coverage = {
+        "expected": [list(k) for k in expected],
+        "missing": [list(k) for k in expected if k not in keys],
+        "unexpected": [list(k) for k in sorted(set(keys)) if k not in expected],
+        "duplicated": [list(k) for k in sorted(set(keys)) if keys.count(k) > 1],
+        "groups_without_rows": [g for g in MOVED_GROUPS if not any(k[0] == g for k in expected)],
+    }
     entries = []
     for entry in reported:
         group, topic, partition, c = entry["group"], entry["topic"], entry["partition"], entry["c"]
@@ -80,8 +99,13 @@ def check_handoff_after(
                 else {"kind": "NO_BOUND", "reason": "no final upstream offset"},
             }
         )
-    passed = bool(entries) and all(
-        e["checkpoint_matches"] and e["position_not_behind"] for e in entries
+    complete = not any(
+        coverage[k] for k in ("missing", "unexpected", "duplicated", "groups_without_rows")
+    )
+    passed = (
+        complete
+        and bool(entries)
+        and all(e["checkpoint_matches"] and e["position_not_behind"] for e in entries)
     )
     return checker.verdict(
         "handoff-after",
@@ -89,6 +113,7 @@ def check_handoff_after(
         checker.PASSED if passed else checker.FAILED,
         [str(agent_reported), str(source_groups), str(checkpoint_dump), str(target_groups)],
         entries=entries,
+        coverage=coverage,
     )
 
 

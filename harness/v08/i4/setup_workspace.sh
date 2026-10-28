@@ -18,9 +18,9 @@ stop() { echo "STOP: $*" >&2; exit 2; }
 [[ -d "$RUN_HOME" ]] || stop "$RUN_HOME does not exist"
 RUN_HOME="$(cd "$RUN_HOME" && pwd -P)"
 
-# Every worktree of the checkout holds the specifications: all of them are withheld.
-mapfile -t WITHHELD < <(git -C "$REPO" worktree list --porcelain | sed -n 's/^worktree //p')
-[[ ${#WITHHELD[@]} -gt 0 ]] || stop "cannot list the AIP worktrees"
+# Every worktree of the checkout holds the specifications: all of them are withheld, as is the
+# operator's own Claude state (withheld.sh).
+source "$I4_DIR/withheld.sh"
 for tree in "${WITHHELD[@]}"; do
   tree="$(cd "$tree" 2>/dev/null && pwd -P || echo "$tree")"
   case "$RUN_HOME/" in "$tree"/*) stop "$RUN_HOME is inside the AIP worktree $tree" ;; esac
@@ -50,14 +50,13 @@ if [[ -f "$HOME/.claude/.credentials.json" ]]; then
   install -m 600 "$HOME/.claude/.credentials.json" "$CONFIG/.credentials.json"
 fi
 # The operator's own Claude state holds the plan key's content (session transcripts, memory, plans,
-# scratchpads): ~/.claude, ~/.claude.json and the operator's per-project temp dirs, whose names are
-# the worktree paths with / replaced by -.
-OPERATOR_STATE=("$HOME/.claude/**" "$HOME/.claude.json")
-for tree in "${WITHHELD[@]}"; do
-  OPERATOR_STATE+=("/tmp/claude-$(id -u)/${tree//\//-}/**")
+# scratchpads). A directory is denied with everything under it.
+DENIED_STATE=()
+for path in "${OPERATOR_STATE[@]}"; do
+  [[ "$path" == *.json ]] && DENIED_STATE+=("$path") || DENIED_STATE+=("$path/**")
 done
 python3 - "$I4_DIR/agent/settings.$SESSION.json" "$CONFIG/settings.json" "$RUN_HOME" \
-  "${#WITHHELD[@]}" "${WITHHELD[@]}" "${OPERATOR_STATE[@]}" <<'EOF'
+  "${#WITHHELD[@]}" "${WITHHELD[@]}" "${DENIED_STATE[@]}" <<'EOF'
 import json, sys
 template, out, run_home, count, *rest = sys.argv[1:]
 withheld, operator_state = rest[: int(count)], rest[int(count) :]

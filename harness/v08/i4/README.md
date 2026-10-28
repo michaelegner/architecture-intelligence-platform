@@ -39,8 +39,11 @@ Checked on Claude Code 2.1.312 with a scratch config dir (I4a):
 
 1. Reset and bring up Sokol111 as in [handoff §2](../../../docs/specifications/0.8.0/i3-i4-handoff.md#2-reset-procedure-back-to-the-before-wave-state).
    Clone the repositories into `$I4_RUN_HOME/src/`. Do the before-state checks yourself.
-2. **Nothing may need a fetch later:**
-   - pull every pinned image now, including `apache/kafka:4.1.2@sha256:5cc2a2fd…`;
+2. **Nothing may need a fetch later.** Every pull and build happens now, before the image inventory
+   of step 5:
+   - pull every pinned image, including `apache/kafka:4.1.2@sha256:5cc2a2fd…`;
+   - build AIP from the I4a merge commit: `export AIP_IMAGE=$(docker build -q <AIP checkout>)`, and
+     record the ID in `observed-metadata.json`;
    - run `helm dependency build` in each chart of `src/ecommerce-infrastructure` that has
      dependencies.
 3. Check how `rpk group list` and `rpk group describe` show an `Empty` group (handoff §4). Record
@@ -50,11 +53,10 @@ Checked on Claude Code 2.1.312 with a scratch config dir (I4a):
    - `docker compose -p aip-v08-i4 --project-directory $I4_RUN_HOME/kafka -f $I4_RUN_HOME/kafka/docker-compose.kafka.yml --env-file /dev/null up -d`;
    - check that no topic exists on it.
 5. Record the configuration of the moved services and the image inventory:
-   `$I4/capture.sh helm before` and `$I4/capture.sh images before` (after every pull of step 2).
+   `$I4/capture.sh helm before` and `$I4/capture.sh images before` (after every pull and build of
+   step 2; an image that appears later is an audit hit).
 6. Capture B-R: `$I4/capture.sh b-r`.
 7. Start AIP with the before-wave profile:
-   - build the image from the I4a merge commit: `export AIP_IMAGE=$(docker build -q <AIP checkout>)`,
-     and record the ID in `observed-metadata.json`;
    - `$I4/setup_run_home.sh $I4_RUN_HOME before`;
    - `export AIP_NEO4J_PASSWORD=…` (it stays exported for S4: Compose needs it for every command
      on this file), then `cd $I4_RUN_HOME && docker compose -f docker-compose.aip.yml up -d` (with
@@ -90,13 +92,13 @@ Checked on Claude Code 2.1.312 with a scratch config dir (I4a):
 
 Run the steps in this order. AIP answers only for the current snapshot.
 
-1. **Audit:** first `$I4/capture.sh images after`, then
-   `python3 $I4/audit.py --images-before package/images/before.txt --images-after package/images/after.txt --planning $(find package/transcripts/planning -name '*.jsonl') --execution $(find package/transcripts/execution -name '*.jsonl') --withheld <each AIP worktree> --config-dir $I4_RUN_HOME/claude-planning --config-dir $I4_RUN_HOME/claude-execution --out package/audit.json --requests-out package/agent-requests.json`.
-   Withheld means: every AIP worktree, `~/.claude`, the operator's `/tmp/claude-<uid>/` project dirs,
-   and `$I4_RUN_HOME/package`. A hit invalidates the run (§4.4). A denied attempt is still a hit; the
-   §4.4 waiver applies when its `tool_result` shows that it failed before it returned any content, so
-   the owner can waive it with that result as the evidence. Zero extracted requests while the plan
-   cites AIP stops the next step.
+1. **Audit:** first `$I4/capture.sh images after`, then `$I4/run_audit.sh`. It passes every
+   withheld location to `audit.py`: every AIP worktree, `~/.claude`, `~/.claude.json`, the
+   operator's `/tmp/claude-<uid>/` worktree dirs, and `$I4_RUN_HOME/package`
+   (`run_audit.sh --print` shows the command). A hit invalidates the run (§4.4). A denied attempt is
+   still a hit; the §4.4 waiver applies when its `tool_result` shows that it failed before it
+   returned any content, so the owner can waive it with that result as the evidence. Zero extracted
+   requests while the plan cites AIP stops the next step.
 2. **Before-wave answers**, with B-R still current:
    `python3 $I4/record_answers.py before --requests package/agent-requests.json --plan workspace/plan.json --out package/answers-before.json`.
 3. **Configuration and ground truth:**

@@ -135,3 +135,35 @@ def test_setup_planning_then_execution(tmp_path):
     assert setup(run_home, "execution", home).returncode == 0
     execution = json.loads((run_home / "claude-execution/settings.json").read_text())
     assert f"Read(/{run_home.resolve()}/claude-planning/**)" in execution["permissions"]["deny"]
+
+
+def test_run_audit_passes_every_withheld_location(tmp_path):
+    """#651 owner review: the documented withheld set reaches audit.py, not only the worktrees."""
+    env = {**os.environ, "I4_RUN_HOME": str(tmp_path)}
+    result = subprocess.run(
+        ["bash", str(I4 / "run_audit.sh"), "--print"],
+        capture_output=True,
+        text=True,
+        env=env,
+        check=True,
+    )
+    words = result.stdout.split("\n")
+    withheld = {words[i + 1] for i, w in enumerate(words) if w == "--withheld"}
+    home = str(Path.home())
+    assert {
+        str(REPO),
+        f"{home}/.claude",
+        f"{home}/.claude.json",
+        str(tmp_path / "package"),
+    } <= withheld
+    assert f"/tmp/claude-{os.getuid()}/{str(REPO).replace('/', '-')}" in withheld
+    assert "--images-before" in words and "--images-after" in words
+
+
+def test_readme_builds_and_pulls_before_the_image_inventory():
+    """#651: an image the operator builds after `images before` would be an IMAGE_ADDED hit."""
+    readme = (I4 / "README.md").read_text()
+    inventory = readme.index("capture.sh images before")
+    assert readme.index("docker build -q") < inventory
+    assert readme.index("pull every pinned image") < inventory
+    assert readme.count("docker build") == 1

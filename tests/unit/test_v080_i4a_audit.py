@@ -390,3 +390,15 @@ def test_image_added_between_the_inventories():
     hits = audit.new_images(before, after)
     assert [(h["kind"], h["detail"]) for h in hits] == [("IMAGE_ADDED", "sha256:ccc alpine:latest")]
     assert audit.new_images(before, before) == []
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
+        "jq '.items[].id' plan.json > ids.txt",
+        "cat plan.json > /tmp/x",
+        "grep x plan.json 2>err.txt",
+    ],
+)
+def test_a_redirected_read_of_the_plan_is_not_a_write(tmp_path, command):
+    assert "FROZEN_PLAN_WRITE" not in kinds(tmp_path, [bash(command)])

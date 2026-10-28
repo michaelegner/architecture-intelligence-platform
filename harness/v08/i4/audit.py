@@ -324,12 +324,14 @@ def network_problem(words: list[str]) -> str | None:
     return None
 
 
-def _writes_files(segment: "Segment") -> bool:
-    """A segment that can write the files it names: a redirection, or a program that is not on the
-    read-only list (cp, mv, sed -i, tee, ...)."""
-    return bool(segment.writes) or (
-        bool(segment.words) and planning_change(segment.words) is not None
-    )
+def plan_writes(segment: "Segment") -> list[str]:
+    """The plan files a segment writes: a redirection whose target is a plan file, or a plan file
+    named to a program that can write files (cp, mv, sed -i, tee, ...). Reading the plan and
+    redirecting the output elsewhere (`jq ... plan.json > ids.txt`) writes no plan file."""
+    redirected = [w for w in segment.writes if Path(w).name in PLAN_FILES]
+    writer = bool(segment.words) and planning_change(segment.words) is not None
+    named = [w for w in segment.words[1:] if Path(w).name in PLAN_FILES] if writer else []
+    return redirected + named
 
 
 def _subcommand_words(args: list[str]) -> list[str]:
@@ -507,10 +509,8 @@ def audit_session(
                 problem = network_problem(segment.words)
                 if problem:
                     hits.append(_hit("NETWORK_OUTSIDE", session, number, tool, problem, denied))
-                plan_targets = [
-                    w for w in [*segment.writes, *segment.words[1:]] if Path(w).name in PLAN_FILES
-                ]
-                if session == "execution" and plan_targets and _writes_files(segment):
+                plan_targets = plan_writes(segment)
+                if session == "execution" and plan_targets:
                     hits.append(
                         _hit("FROZEN_PLAN_WRITE", session, number, tool, str(plan_targets), denied)
                     )

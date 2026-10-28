@@ -177,7 +177,10 @@ def test_helm_departures_fail(tmp_path, after_brokers, extra, refs):
 # --- The hand-off after the wave -------------------------------------------------------------------
 
 
-def agent_reported(tmp_path: Path, c: int) -> Path:
+MOVED = ("ecommerce-catalog-service", "ecommerce-image-service")
+
+
+def agent_reported(tmp_path: Path, c: int, groups=MOVED) -> Path:
     path = tmp_path / "agent.json"
     path.write_text(
         json.dumps(
@@ -189,16 +192,16 @@ def agent_reported(tmp_path: Path, c: int) -> Path:
                     "c": c,
                     "transcript": "execution line 1",
                 }
-                for g in ("ecommerce-catalog-service", "ecommerce-image-service")
+                for g in groups
             ]
         )
     )
     return path
 
 
-def handoff(tmp_path: Path, c: int) -> dict:
+def handoff(tmp_path: Path, c: int, groups=MOVED) -> dict:
     return ground_truth.check_handoff_after(
-        agent_reported(tmp_path, c),
+        agent_reported(tmp_path, c, groups),
         I3_RAW / "06-source-groups.txt",
         I3_RAW / "06-checkpoints.txt",
         I3_RAW / "06-target-groups.txt",
@@ -247,3 +250,20 @@ def test_proof_c_on_the_reference_and_a_departure():
     answer["data"]["rows"][0]["status"] = "PROMISED_AND_OBSERVED"
     result = proof_c.check(recording, expected)
     assert result["result"] == "FAILED" and len(result["unexpected"]) == 1
+
+
+@pytest.mark.parametrize(
+    ("groups", "problem"),
+    [
+        (("ecommerce-catalog-service",), "missing"),  # Image omitted
+        (
+            ("ecommerce-catalog-service", "ecommerce-image-service", "ecommerce-image-service"),
+            "duplicated",
+        ),
+    ],
+)
+def test_handoff_must_cover_both_moved_groups_exactly(tmp_path, groups, problem):
+    """#651 owner review: a report that omits Image (or repeats a key) cannot pass."""
+    result = handoff(tmp_path, 1, groups)
+    assert result["result"] == "FAILED"
+    assert result["coverage"][problem]
