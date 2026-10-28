@@ -45,9 +45,11 @@ shipping. It is exempt from the product-value comparison of the
 [product validation gates](#product-validation-gates). Its roadmap section names it as a
 demonstration release.
 
-**v0.9 is a one-time exception** to the new-question rule: it prepares contextual-tooling
-integration and customer evaluation of the existing binding picture, without claiming a new
-semantic capability or product value. Integration must remain evidence-traceable and release-qualified.
+**Proposed v0.9 may be a one-time validation-enablement exception** to the new-question rule.
+Authorize that release only if integration reveals meaningful AIP-side interoperability or
+qualification work that warrants a versioned, release-tested artifact. Otherwise, deliver the
+contextual-tooling work independently and revisit the version assignment. Neither route
+establishes product value before customer evaluation.
 
 A patch release `0.x.y` preserves the `0.x.0` architecture-question space. It is normally for a
 **post-release correction or maintenance change** that preserves the intended semantic contract:
@@ -768,32 +770,39 @@ v0.8 also adds schema field descriptions for `destination_id` and `broker_id` on
 
 ## v0.9 — Contextual Architecture Intelligence Integration (proposed)
 
-**Goal:** Prepare AIP's evidence-qualified binding picture for customer evaluation through
-independent contextual tooling that makes architectural relationships understandable for a
-concrete engineering question. AIP owns architectural knowledge and semantic projections;
-contextual tools own problem-specific exploration, visualization and interpretation.
+**Goal:** Prepare AIP for customer-based product evaluation by demonstrating that independent
+contextual tooling can turn its evidence-qualified binding picture into useful, problem-specific
+architectural understanding. AIP owns architectural claims and bounded semantic projections;
+contextual tools own navigation, visualization and cross-source interpretation.
 
 **Requirements:**
 
-- **Interoperability:** Make existing read-only REST/MCP binding-picture and evidence interfaces
-  usable by independent contextual tooling. Extend AIP only for demonstrated integration gaps.
-- **Reference integrations:** Compare minimal integrations with **Glamorous Toolkit** (moldable,
-  visual exploration) and **Unblocked** (cross-source, agent-centered context) using the same
-  Sokol111 migration scenario. Select the approach best suited to customer evaluation.
-- **Contextual understanding:** Show why a binding matters to the proposed change, which
-  explicit assumptions it challenges, which promises or objectives are relevant, and what
-  qualified before/after evidence establishes. Keep AIP claims distinct from interpretations
-  and engineering decisions.
-- **Traceability:** Preserve qualification, provenance, observation context, limitations and
-  unresolved results when architectural knowledge is presented through contextual tooling.
-- **Evaluation preparation:** Define reproducible customer tasks and independent expected
-  findings. Compare existing engineering tools, contextual tooling without AIP, and the same
-  tooling with AIP for comprehension, decision quality, traceability and total effort.
+- **Customer problem first:** Identify at least one representative customer role, cross-boundary
+  decision and workflow before choosing tooling. Use the Sokol111 migration as a repeatable
+  starting scenario, not as a substitute for customer relevance.
+- **Interoperability:** Verify that independent tools can consume AIP's existing read-only REST/MCP
+  binding-picture and evidence interfaces. Extend AIP only to resolve demonstrated semantic or
+  interoperability gaps.
+- **Contextual integration:** Choose suitable tooling for that workflow. **Glamorous Toolkit**
+  (moldable views) and **Unblocked** (cross-source agent context) are candidates, not two
+  mandatory implementations; record the selection rationale.
+- **Architectural comprehension:** Demonstrate why relevant bindings matter to a change, which
+  stated assumptions their evidence challenges, which promises or objectives may apply, and what
+  qualified observations establish. Keep observations, interpretation and proposed decisions
+  separate, with traceable provenance and explicit uncertainty.
+- **Evaluation readiness:** Prepare repeatable tasks and independently checkable findings.
+  Compare existing engineering tools, contextual tooling without AIP and the same tooling with
+  AIP; also assess whether a coding agent using AIP directly already meets the need. Evaluate
+  comprehension, decision quality, unsupported claims and total engineering/owner effort.
 
-**Expected outcome:** One usable, documented integration path with problem-specific architectural
-views and evidence navigation, a justified choice of contextual tooling, and a repeatable
-target-customer evaluation approach. Product value remains to be established with a real customer;
-the release introduces no AIP-owned contextual UI or new architecture-question class.
+**Expected outcome:** A demonstrably useful contextual investigation for a representative
+architectural decision, traceable to qualified AIP claims, plus a suitable integration approach and
+a repeatable customer-evaluation protocol. Successful interoperability alone is insufficient;
+product value remains unproven until customer evaluation.
+
+**Release decision:** Proceed with a v0.9 AIP release only if there is material AIP-side work to
+qualify and ship. If the existing interfaces suffice, keep the integration external and reconsider
+the version assignment; do not add an AIP capability merely to justify v0.9.
 
 ## After v0.9 — Target-customer evaluation and scope decisions
 
@@ -895,8 +904,8 @@ The planned release sequence is:
 6. **v0.7.2** — hosted v0.7.x MCP interoperability and pre-v0.8 product-boundary qualification
    against a mature context engine.
 7. **v0.8** — binding picture showcase on Sokol111 (demonstration release, experimental semantics).
-8. **v0.9** — contextual-tooling integration and customer-evaluation preparation (one-time
-   validation-enablement release; no new architecture-question class).
+8. **Proposed v0.9** — customer-problem-led contextual-tooling integration and evaluation
+   preparation; authorize an AIP release only if meaningful AIP-side work is demonstrated.
 9. **Target-customer evaluation** — compare existing tools, contextual tooling alone, and contextual
    tooling with AIP against doctrine §8 (H1 and H2) in a real organisation; decide
    continue, narrow, integrate, defer or stop.
@@ -915,8 +924,9 @@ The version order is chronological planning, while the semantic dependencies are
 Qualified distributed Current State is the basis of the binding picture. v0.7.2 showed that, on the
 tested system, a mature context engine finds the same consumers as AIP. The doctrine therefore
 pivots to the binding picture: promises and qualified Current State, and their assessment. v0.8
-demonstrates it; v0.9 tests independent contextual-tooling consumption and prepares evaluation;
-a target customer validates the decision value and owner effort. If an adjacent tool already owns
+demonstrates it; the proposed v0.9 work tests contextual-tooling consumption and prepares evaluation,
+with an AIP release conditional on meaningful AIP-side work. A target customer validates decision
+value and owner effort. If an adjacent tool already owns
 the needed capability well, AIP should integrate with it rather than duplicate it. Only capabilities
 that survive those product and semantic checks should enter the stable contract.
 
@@ -926,8 +936,8 @@ The product-question sequence is:
 - **v0.7:** How are APIs exposed or consumed, and what does the evidence establish?
 - **v0.8 (demonstration):** Which promised and observed bindings cross an independently established
   Bounded Context boundary, and what does the evidence show about each one?
-- **v0.9 (integration):** Can independent contextual tooling make those qualified answers
-  comprehensible in a concrete change task without manufacturing architectural claims?
+- **Proposed v0.9 (integration):** Can independent contextual tooling make those qualified answers
+  comprehensible in a representative customer decision without manufacturing architectural claims?
 - **Target-customer evaluation:** Does adding AIP to contextual tooling improve comprehension,
   decisions, surprises and avoidable coordination at an owner effort that teams accept?
 - **v1.0-rc:** Freeze only what survived product and semantic qualification.
