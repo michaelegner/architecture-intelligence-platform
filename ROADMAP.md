@@ -792,8 +792,9 @@ by a working contextual-tooling client.
 
 **Outcome:** a consumer-facing integration contract and executable checks against the existing
 `get_binding_picture` / `get_binding_picture_evidence` REST or MCP interfaces. Verify that a
-client can retrieve canonical participant and binding identities, crossing direction, assessment,
-promise/attachment/mapping evidence references, capture scope, time, and unresolved limitations
+client can retrieve participant identifiers, broker/topic/consumer row keys, crossing direction,
+assessment, promise/attachment/mapping evidence references, capture scope, time, and unresolved
+limitations
 without deriving architectural meaning from names or raw source artifacts.
 
 **Acceptance:** reproduce a selected Sokol111 binding picture and resolve its cited evidence through
@@ -834,6 +835,7 @@ findings, evaluation prompts/tasks, source and evidence provenance, setup and pe
 instrumentation, and a pre-registered decision rubric.
 
 Compare three conditions on equivalent task context:
+
 1. The customer's current engineering workflow and tools.
 2. The selected contextual tool with the customer's available sources but without AIP.
 3. The same contextual tool and sources **with AIP**.
