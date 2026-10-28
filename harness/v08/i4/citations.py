@@ -4,8 +4,10 @@ AIP answers (`record_answers.py`), never against a live query.
 Per citation:
 - RESOLVED: a row citation names a row of the recorded answer to one of the agent's requests at the
   cited snapshot; a ref citation names refs that appear in such an answer and that evidence mode
-  resolved (`RESOLVED`) for that request. A ref citation names the rows that carry every cited ref
-  (a mapping ref alone is shared by all rows of its consumer);
+  resolved (`RESOLVED`) for that request. Within one citation, the refs name the rows that carry
+  every cited ref (a mapping ref alone is shared by all rows of its consumer); refs that all resolve
+  but share no row stay RESOLVED and name no binding, so they never support one (owner decision,
+  #651). Across separate citations, coverage takes the union of the rows each one supports;
 - SUPPORTS: for an item that a binding key item (K1-K4) matched, the cited row's topic is one of the
   item's topics and its crossing is INBOUND or OUTBOUND. For other items AIP citations are optional
   and this rule does not apply.
@@ -71,8 +73,10 @@ class Recorded:
             ok = bool(refs) and all(
                 r in known and r in self.resolved.get(snapshot, set()) for r in refs
             )
+            # Refs that all resolve but share no row are still RESOLVED: the evidence exists, and the
+            # citation names no common binding (owner decision on #651); support then fails.
             rows = set.intersection(*(known[r] for r in refs)) if ok else set()
-            return (RESOLVED if rows else UNRESOLVED), sorted(rows)
+            return (RESOLVED if ok else UNRESOLVED), sorted(rows)
         if not all(citation.get(k) for k in ("broker_id", "topic_name", "consumer_service_id")):
             return UNRESOLVED, []
         key = row_key(citation)
@@ -101,10 +105,10 @@ def check_item(item: dict, recorded: Recorded, binding: bool) -> dict:
                 )
                 else DOES_NOT_SUPPORT
             )
-        citations.append(
-            {"citation": citation, "resolution": status, "rows": [list(k) for k in keys]}
-            | ({"support": support} if binding else {})
-        )
+        entry = {"citation": citation, "resolution": status, "rows": [list(k) for k in keys]}
+        if status == RESOLVED and not keys:
+            entry["note"] = "the cited refs resolve but share no binding-picture row"
+        citations.append(entry | ({"support": support} if binding else {}))
     justified = JUSTIFIED if item["implementation_justification"] else UNJUSTIFIED
     return {
         "id": item["id"],

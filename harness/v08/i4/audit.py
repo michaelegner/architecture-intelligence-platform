@@ -578,7 +578,7 @@ def new_images(before: str, after: str) -> list[dict]:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--planning", type=Path, nargs="+", required=True)
-    parser.add_argument("--execution", type=Path, nargs="*", default=[])
+    parser.add_argument("--execution", type=Path, nargs="+", required=True)
     parser.add_argument("--withheld", action="append", default=[], help="a withheld path")
     parser.add_argument("--config-dir", action="append", default=[])
     parser.add_argument("--images-before", type=Path, help="the S1 image inventory")

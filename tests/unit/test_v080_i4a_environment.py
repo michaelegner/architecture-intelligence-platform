@@ -167,3 +167,40 @@ def test_readme_builds_and_pulls_before_the_image_inventory():
     assert readme.index("docker build -q") < inventory
     assert readme.index("pull every pinned image") < inventory
     assert readme.count("docker build") == 1
+
+
+@pytest.mark.parametrize("missing", ["planning", "execution"])
+def test_run_audit_requires_both_transcripts(tmp_path, missing):
+    """#651: a missing session transcript is never a clean audit."""
+    for session in ("planning", "execution"):
+        if session != missing:
+            (tmp_path / "package/transcripts" / session).mkdir(parents=True)
+            (tmp_path / "package/transcripts" / session / "s.jsonl").write_text("")
+    env = {**os.environ, "I4_RUN_HOME": str(tmp_path)}
+    result = subprocess.run(
+        ["bash", str(I4 / "run_audit.sh")], capture_output=True, text=True, env=env, check=False
+    )
+    assert result.returncode == 2 and f"no {missing} transcript" in result.stderr
+
+
+def test_audit_cli_requires_an_execution_transcript(tmp_path):
+    session = tmp_path / "s.jsonl"
+    session.write_text("")
+    result = subprocess.run(
+        [
+            "python3",
+            str(I4 / "audit.py"),
+            "--planning",
+            str(session),
+            "--withheld",
+            "/x",
+            "--out",
+            str(tmp_path / "a"),
+            "--requests-out",
+            str(tmp_path / "r"),
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 2 and "--execution" in result.stderr

@@ -272,3 +272,27 @@ def test_the_scored_plan_must_be_the_frozen_one(tmp_path):
     plan_md.write_text("rationale, edited after the freeze")
     with pytest.raises(SystemExit, match="not the frozen plan"):
         score.check_plan_freeze(freeze, plan, plan_md)
+
+
+def test_one_citation_intersects_separate_citations_unite():
+    """Owner decision on #651: one citation with Catalog's ref and Image's ref names no common row,
+    so it does not support K1 (the refs still resolve); two separate citations cover K1."""
+    rec = recording()
+    rows = rec["agent_requests"][0]["answer"]["data"]["rows"]
+    tenant = [
+        r for r in rows if r["topic_name"] == "tenant.tenant.events" and r["crossing"] == "INBOUND"
+    ]
+    refs = [r["attachment_evidence_refs"][0] for r in tenant]
+    plan = perfect_plan()
+    scoring = score.score(plan, [], KEY, plan["allow_lists"], {"result": "PASSED"}, {})
+    plan["items"][0]["architecture_citations"] = [{"snapshot_id": SNAP, "evidence_refs": refs}]
+    result = citations.check(plan, KEY, rec, scoring)
+    combined = result["items"][0]["citations"][0]
+    assert combined["resolution"] == "RESOLVED" and combined["rows"] == []
+    assert combined["support"] == "DOES_NOT_SUPPORT" and "share no" in combined["note"]
+    assert {c["id"]: c["verdict"] for c in result["coverage"]}["K1"] == "DOES_NOT_SUPPORT"
+    plan["items"][0]["architecture_citations"] = [
+        {"snapshot_id": SNAP, "evidence_refs": [r]} for r in refs
+    ]
+    result = citations.check(plan, KEY, rec, scoring)
+    assert {c["id"]: c["verdict"] for c in result["coverage"]}["K1"] == "COVERED"

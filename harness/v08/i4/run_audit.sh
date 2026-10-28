@@ -21,5 +21,9 @@ if [[ "${1:-}" == --print ]]; then
   printf '%s\n' python3 "$I4_DIR/audit.py" "${args[@]}"
   exit 0
 fi
-[[ ${#planning[@]} -gt 0 ]] || { echo "STOP: no planning transcript in $PACKAGE/transcripts/planning" >&2; exit 2; }
+# Both sessions are audited (§4.4): a missing transcript is never a clean result.
+for session in planning execution; do
+  find "$PACKAGE/transcripts/$session" -name '*.jsonl' 2>/dev/null | grep -q . ||
+    { echo "STOP: no $session transcript in $PACKAGE/transcripts/$session" >&2; exit 2; }
+done
 exec python3 "$I4_DIR/audit.py" "${args[@]}"
