@@ -558,7 +558,7 @@ def audit_session(
 
 
 def image_ids(listing: str) -> set[str]:
-    """`docker image ls --no-trunc --format '{{.ID}} {{.Repository}}:{{.Tag}}'`: the image ids."""
+    """`docker image ls -a --no-trunc --format '{{.ID}} {{.Repository}}:{{.Tag}}'`: the image ids."""
     return {line.split()[0] for line in listing.splitlines() if line.strip()}
 
 

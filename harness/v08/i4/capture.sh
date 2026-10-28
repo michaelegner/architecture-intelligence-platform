@@ -141,7 +141,7 @@ case "$WHAT" in
   helm) helm_state "${2:?before or after}" ;;
   images)
     mkdir -p "$PACKAGE/images"
-    record "IMAGES" "${2:?before or after}" -- docker image ls --no-trunc --format '{{.ID}} {{.Repository}}:{{.Tag}}'
+    record "IMAGES" "${2:?before or after}" -- docker image ls -a --no-trunc --format '{{.ID}} {{.Repository}}:{{.Tag}}'
     cp "$RAW/IMAGES-$2.txt" "$PACKAGE/images/$2.txt"
     ;;
   mm2-config) mm2_config ;;

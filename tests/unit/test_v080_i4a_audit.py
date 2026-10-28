@@ -255,6 +255,15 @@ def test_canaries_are_absent_from_what_the_agent_may_see():
         for p in (spec / "i2-vectors").rglob("*")
         if p.is_file() and p.suffix in (".json", ".yaml", ".yml")
     )
+    # What setup_run_home.sh copies into the run home, which the agent can list and read.
+    seen += sorted((REPO / "harness/v08/i4/environment").iterdir())
+    seen += sorted(
+        p
+        for d in ("catalog", "mapping", "declarations/sokol111-local")
+        for p in (spec / "i1-evidence" / d).rglob("*")
+        if p.is_file()
+    )
+    seen.append(spec / "i1-evidence/event-topic-lookup.json")
     for path in seen:
         text = path.read_text()
         assert not [c for c in audit.CANARIES if c in text], path

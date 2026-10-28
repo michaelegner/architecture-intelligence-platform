@@ -1,8 +1,8 @@
 # v0.8 I4 §4.2, §5: the target broker only, empty, with no MirrorMaker 2 service: the agent writes
 # and starts its own bridge. The operator copies this file to the run home (outside the AIP checkout)
 # and starts it there, so that no Compose label points into the checkout. Same image and listeners as
-# the I3 `kafka` service (i3-evidence/environment/docker-compose.i3.yml); the container is named
-# `kafka`, as the task card says.
+# the I3 `kafka` service; the container is named `kafka`, as the task card says. The agent can read
+# this copy, so it names no withheld material (audit canaries, unit-tested).
 name: aip-v08-i4
 
 services:
