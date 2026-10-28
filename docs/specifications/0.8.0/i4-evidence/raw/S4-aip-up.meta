@@ -1,0 +1,3 @@
+utc: 2026-10-28T14:00:17Z
+command: docker compose -f docker-compose.aip.yml up -d
+exit: 0

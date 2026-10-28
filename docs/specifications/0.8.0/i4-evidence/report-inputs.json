@@ -1,0 +1,26 @@
+{
+  "before": "answers-before.json",
+  "after": "answers-after.json",
+  "plan": "plan.json",
+  "plan_md": "plan.md",
+  "amendments": "amendments.json",
+  "scoring": "scoring.json",
+  "citations": "citations.json",
+  "replication": [
+    "raw/GT-kafka-to-redpanda-replication.check.json",
+    "raw/GT-redpanda-to-kafka-replication.check.json"
+  ],
+  "lag": [
+    "raw/GT-ecommerce-catalog-service-kafka-lag.check.json",
+    "raw/GT-ecommerce-category-query-service-lag.check.json",
+    "raw/GT-ecommerce-image-service-kafka-lag.check.json",
+    "raw/GT-ecommerce-product-query-service-lag.check.json"
+  ],
+  "handoff": "handoff-after.json",
+  "applied_mm2": "applied-mm2.json",
+  "applied_helm": "applied-helm.json",
+  "proof_c": "proof-c.json",
+  "functional_test": "raw/FT-s3r1.check.json",
+  "audit": "audit.json",
+  "agent": "agent-record.json"
+}

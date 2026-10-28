@@ -1,0 +1,83 @@
+apiVersion: v1
+data:
+  config.yaml: |
+    logger:
+      level: "debug"
+      development: true
+    multi-tenancy:
+      enabled: true
+    server:
+      port: 8080
+    mongo:
+      host: "mongo"
+      port: 27017
+      database: "image"
+      replica-set: rs0
+    kafka:
+      brokers: "kafka:29092"
+      consumers-config:
+        default-group-id: "ecommerce-image-service"
+        default-auto-offset-reset: "earliest"
+        consumers:
+          - name: "catalog-events"
+            topic: "catalog.product.events"
+          - name: "tenant-events"
+            topic: "tenant.tenant.events"
+            max-retries: 5
+            initial-backoff: 2s
+            max-backoff: 30s
+            enable-dlq: true
+    security:
+      jwks:
+        jwks-url: "http://logto:3001/oidc/jwks"
+        issuer: "http://localhost:3001/oidc"
+        audience: "https://api.sokolshop.com"
+      client-credentials:
+        token-url: "http://logto:3001/oidc/token"
+        resource: "https://api.sokolshop.com"
+        scopes:
+          - "openid"
+          - "tenants:read"
+    observability:
+      otel-collector-endpoint: "alloy.observability.svc:4317"
+      tracing:
+        enabled: true
+      metrics:
+        enabled: false
+      profiling:
+        enabled: true
+        endpoint: "http://alloy.observability.svc:4040"
+    application:
+      max-upload-bytes: 5242880
+      small-width: 400
+      large-width: 800
+      quality: 85
+    s3:
+      endpoint: "http://minio:9000"
+      public-endpoint: "http://localhost:9000"
+      region: "us-east-1"
+      bucket: "images"
+      access-key-id: "minioadmin"
+      secret-key: "minioadmin123"
+      use-path-style: true
+      presign-ttl: 15m
+    imgproxy:
+      public-base-url: "http://localhost:8083"
+      bucket: "images"
+      key-hex: "0000000000000000000000000000000000000000000000000000000000000000"
+      salt-hex: "1111111111111111111111111111111111111111111111111111111111111111"
+    upload-token:
+      jwt-secret: "dev-secret-key-change-in-production-min-32-chars-long!"
+    tenant:
+      grpc:
+        address: "ecommerce-tenant-service:8080"
+kind: ConfigMap
+metadata:
+  labels:
+    app.kubernetes.io/instance: ecommerce-image-service
+    app.kubernetes.io/managed-by: tilt
+    app.kubernetes.io/name: ecommerce-image-service
+    app.kubernetes.io/version: latest
+    helm.sh/chart: ecommerce-image-service-0.0.1
+  name: ecommerce-image-service-config
+  namespace: dev

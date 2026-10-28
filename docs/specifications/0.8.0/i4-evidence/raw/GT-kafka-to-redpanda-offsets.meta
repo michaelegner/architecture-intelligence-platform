@@ -1,0 +1,3 @@
+utc: 2026-10-28T13:54:44Z
+command: dump_topic redpanda:29092 mm2-offsets.kafka.internal
+exit: 0

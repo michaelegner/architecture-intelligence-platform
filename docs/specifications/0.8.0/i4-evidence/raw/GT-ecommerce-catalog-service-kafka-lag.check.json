@@ -1,0 +1,20 @@
+{
+  "deadline": 0,
+  "elapsed": 0,
+  "group": "ecommerce-catalog-service",
+  "kind": "lag",
+  "missing_topics": [],
+  "partitions": [
+    {
+      "current": 2,
+      "lag": 0,
+      "partition": 0,
+      "topic": "tenant.tenant.events"
+    }
+  ],
+  "result": "PASSED",
+  "rule": "lag 0 for the group on every partition of each topic",
+  "sources": [
+    "<run home>/package/raw/GT-ecommerce-catalog-service-kafka-describe.txt"
+  ]
+}

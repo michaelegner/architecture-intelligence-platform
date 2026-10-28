@@ -1,0 +1,6 @@
+GROUP        aip-i4-probe-group
+COORDINATOR  0
+STATE        Dead
+BALANCER     
+MEMBERS      0
+TOTAL-LAG    0

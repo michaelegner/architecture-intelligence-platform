@@ -1,0 +1,11 @@
+{
+  "kind": "proof-c",
+  "missing": [],
+  "problems": [],
+  "result": "PASSED",
+  "rule": "the after-wave answer equals expected-after.json (rows and limitations)",
+  "sources": [
+    "<AIP checkout>/docs/specifications/0.8.0/i3-evidence/expected-after.json"
+  ],
+  "unexpected": []
+}

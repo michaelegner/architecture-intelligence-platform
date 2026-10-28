@@ -1,0 +1,3 @@
+utc: 2026-10-28T11:53:54Z
+command: kubectl -n dev logs job.batch/seeder-i4shop-vkz6n
+exit: 0

@@ -1,0 +1,2 @@
+RegisterTenant {"slug": "i4shop", "status": "REGISTRATION_STATUS_COMPLETED"}
+GetRegistrationStatus {"slug": "i4shop", "status": "REGISTRATION_STATUS_COMPLETED"}

@@ -1,0 +1,608 @@
+{
+  "coverage": [
+    {
+      "id": "K1",
+      "missing_rows": [],
+      "plan_items": [
+        "CHK-01",
+        "CHK-02",
+        "MM2-02"
+      ],
+      "verdict": "COVERED"
+    },
+    {
+      "id": "K2",
+      "missing_rows": [],
+      "plan_items": [
+        "CHK-03"
+      ],
+      "verdict": "COVERED"
+    },
+    {
+      "id": "K3",
+      "missing_rows": [],
+      "plan_items": [
+        "CHK-03"
+      ],
+      "verdict": "COVERED"
+    },
+    {
+      "id": "K4",
+      "missing_rows": [],
+      "plan_items": [
+        "CHK-03"
+      ],
+      "verdict": "COVERED"
+    }
+  ],
+  "items": [
+    {
+      "binding": false,
+      "citations": [
+        {
+          "citation": {
+            "broker_id": "kafka:sokol111-local",
+            "consumer_service_id": "service:ecommerce-category-query-service",
+            "snapshot_id": "aip:snapshot:v1:4d8db6483e03a6564e593a3cbcf07bd1bcb7795c22bd975e95dd9e5ab11313a6",
+            "topic_name": "catalog.attribute.events"
+          },
+          "resolution": "RESOLVED",
+          "rows": [
+            [
+              "kafka:sokol111-local",
+              "catalog.attribute.events",
+              "service:ecommerce-category-query-service"
+            ]
+          ]
+        },
+        {
+          "citation": {
+            "broker_id": "kafka:sokol111-local",
+            "consumer_service_id": "service:ecommerce-product-query-service",
+            "snapshot_id": "aip:snapshot:v1:4d8db6483e03a6564e593a3cbcf07bd1bcb7795c22bd975e95dd9e5ab11313a6",
+            "topic_name": "catalog.attribute.events"
+          },
+          "resolution": "RESOLVED",
+          "rows": [
+            [
+              "kafka:sokol111-local",
+              "catalog.attribute.events",
+              "service:ecommerce-product-query-service"
+            ]
+          ]
+        },
+        {
+          "citation": {
+            "broker_id": "kafka:sokol111-local",
+            "consumer_service_id": "service:ecommerce-category-query-service",
+            "snapshot_id": "aip:snapshot:v1:4d8db6483e03a6564e593a3cbcf07bd1bcb7795c22bd975e95dd9e5ab11313a6",
+            "topic_name": "catalog.category.events"
+          },
+          "resolution": "RESOLVED",
+          "rows": [
+            [
+              "kafka:sokol111-local",
+              "catalog.category.events",
+              "service:ecommerce-category-query-service"
+            ]
+          ]
+        },
+        {
+          "citation": {
+            "broker_id": "kafka:sokol111-local",
+            "consumer_service_id": "service:ecommerce-image-service",
+            "snapshot_id": "aip:snapshot:v1:4d8db6483e03a6564e593a3cbcf07bd1bcb7795c22bd975e95dd9e5ab11313a6",
+            "topic_name": "catalog.product.events"
+          },
+          "resolution": "RESOLVED",
+          "rows": [
+            [
+              "kafka:sokol111-local",
+              "catalog.product.events",
+              "service:ecommerce-image-service"
+            ]
+          ]
+        },
+        {
+          "citation": {
+            "broker_id": "kafka:sokol111-local",
+            "consumer_service_id": "service:ecommerce-product-query-service",
+            "snapshot_id": "aip:snapshot:v1:4d8db6483e03a6564e593a3cbcf07bd1bcb7795c22bd975e95dd9e5ab11313a6",
+            "topic_name": "catalog.product.events"
+          },
+          "resolution": "RESOLVED",
+          "rows": [
+            [
+              "kafka:sokol111-local",
+              "catalog.product.events",
+              "service:ecommerce-product-query-service"
+            ]
+          ]
+        },
+        {
+          "citation": {
+            "broker_id": "kafka:sokol111-local",
+            "consumer_service_id": "service:ecommerce-catalog-service",
+            "snapshot_id": "aip:snapshot:v1:4d8db6483e03a6564e593a3cbcf07bd1bcb7795c22bd975e95dd9e5ab11313a6",
+            "topic_name": "tenant.tenant.events"
+          },
+          "resolution": "RESOLVED",
+          "rows": [
+            [
+              "kafka:sokol111-local",
+              "tenant.tenant.events",
+              "service:ecommerce-catalog-service"
+            ]
+          ]
+        },
+        {
+          "citation": {
+            "broker_id": "kafka:sokol111-local",
+            "consumer_service_id": "service:ecommerce-image-service",
+            "snapshot_id": "aip:snapshot:v1:4d8db6483e03a6564e593a3cbcf07bd1bcb7795c22bd975e95dd9e5ab11313a6",
+            "topic_name": "tenant.tenant.events"
+          },
+          "resolution": "RESOLVED",
+          "rows": [
+            [
+              "kafka:sokol111-local",
+              "tenant.tenant.events",
+              "service:ecommerce-image-service"
+            ]
+          ]
+        }
+      ],
+      "id": "PRE-01",
+      "justification": "JUSTIFIED"
+    },
+    {
+      "binding": false,
+      "citations": [
+        {
+          "citation": {
+            "broker_id": "kafka:sokol111-local",
+            "consumer_service_id": "service:ecommerce-catalog-service",
+            "snapshot_id": "aip:snapshot:v1:4d8db6483e03a6564e593a3cbcf07bd1bcb7795c22bd975e95dd9e5ab11313a6",
+            "topic_name": "tenant.tenant.events"
+          },
+          "resolution": "RESOLVED",
+          "rows": [
+            [
+              "kafka:sokol111-local",
+              "tenant.tenant.events",
+              "service:ecommerce-catalog-service"
+            ]
+          ]
+        }
+      ],
+      "id": "PRE-02",
+      "justification": "JUSTIFIED"
+    },
+    {
+      "binding": false,
+      "citations": [
+        {
+          "citation": {
+            "broker_id": "kafka:sokol111-local",
+            "consumer_service_id": "service:ecommerce-image-service",
+            "snapshot_id": "aip:snapshot:v1:4d8db6483e03a6564e593a3cbcf07bd1bcb7795c22bd975e95dd9e5ab11313a6",
+            "topic_name": "catalog.product.events"
+          },
+          "resolution": "RESOLVED",
+          "rows": [
+            [
+              "kafka:sokol111-local",
+              "catalog.product.events",
+              "service:ecommerce-image-service"
+            ]
+          ]
+        },
+        {
+          "citation": {
+            "broker_id": "kafka:sokol111-local",
+            "consumer_service_id": "service:ecommerce-category-query-service",
+            "snapshot_id": "aip:snapshot:v1:4d8db6483e03a6564e593a3cbcf07bd1bcb7795c22bd975e95dd9e5ab11313a6",
+            "topic_name": "catalog.category.events"
+          },
+          "resolution": "RESOLVED",
+          "rows": [
+            [
+              "kafka:sokol111-local",
+              "catalog.category.events",
+              "service:ecommerce-category-query-service"
+            ]
+          ]
+        },
+        {
+          "citation": {
+            "broker_id": "kafka:sokol111-local",
+            "consumer_service_id": "service:ecommerce-product-query-service",
+            "snapshot_id": "aip:snapshot:v1:4d8db6483e03a6564e593a3cbcf07bd1bcb7795c22bd975e95dd9e5ab11313a6",
+            "topic_name": "catalog.attribute.events"
+          },
+          "resolution": "RESOLVED",
+          "rows": [
+            [
+              "kafka:sokol111-local",
+              "catalog.attribute.events",
+              "service:ecommerce-product-query-service"
+            ]
+          ]
+        }
+      ],
+      "id": "KAFKA-01",
+      "justification": "JUSTIFIED"
+    },
+    {
+      "binding": false,
+      "citations": [
+        {
+          "citation": {
+            "broker_id": "kafka:sokol111-local",
+            "consumer_service_id": "service:ecommerce-catalog-service",
+            "snapshot_id": "aip:snapshot:v1:4d8db6483e03a6564e593a3cbcf07bd1bcb7795c22bd975e95dd9e5ab11313a6",
+            "topic_name": "tenant.tenant.events"
+          },
+          "resolution": "RESOLVED",
+          "rows": [
+            [
+              "kafka:sokol111-local",
+              "tenant.tenant.events",
+              "service:ecommerce-catalog-service"
+            ]
+          ]
+        },
+        {
+          "citation": {
+            "broker_id": "kafka:sokol111-local",
+            "consumer_service_id": "service:ecommerce-image-service",
+            "snapshot_id": "aip:snapshot:v1:4d8db6483e03a6564e593a3cbcf07bd1bcb7795c22bd975e95dd9e5ab11313a6",
+            "topic_name": "tenant.tenant.events"
+          },
+          "resolution": "RESOLVED",
+          "rows": [
+            [
+              "kafka:sokol111-local",
+              "tenant.tenant.events",
+              "service:ecommerce-image-service"
+            ]
+          ]
+        },
+        {
+          "citation": {
+            "broker_id": "kafka:sokol111-local",
+            "consumer_service_id": "service:ecommerce-product-query-service",
+            "snapshot_id": "aip:snapshot:v1:4d8db6483e03a6564e593a3cbcf07bd1bcb7795c22bd975e95dd9e5ab11313a6",
+            "topic_name": "catalog.product.events"
+          },
+          "resolution": "RESOLVED",
+          "rows": [
+            [
+              "kafka:sokol111-local",
+              "catalog.product.events",
+              "service:ecommerce-product-query-service"
+            ]
+          ]
+        },
+        {
+          "citation": {
+            "broker_id": "kafka:sokol111-local",
+            "consumer_service_id": "service:ecommerce-category-query-service",
+            "snapshot_id": "aip:snapshot:v1:4d8db6483e03a6564e593a3cbcf07bd1bcb7795c22bd975e95dd9e5ab11313a6",
+            "topic_name": "catalog.category.events"
+          },
+          "resolution": "RESOLVED",
+          "rows": [
+            [
+              "kafka:sokol111-local",
+              "catalog.category.events",
+              "service:ecommerce-category-query-service"
+            ]
+          ]
+        },
+        {
+          "citation": {
+            "broker_id": "kafka:sokol111-local",
+            "consumer_service_id": "service:ecommerce-category-query-service",
+            "snapshot_id": "aip:snapshot:v1:4d8db6483e03a6564e593a3cbcf07bd1bcb7795c22bd975e95dd9e5ab11313a6",
+            "topic_name": "catalog.attribute.events"
+          },
+          "resolution": "RESOLVED",
+          "rows": [
+            [
+              "kafka:sokol111-local",
+              "catalog.attribute.events",
+              "service:ecommerce-category-query-service"
+            ]
+          ]
+        },
+        {
+          "citation": {
+            "broker_id": "kafka:sokol111-local",
+            "consumer_service_id": "service:ecommerce-product-query-service",
+            "snapshot_id": "aip:snapshot:v1:4d8db6483e03a6564e593a3cbcf07bd1bcb7795c22bd975e95dd9e5ab11313a6",
+            "topic_name": "catalog.attribute.events"
+          },
+          "resolution": "RESOLVED",
+          "rows": [
+            [
+              "kafka:sokol111-local",
+              "catalog.attribute.events",
+              "service:ecommerce-product-query-service"
+            ]
+          ]
+        }
+      ],
+      "id": "MM2-01",
+      "justification": "JUSTIFIED"
+    },
+    {
+      "binding": true,
+      "citations": [
+        {
+          "citation": {
+            "broker_id": "kafka:sokol111-local",
+            "consumer_service_id": "service:ecommerce-image-service",
+            "snapshot_id": "aip:snapshot:v1:4d8db6483e03a6564e593a3cbcf07bd1bcb7795c22bd975e95dd9e5ab11313a6",
+            "topic_name": "tenant.tenant.events"
+          },
+          "resolution": "RESOLVED",
+          "rows": [
+            [
+              "kafka:sokol111-local",
+              "tenant.tenant.events",
+              "service:ecommerce-image-service"
+            ]
+          ],
+          "support": "SUPPORTS"
+        }
+      ],
+      "id": "MM2-02",
+      "justification": "JUSTIFIED"
+    },
+    {
+      "binding": true,
+      "citations": [
+        {
+          "citation": {
+            "broker_id": "kafka:sokol111-local",
+            "consumer_service_id": "service:ecommerce-catalog-service",
+            "snapshot_id": "aip:snapshot:v1:4d8db6483e03a6564e593a3cbcf07bd1bcb7795c22bd975e95dd9e5ab11313a6",
+            "topic_name": "tenant.tenant.events"
+          },
+          "resolution": "RESOLVED",
+          "rows": [
+            [
+              "kafka:sokol111-local",
+              "tenant.tenant.events",
+              "service:ecommerce-catalog-service"
+            ]
+          ],
+          "support": "SUPPORTS"
+        }
+      ],
+      "id": "CHK-01",
+      "justification": "JUSTIFIED"
+    },
+    {
+      "binding": false,
+      "citations": [
+        {
+          "citation": {
+            "broker_id": "kafka:sokol111-local",
+            "consumer_service_id": "service:ecommerce-image-service",
+            "snapshot_id": "aip:snapshot:v1:4d8db6483e03a6564e593a3cbcf07bd1bcb7795c22bd975e95dd9e5ab11313a6",
+            "topic_name": "catalog.product.events"
+          },
+          "resolution": "RESOLVED",
+          "rows": [
+            [
+              "kafka:sokol111-local",
+              "catalog.product.events",
+              "service:ecommerce-image-service"
+            ]
+          ]
+        }
+      ],
+      "id": "CUT-01",
+      "justification": "JUSTIFIED"
+    },
+    {
+      "binding": true,
+      "citations": [
+        {
+          "citation": {
+            "broker_id": "kafka:sokol111-local",
+            "consumer_service_id": "service:ecommerce-catalog-service",
+            "snapshot_id": "aip:snapshot:v1:4d8db6483e03a6564e593a3cbcf07bd1bcb7795c22bd975e95dd9e5ab11313a6",
+            "topic_name": "tenant.tenant.events"
+          },
+          "resolution": "RESOLVED",
+          "rows": [
+            [
+              "kafka:sokol111-local",
+              "tenant.tenant.events",
+              "service:ecommerce-catalog-service"
+            ]
+          ],
+          "support": "SUPPORTS"
+        },
+        {
+          "citation": {
+            "broker_id": "kafka:sokol111-local",
+            "consumer_service_id": "service:ecommerce-image-service",
+            "snapshot_id": "aip:snapshot:v1:4d8db6483e03a6564e593a3cbcf07bd1bcb7795c22bd975e95dd9e5ab11313a6",
+            "topic_name": "tenant.tenant.events"
+          },
+          "resolution": "RESOLVED",
+          "rows": [
+            [
+              "kafka:sokol111-local",
+              "tenant.tenant.events",
+              "service:ecommerce-image-service"
+            ]
+          ],
+          "support": "SUPPORTS"
+        }
+      ],
+      "id": "CHK-02",
+      "justification": "JUSTIFIED"
+    },
+    {
+      "binding": false,
+      "citations": [
+        {
+          "citation": {
+            "broker_id": "kafka:sokol111-local",
+            "consumer_service_id": "service:ecommerce-image-service",
+            "snapshot_id": "aip:snapshot:v1:4d8db6483e03a6564e593a3cbcf07bd1bcb7795c22bd975e95dd9e5ab11313a6",
+            "topic_name": "catalog.product.events"
+          },
+          "resolution": "RESOLVED",
+          "rows": [
+            [
+              "kafka:sokol111-local",
+              "catalog.product.events",
+              "service:ecommerce-image-service"
+            ]
+          ]
+        },
+        {
+          "citation": {
+            "broker_id": "kafka:sokol111-local",
+            "consumer_service_id": "service:ecommerce-catalog-service",
+            "snapshot_id": "aip:snapshot:v1:4d8db6483e03a6564e593a3cbcf07bd1bcb7795c22bd975e95dd9e5ab11313a6",
+            "topic_name": "tenant.tenant.events"
+          },
+          "resolution": "RESOLVED",
+          "rows": [
+            [
+              "kafka:sokol111-local",
+              "tenant.tenant.events",
+              "service:ecommerce-catalog-service"
+            ]
+          ]
+        }
+      ],
+      "id": "CUT-02",
+      "justification": "JUSTIFIED"
+    },
+    {
+      "binding": true,
+      "citations": [
+        {
+          "citation": {
+            "broker_id": "kafka:sokol111-local",
+            "consumer_service_id": "service:ecommerce-product-query-service",
+            "snapshot_id": "aip:snapshot:v1:4d8db6483e03a6564e593a3cbcf07bd1bcb7795c22bd975e95dd9e5ab11313a6",
+            "topic_name": "catalog.product.events"
+          },
+          "resolution": "RESOLVED",
+          "rows": [
+            [
+              "kafka:sokol111-local",
+              "catalog.product.events",
+              "service:ecommerce-product-query-service"
+            ]
+          ],
+          "support": "SUPPORTS"
+        },
+        {
+          "citation": {
+            "broker_id": "kafka:sokol111-local",
+            "consumer_service_id": "service:ecommerce-category-query-service",
+            "snapshot_id": "aip:snapshot:v1:4d8db6483e03a6564e593a3cbcf07bd1bcb7795c22bd975e95dd9e5ab11313a6",
+            "topic_name": "catalog.category.events"
+          },
+          "resolution": "RESOLVED",
+          "rows": [
+            [
+              "kafka:sokol111-local",
+              "catalog.category.events",
+              "service:ecommerce-category-query-service"
+            ]
+          ],
+          "support": "SUPPORTS"
+        },
+        {
+          "citation": {
+            "broker_id": "kafka:sokol111-local",
+            "consumer_service_id": "service:ecommerce-category-query-service",
+            "snapshot_id": "aip:snapshot:v1:4d8db6483e03a6564e593a3cbcf07bd1bcb7795c22bd975e95dd9e5ab11313a6",
+            "topic_name": "catalog.attribute.events"
+          },
+          "resolution": "RESOLVED",
+          "rows": [
+            [
+              "kafka:sokol111-local",
+              "catalog.attribute.events",
+              "service:ecommerce-category-query-service"
+            ]
+          ],
+          "support": "SUPPORTS"
+        },
+        {
+          "citation": {
+            "broker_id": "kafka:sokol111-local",
+            "consumer_service_id": "service:ecommerce-product-query-service",
+            "snapshot_id": "aip:snapshot:v1:4d8db6483e03a6564e593a3cbcf07bd1bcb7795c22bd975e95dd9e5ab11313a6",
+            "topic_name": "catalog.attribute.events"
+          },
+          "resolution": "RESOLVED",
+          "rows": [
+            [
+              "kafka:sokol111-local",
+              "catalog.attribute.events",
+              "service:ecommerce-product-query-service"
+            ]
+          ],
+          "support": "SUPPORTS"
+        }
+      ],
+      "id": "CHK-03",
+      "justification": "JUSTIFIED"
+    },
+    {
+      "binding": false,
+      "citations": [
+        {
+          "citation": {
+            "broker_id": "kafka:sokol111-local",
+            "consumer_service_id": "service:ecommerce-product-query-service",
+            "snapshot_id": "aip:snapshot:v1:4d8db6483e03a6564e593a3cbcf07bd1bcb7795c22bd975e95dd9e5ab11313a6",
+            "topic_name": "catalog.product.events"
+          },
+          "resolution": "RESOLVED",
+          "rows": [
+            [
+              "kafka:sokol111-local",
+              "catalog.product.events",
+              "service:ecommerce-product-query-service"
+            ]
+          ]
+        }
+      ],
+      "id": "TEST-01",
+      "justification": "JUSTIFIED"
+    },
+    {
+      "binding": false,
+      "citations": [
+        {
+          "citation": {
+            "snapshot_id": "aip:snapshot:v1:4d8db6483e03a6564e593a3cbcf07bd1bcb7795c22bd975e95dd9e5ab11313a6"
+          },
+          "resolution": "UNRESOLVED",
+          "rows": []
+        }
+      ],
+      "id": "REPORT-01",
+      "justification": "JUSTIFIED"
+    }
+  ],
+  "passed": false,
+  "unjustified": [],
+  "unresolved": [
+    "REPORT-01"
+  ]
+}

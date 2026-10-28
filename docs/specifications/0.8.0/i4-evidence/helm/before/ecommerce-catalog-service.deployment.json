@@ -1,0 +1,219 @@
+{
+    "apiVersion": "apps/v1",
+    "kind": "Deployment",
+    "metadata": {
+        "annotations": {
+            "deployment.kubernetes.io/revision": "1",
+            "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"apps/v1\",\"kind\":\"Deployment\",\"metadata\":{\"annotations\":{},\"labels\":{\"app.kubernetes.io/instance\":\"ecommerce-catalog-service\",\"app.kubernetes.io/managed-by\":\"tilt\",\"app.kubernetes.io/name\":\"ecommerce-catalog-service\",\"app.kubernetes.io/version\":\"latest\",\"helm.sh/chart\":\"ecommerce-catalog-service-0.0.1\"},\"name\":\"ecommerce-catalog-service\",\"namespace\":\"dev\"},\"spec\":{\"replicas\":1,\"selector\":{\"matchLabels\":{\"app.kubernetes.io/instance\":\"ecommerce-catalog-service\",\"app.kubernetes.io/name\":\"ecommerce-catalog-service\"}},\"strategy\":{},\"template\":{\"metadata\":{\"annotations\":{\"checksum/config\":\"cd94717c554745dc5bd8fb6fca040cde636f199cdb0e98bde6b7314d767dbe49\"},\"labels\":{\"app.kubernetes.io/instance\":\"ecommerce-catalog-service\",\"app.kubernetes.io/managed-by\":\"tilt\",\"app.kubernetes.io/name\":\"ecommerce-catalog-service\",\"app.kubernetes.io/version\":\"latest\",\"helm.sh/chart\":\"ecommerce-catalog-service-0.0.1\",\"tilt.dev/pod-template-hash\":\"8fd9603161b5b3860e0f\"}},\"spec\":{\"containers\":[{\"args\":[\"-c\",\"/dlv exec /server \\\\\\n  --listen=:2345 \\\\\\n  --headless=true \\\\\\n  --api-version=2 \\\\\\n  --accept-multiclient \\\\\\n  --continue \\u0026\\nDLV_PID=$!\\n# Wait for dlv to start and spawn the Go process\\nsleep 2\\n# Monitor: if Go process (/server) dies, kill dlv and exit\\nwhile kill -0 $DLV_PID 2\\u003e/dev/null; do\\n  # Check if /server process exists (child of dlv)\\n  if ! pgrep -x server \\u003e /dev/null 2\\u003e\\u00261; then\\n    sleep 3\\n    # Double-check after short delay\\n    if ! pgrep -x server \\u003e /dev/null 2\\u003e\\u00261; then\\n      echo \\\"Go process exited, terminating dlv\\\"\\n      kill $DLV_PID 2\\u003e/dev/null\\n      exit 1\\n    fi\\n  fi\\n  sleep 2\\ndone\\nwait $DLV_PID\\n\"],\"command\":[\"/bin/sh\"],\"env\":[{\"name\":\"APP_ENV\",\"value\":\"local\"},{\"name\":\"CONFIG_FILE\",\"value\":\"/configs/config.yaml\"},{\"name\":\"APP_SERVICE_NAME\",\"valueFrom\":{\"fieldRef\":{\"fieldPath\":\"metadata.labels['app.kubernetes.io/name']\"}}},{\"name\":\"APP_SERVICE_VERSION\",\"valueFrom\":{\"fieldRef\":{\"fieldPath\":\"metadata.labels['app.kubernetes.io/version']\"}}},{\"name\":\"SECURITY__CLIENT_CREDENTIALS__CLIENT_ID\",\"valueFrom\":{\"secretKeyRef\":{\"key\":\"ecommerce-m2m-client-id\",\"name\":\"logto-credentials\"}}},{\"name\":\"SECURITY__CLIENT_CREDENTIALS__CLIENT_SECRET\",\"valueFrom\":{\"secretKeyRef\":{\"key\":\"ecommerce-m2m-client-secret\",\"name\":\"logto-credentials\"}}}],\"image\":\"dev-registry:5000/ecommerce-catalog-service:tilt-0f41f782a5b2517f\",\"imagePullPolicy\":\"IfNotPresent\",\"livenessProbe\":{\"failureThreshold\":15,\"httpGet\":{\"path\":\"/health/live\",\"port\":\"http\"},\"initialDelaySeconds\":30,\"periodSeconds\":60,\"timeoutSeconds\":10},\"name\":\"app\",\"ports\":[{\"containerPort\":8080,\"name\":\"http\",\"protocol\":\"TCP\"},{\"containerPort\":2345,\"name\":\"debug\",\"protocol\":\"TCP\"}],\"readinessProbe\":{\"httpGet\":{\"path\":\"/health/ready\",\"port\":\"http\"},\"initialDelaySeconds\":5,\"periodSeconds\":10,\"timeoutSeconds\":2},\"resources\":{},\"startupProbe\":{\"failureThreshold\":60,\"httpGet\":{\"path\":\"/health/ready\",\"port\":\"http\"},\"initialDelaySeconds\":5,\"periodSeconds\":5,\"timeoutSeconds\":5},\"volumeMounts\":[{\"mountPath\":\"/configs/config.yaml\",\"name\":\"config\",\"readOnly\":true,\"subPath\":\"config.yaml\"}]}],\"serviceAccountName\":\"default\",\"volumes\":[{\"configMap\":{\"name\":\"ecommerce-catalog-service-config\"},\"name\":\"config\"}]}}}}\n"
+        },
+        "creationTimestamp": "2026-10-28T11:52:59Z",
+        "generation": 1,
+        "labels": {
+            "app.kubernetes.io/instance": "ecommerce-catalog-service",
+            "app.kubernetes.io/managed-by": "tilt",
+            "app.kubernetes.io/name": "ecommerce-catalog-service",
+            "app.kubernetes.io/version": "latest",
+            "helm.sh/chart": "ecommerce-catalog-service-0.0.1"
+        },
+        "name": "ecommerce-catalog-service",
+        "namespace": "dev",
+        "resourceVersion": "990",
+        "uid": "f1842632-d749-43d8-bafa-c26c1395472f"
+    },
+    "spec": {
+        "progressDeadlineSeconds": 600,
+        "replicas": 1,
+        "revisionHistoryLimit": 10,
+        "selector": {
+            "matchLabels": {
+                "app.kubernetes.io/instance": "ecommerce-catalog-service",
+                "app.kubernetes.io/name": "ecommerce-catalog-service"
+            }
+        },
+        "strategy": {
+            "rollingUpdate": {
+                "maxSurge": "25%",
+                "maxUnavailable": "25%"
+            },
+            "type": "RollingUpdate"
+        },
+        "template": {
+            "metadata": {
+                "annotations": {
+                    "checksum/config": "cd94717c554745dc5bd8fb6fca040cde636f199cdb0e98bde6b7314d767dbe49"
+                },
+                "labels": {
+                    "app.kubernetes.io/instance": "ecommerce-catalog-service",
+                    "app.kubernetes.io/managed-by": "tilt",
+                    "app.kubernetes.io/name": "ecommerce-catalog-service",
+                    "app.kubernetes.io/version": "latest",
+                    "helm.sh/chart": "ecommerce-catalog-service-0.0.1",
+                    "tilt.dev/pod-template-hash": "8fd9603161b5b3860e0f"
+                }
+            },
+            "spec": {
+                "containers": [
+                    {
+                        "args": [
+                            "-c",
+                            "/dlv exec /server \\\n  --listen=:2345 \\\n  --headless=true \\\n  --api-version=2 \\\n  --accept-multiclient \\\n  --continue \u0026\nDLV_PID=$!\n# Wait for dlv to start and spawn the Go process\nsleep 2\n# Monitor: if Go process (/server) dies, kill dlv and exit\nwhile kill -0 $DLV_PID 2\u003e/dev/null; do\n  # Check if /server process exists (child of dlv)\n  if ! pgrep -x server \u003e /dev/null 2\u003e\u00261; then\n    sleep 3\n    # Double-check after short delay\n    if ! pgrep -x server \u003e /dev/null 2\u003e\u00261; then\n      echo \"Go process exited, terminating dlv\"\n      kill $DLV_PID 2\u003e/dev/null\n      exit 1\n    fi\n  fi\n  sleep 2\ndone\nwait $DLV_PID\n"
+                        ],
+                        "command": [
+                            "/bin/sh"
+                        ],
+                        "env": [
+                            {
+                                "name": "APP_ENV",
+                                "value": "local"
+                            },
+                            {
+                                "name": "CONFIG_FILE",
+                                "value": "/configs/config.yaml"
+                            },
+                            {
+                                "name": "APP_SERVICE_NAME",
+                                "valueFrom": {
+                                    "fieldRef": {
+                                        "apiVersion": "v1",
+                                        "fieldPath": "metadata.labels['app.kubernetes.io/name']"
+                                    }
+                                }
+                            },
+                            {
+                                "name": "APP_SERVICE_VERSION",
+                                "valueFrom": {
+                                    "fieldRef": {
+                                        "apiVersion": "v1",
+                                        "fieldPath": "metadata.labels['app.kubernetes.io/version']"
+                                    }
+                                }
+                            },
+                            {
+                                "name": "SECURITY__CLIENT_CREDENTIALS__CLIENT_ID",
+                                "valueFrom": {
+                                    "secretKeyRef": {
+                                        "key": "ecommerce-m2m-client-id",
+                                        "name": "logto-credentials"
+                                    }
+                                }
+                            },
+                            {
+                                "name": "SECURITY__CLIENT_CREDENTIALS__CLIENT_SECRET",
+                                "valueFrom": {
+                                    "secretKeyRef": {
+                                        "key": "ecommerce-m2m-client-secret",
+                                        "name": "logto-credentials"
+                                    }
+                                }
+                            }
+                        ],
+                        "image": "dev-registry:5000/ecommerce-catalog-service:tilt-0f41f782a5b2517f",
+                        "imagePullPolicy": "IfNotPresent",
+                        "livenessProbe": {
+                            "failureThreshold": 15,
+                            "httpGet": {
+                                "path": "/health/live",
+                                "port": "http",
+                                "scheme": "HTTP"
+                            },
+                            "initialDelaySeconds": 30,
+                            "periodSeconds": 60,
+                            "successThreshold": 1,
+                            "timeoutSeconds": 10
+                        },
+                        "name": "app",
+                        "ports": [
+                            {
+                                "containerPort": 8080,
+                                "name": "http",
+                                "protocol": "TCP"
+                            },
+                            {
+                                "containerPort": 2345,
+                                "name": "debug",
+                                "protocol": "TCP"
+                            }
+                        ],
+                        "readinessProbe": {
+                            "failureThreshold": 3,
+                            "httpGet": {
+                                "path": "/health/ready",
+                                "port": "http",
+                                "scheme": "HTTP"
+                            },
+                            "initialDelaySeconds": 5,
+                            "periodSeconds": 10,
+                            "successThreshold": 1,
+                            "timeoutSeconds": 2
+                        },
+                        "resources": {},
+                        "startupProbe": {
+                            "failureThreshold": 60,
+                            "httpGet": {
+                                "path": "/health/ready",
+                                "port": "http",
+                                "scheme": "HTTP"
+                            },
+                            "initialDelaySeconds": 5,
+                            "periodSeconds": 5,
+                            "successThreshold": 1,
+                            "timeoutSeconds": 5
+                        },
+                        "terminationMessagePath": "/dev/termination-log",
+                        "terminationMessagePolicy": "File",
+                        "volumeMounts": [
+                            {
+                                "mountPath": "/configs/config.yaml",
+                                "name": "config",
+                                "readOnly": true,
+                                "subPath": "config.yaml"
+                            }
+                        ]
+                    }
+                ],
+                "dnsPolicy": "ClusterFirst",
+                "restartPolicy": "Always",
+                "schedulerName": "default-scheduler",
+                "securityContext": {},
+                "serviceAccount": "default",
+                "serviceAccountName": "default",
+                "terminationGracePeriodSeconds": 30,
+                "volumes": [
+                    {
+                        "configMap": {
+                            "defaultMode": 420,
+                            "name": "ecommerce-catalog-service-config"
+                        },
+                        "name": "config"
+                    }
+                ]
+            }
+        }
+    },
+    "status": {
+        "availableReplicas": 1,
+        "conditions": [
+            {
+                "lastTransitionTime": "2026-10-28T11:53:11Z",
+                "lastUpdateTime": "2026-10-28T11:53:11Z",
+                "message": "Deployment has minimum availability.",
+                "reason": "MinimumReplicasAvailable",
+                "status": "True",
+                "type": "Available"
+            },
+            {
+                "lastTransitionTime": "2026-10-28T11:52:59Z",
+                "lastUpdateTime": "2026-10-28T11:53:11Z",
+                "message": "ReplicaSet \"ecommerce-catalog-service-65bc64cf5c\" has successfully progressed.",
+                "reason": "NewReplicaSetAvailable",
+                "status": "True",
+                "type": "Progressing"
+            }
+        ],
+        "observedGeneration": 1,
+        "readyReplicas": 1,
+        "replicas": 1,
+        "terminatingReplicas": 0,
+        "updatedReplicas": 1
+    }
+}

@@ -1,0 +1,58 @@
+{
+  "K6.1": {
+    "verdict": "MATCHED",
+    "plan_items": ["MM2-01"],
+    "reason": "MM2-01 configures checkpoints and consumer-group offset synchronization for Catalog and Image on the Redpanda-to-Kafka flow."
+  },
+  "K6.2": {
+    "verdict": "DIFFERENT",
+    "plan_items": ["CHK-02"],
+    "reason": "CHK-02 checks that Kafka committed offsets exist and compares lag, but does not require, for each group and partition before restart, final Redpanda offset = checkpoint upstream and installed Kafka offset = checkpoint downstream. The subsequent passing S4 hand-off check does not retroactively make the frozen plan complete."
+  },
+  "K8.1": {
+    "verdict": "MATCHED",
+    "plan_items": ["PRE-01", "KAFKA-01", "MM2-01"],
+    "reason": "PRE-01 establishes the empty Kafka state, KAFKA-01 creates the topics before mirroring, and MM2-01 specifies disjoint mirror flows."
+  },
+  "K8.2": {
+    "verdict": "MATCHED",
+    "plan_items": ["MM2-01", "MM2-02", "CHK-01", "CUT-01"],
+    "reason": "MM2-01 configures tenant-topic group synchronization, while MM2-02 starts replication and CHK-01 checks catch-up before CUT-01 stops Catalog."
+  },
+  "K8.3": {
+    "verdict": "DIFFERENT",
+    "plan_items": ["CUT-01"],
+    "reason": "The key requires Image lag 0 before Catalog stops. CUT-01 stops Catalog first and checks Image lag only afterward; the specified ordering is reversed."
+  },
+  "K8.4": {
+    "verdict": "DIFFERENT",
+    "plan_items": ["CUT-01", "CHK-02"],
+    "reason": "CUT-01 stops Image and CHK-02 checks that both services are stopped, but the described plan does not explicitly check that both moved consumer groups have zero live attachment on Redpanda. The later A-R capture establishes observed state, not that this check was planned."
+  },
+  "K8.5": {
+    "verdict": "MISSING",
+    "plan_items": [],
+    "reason": "No pre-cut-over drain-to-lag-0 step exists for Product Query and Category Query. CHK-03's 'lag near 0' check after restart is neither a pre-cut-over drain nor an exact zero-lag condition."
+  },
+  "K8.6": {
+    "verdict": "DIFFERENT",
+    "plan_items": ["CHK-02"],
+    "reason": "CHK-02 checks Kafka offsets and lag but does not establish the K6 checkpoint upstream/downstream equality for both groups before restart. The independent S4 hand-off check passed, but Proof A evaluates the frozen plan."
+  },
+  "K8.7": {
+    "verdict": "DIFFERENT",
+    "plan_items": ["MM2-02", "CUT-01"],
+    "reason": "MM2-02 starts the Kafka-to-Redpanda flow together with the forward flow before CUT-01 stops the producers; the required producer-stop, drain, then reverse-mirror order is not followed."
+  },
+  "K8.8": {
+    "verdict": "MATCHED",
+    "plan_items": ["CUT-02", "CHK-03"],
+    "reason": "CUT-02 restarts Catalog and Image on Kafka, and CHK-03 supplies the post-restart consumer-group verification identified in the frozen plan. This matches the restart/stability intent as described in the supplied plan summary."
+  },
+  "K8.9": {
+    "verdict": "DIFFERENT",
+    "plan_items": ["CHK-03", "TEST-01"],
+    "reason": "CHK-03 and TEST-01 provide post-restart checks and a functional test, but the plan describes lag as 'near 0', not the required lag 0, and does not explicitly require catalog replication catch-up after new traffic. The later S4 passing checks are separately reported operational evidence."
+  },
+  "reasons": {}
+}

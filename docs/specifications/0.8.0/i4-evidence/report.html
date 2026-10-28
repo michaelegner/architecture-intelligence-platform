@@ -1,0 +1,518 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Binding Picture Showcase</title>
+<style>
+:root { --bg: #ffffff; --fg: #1b1f24; --muted: #57606a; --line: #d0d7de; --accent: #0b5cad;
+  --warn: #9a6700; --ok: #1a7f37; --bad: #cf222e; --quote: #f6f8fa; }
+@media (prefers-color-scheme: dark) {
+  :root { --bg: #0d1117; --fg: #e6edf3; --muted: #8d96a0; --line: #30363d; --accent: #58a6ff;
+    --warn: #d29922; --ok: #3fb950; --bad: #f85149; --quote: #161b22; }
+}
+body { background: var(--bg); color: var(--fg); font: 16px/1.55 system-ui, sans-serif;
+  margin: 0 auto; max-width: 72rem; padding: 0 16px 4rem; }
+h1 { font-size: 1.9rem; margin-top: 2.5rem; } h2 { margin-top: 3rem; border-bottom: 1px solid var(--line); }
+.question { color: var(--accent); font-weight: 600; }
+.muted { color: var(--muted); }
+table { border-collapse: collapse; width: 100%; margin: 1rem 0; font-size: 0.92rem; display: block; overflow-x: auto; }
+th, td { border: 1px solid var(--line); padding: 0.35rem 0.5rem; text-align: left; vertical-align: top; }
+.undeclared { color: var(--warn); font-weight: 600; }
+.PASSED, .MATCHED, .COVERED, .RESOLVED, .SUPPORTS, .JUSTIFIED { color: var(--ok); font-weight: 600; }
+.FAILED, .DIFFERENT, .MISSING, .INCOMPLETE, .NOT_CITED, .DOES_NOT_SUPPORT, .UNRESOLVED, .UNJUSTIFIED { color: var(--bad); font-weight: 600; }
+.agent { background: var(--quote); border-left: 3px solid var(--line); margin: 0.3rem 0; padding: 0.3rem 0.6rem; display: block; white-space: pre-wrap; }
+code { font-size: 0.88em; }
+</style>
+</head>
+<body>
+<h1>Before an AI agent changes a distributed system, do we understand the bindings that change relies on?</h1>
+<p>Sokol111 is a multi-tenant e-commerce system. Its services exchange events through a Redpanda
+broker. The modernization step shown here moves one bounded context, Catalog Management (the Catalog
+and Image services), to Apache Kafka, with MirrorMaker 2 bridging the two brokers. A move like this is
+safe only if every binding that crosses the boundary of the moving context is known before the move
+and still holds after it.</p>
+<p>The flow of this page follows that question. First the bindings, then what is declared and what
+the evidence establishes, then the plan that a coding agent built on that picture, then what the
+evidence establishes after the move. AIP is read-only: it gives understanding of the bindings, not
+power over the system.</p>
+
+<h2>1. Before: the boundary and the bindings that cross it</h2>
+<p class="question">(1) What boundary changes?</p>
+<p>Catalog Management moves from Redpanda (<code>kafka:sokol111-local</code>) to Apache Kafka
+(<code>kafka:sokol111-kafka</code>). Store Provisioning (Tenant) and Storefront (Product Query,
+Category Query) stay on Redpanda. Before the move, only Redpanda has a capture.</p>
+<p class="question">(2) Which relationships cross it?</p>
+<table>
+<tr><th>Consumer</th><th>Topic</th><th>Crossing</th><th>Status</th><th>Consumer groups</th></tr>
+<tr><td>ecommerce-category-query-service</td><td><code>catalog.attribute.events</code></td>
+<td>OUTBOUND</td>
+<td class="undeclared">UNRESOLVED / PROMISE_COVERAGE_MISSING</td>
+<td>ecommerce-category-query-service</td></tr>
+<tr><td>ecommerce-product-query-service</td><td><code>catalog.attribute.events</code></td>
+<td>OUTBOUND</td>
+<td class="undeclared">UNRESOLVED / PROMISE_COVERAGE_MISSING</td>
+<td>ecommerce-product-query-service</td></tr>
+<tr><td>ecommerce-category-query-service</td><td><code>catalog.category.events</code></td>
+<td>OUTBOUND</td>
+<td class="undeclared">UNRESOLVED / PROMISE_COVERAGE_MISSING</td>
+<td>ecommerce-category-query-service</td></tr>
+<tr><td>ecommerce-image-service</td><td><code>catalog.product.events</code></td>
+<td>INSIDE</td>
+<td>PROMISED_AND_OBSERVED</td>
+<td>ecommerce-image-service</td></tr>
+<tr><td>ecommerce-product-query-service</td><td><code>catalog.product.events</code></td>
+<td>OUTBOUND</td>
+<td>PROMISED_AND_OBSERVED</td>
+<td>ecommerce-product-query-service</td></tr>
+<tr><td>ecommerce-catalog-service</td><td><code>tenant.tenant.events</code></td>
+<td>INBOUND</td>
+<td class="undeclared">UNRESOLVED / PROMISE_COVERAGE_MISSING</td>
+<td>ecommerce-catalog-service</td></tr>
+<tr><td>ecommerce-category-query-service</td><td><code>tenant.tenant.events</code></td>
+<td>NONE</td>
+<td class="undeclared">UNRESOLVED / PROMISE_COVERAGE_MISSING</td>
+<td>ecommerce-category-query-service</td></tr>
+<tr><td>ecommerce-image-service</td><td><code>tenant.tenant.events</code></td>
+<td>INBOUND</td>
+<td class="undeclared">UNRESOLVED / PROMISE_COVERAGE_MISSING</td>
+<td>ecommerce-image-service</td></tr>
+<tr><td>ecommerce-product-query-service</td><td><code>tenant.tenant.events</code></td>
+<td>NONE</td>
+<td class="undeclared">UNRESOLVED / PROMISE_COVERAGE_MISSING</td>
+<td>ecommerce-product-query-service</td></tr>
+</table>
+<p class="muted">Each row is one consumer Service, Topic and broker at the capture time. Limitations
+of this answer: CAPTURE_SCOPE_LIMITED, EVENT_HANDLING_NOT_ESTABLISHED, PRODUCER_SIDE_DECLARED_ONLY, PROMISES_ASSUMED_CONFIRMED.</p>
+
+<h2>2. Insight: what is declared, and what the evidence establishes</h2>
+<p class="question">(3) Which bindings are declared, which are observed, and which are unresolved?</p>
+<p>The documented architecture says that Catalog Management publishes product and category events to
+the storefront. The broker evidence shows more. The rows marked <span class="undeclared">observed,
+undeclared</span> are bindings that no document names: the moving services consume tenant events
+from Store Provisioning, and the storefront consumes attribute events from Catalog Management. A
+move planned from the documents alone would not bridge them.</p>
+<table>
+<tr><th>Binding</th><th>Declared (catalog)</th><th>Resolved Topic</th><th>Observed attachment</th><th>Evidence refs</th></tr>
+<tr><td>ecommerce-category-query-service &times; <code>catalog.attribute.events</code></td>
+<td><span class="undeclared">none: observed, undeclared</span></td>
+<td><code>topic:owned:ef00b8a20df7bed4e26c809d03727b11fd83d1169cc8e425f88922d3b5973bd6</code></td>
+<td>ecommerce-category-query-service at 2026-10-28T11:55:58Z</td>
+<td>0 promise, 1 attachment, 1 mapping</td></tr>
+<tr><td>ecommerce-product-query-service &times; <code>catalog.attribute.events</code></td>
+<td><span class="undeclared">none: observed, undeclared</span></td>
+<td><code>topic:owned:ef00b8a20df7bed4e26c809d03727b11fd83d1169cc8e425f88922d3b5973bd6</code></td>
+<td>ecommerce-product-query-service at 2026-10-28T11:55:58Z</td>
+<td>0 promise, 1 attachment, 1 mapping</td></tr>
+<tr><td>ecommerce-category-query-service &times; <code>catalog.category.events</code></td>
+<td><span class="undeclared">none: observed, undeclared</span></td>
+<td><code>topic:owned:53418bb503b87bfe0ea8cb1fbc2677d69d1d70dc81b86cb8520dcc03bcc1bfa0</code></td>
+<td>ecommerce-category-query-service at 2026-10-28T11:55:58Z</td>
+<td>0 promise, 1 attachment, 1 mapping</td></tr>
+<tr><td>ecommerce-product-query-service &times; <code>catalog.product.events</code></td>
+<td>promised: ProductImagePromoted, ProductUpdated</td>
+<td><code>topic:owned:5534005a20357fa91c86e22e83f557c20a0be39302067e509fa59c85eb034539</code></td>
+<td>ecommerce-product-query-service at 2026-10-28T11:55:58Z</td>
+<td>2 promise, 1 attachment, 1 mapping</td></tr>
+<tr><td>ecommerce-catalog-service &times; <code>tenant.tenant.events</code></td>
+<td><span class="undeclared">none: observed, undeclared</span></td>
+<td><code>topic:owned:80ac3adc89d6d4d0c21254e63f88920456c927900edbe9d78fa242ce57bdc592</code></td>
+<td>ecommerce-catalog-service at 2026-10-28T11:55:58Z</td>
+<td>0 promise, 1 attachment, 1 mapping</td></tr>
+<tr><td>ecommerce-image-service &times; <code>tenant.tenant.events</code></td>
+<td><span class="undeclared">none: observed, undeclared</span></td>
+<td><code>topic:owned:80ac3adc89d6d4d0c21254e63f88920456c927900edbe9d78fa242ce57bdc592</code></td>
+<td>ecommerce-image-service at 2026-10-28T11:55:58Z</td>
+<td>0 promise, 1 attachment, 1 mapping</td></tr>
+</table>
+<p class="muted">An attachment establishes that a consumer group was attached to the topic at the
+capture time. It does not establish which event types the consumer handles, or an end-to-end event
+flow.</p>
+
+<h2>3. Agent: why the bindings matter for this move</h2>
+<p class="question">(4) Why do they matter for the migration?</p>
+<p>A coding agent planned and carried out the move. It read the binding picture through AIP's MCP
+interface. AIP establishes the bindings. The agent derives the migration requirements, then chooses
+and carries out the plan. Independent evidence establishes what the migration achieved.</p>
+<p>Each chain below starts from a binding that crosses the boundary after the move and ends with the
+check that is independent of AIP. The agent's own words are quoted.</p>
+<table>
+<tr><th>Observed binding (AIP)</th><th>Migration requirement</th><th>Agent decision</th><th>Independent verification</th></tr>
+<tr>
+<td>ecommerce-catalog-service &times; <code>tenant.tenant.events</code> on Apache Kafka: INBOUND, UNRESOLVED<br><span class="muted">before: UNRESOLVED on Redpanda</span></td>
+<td>Keep tenant-event delivery to Catalog and Image after they move to Kafka; the producer (Tenant) stays on Redpanda. <span class="muted">(K1)</span></td>
+<td>Proof A <span class="MATCHED">MATCHED</span>, Proof B <span class="COVERED">COVERED</span>
+<span class="agent">CHK-01: Check that the redpanda-&gt;kafka flow works: tenant.tenant.events exists on Kafka with Redpanda&#39;s partition count and its per-partition end offsets reach Redpanda&#39;s; MM2 logs show tasks for the three catalog.* topics in the kafka-&gt;redpanda flow and no errors; MM2 created only the expected internal topics. Stop and report on any failure. · [broker_tool] docker exec redpanda rpk topic describe tenant.tenant.events -p; docker exec kafka /opt/kafka/bin/kafka-get-offsets.sh --bootstrap-server localhost:9092 --topic tenant.tenant.events · [broker_tool] docker logs catalog-move-mm2; kafka-topics.sh --list on Kafka; rpk topic list on Redpanda · [reasoning] Offsets on two brokers need not be numerically equal if the source has gaps; compare record counts per partition when end offsets differ.</span>
+<span class="agent">CHK-02: With both services stopped, check on Kafka that groups ecommerce-catalog-service and ecommerce-image-service have committed offsets on every partition of tenant.tenant.events, and that their lag there is no smaller than on Redpanda (a larger lag means some redelivery). Check that ecommerce-image-service has no committed offset on catalog.product.events on Kafka. Stop and report on any failure. · [broker_tool] docker exec kafka /opt/kafka/bin/kafka-consumer-groups.sh --bootstrap-server localhost:9092 --describe --group &lt;group&gt;; docker exec redpanda rpk group describe &lt;group&gt; · [reasoning] Without translated offsets the services would start at earliest on Kafka (default-auto-offset-reset earliest) and reprocess the whole tenant history; that is a check the cutover relies on.</span>
+<span class="agent">MM2-02: Check that no container named catalog-move-mm2 exists, then start MirrorMaker 2 in dedicated mode as container catalog-move-mm2 on shared-network from the host&#39;s apache/kafka image, mounting the workspace mm2 directory read-only. · [broker_tool] docker ps -a --filter name=^catalog-move-mm2$ (must be empty); docker run -d --name catalog-move-mm2 --network shared-network -v &lt;workspace&gt;/mm2:/mm2:ro apache/kafka:4.1.2@sha256:5cc2a2fd93fa2687b44015eee04fb2c3edd9e526bd64bf8bec5ff1e268772e0e /opt/kafka/bin/connect-mirror-maker.sh /mm2/mm2.properties · [reasoning] One MM2 process runs both flows; direction above names the first flow, the second (kafka-&gt;redpanda) is listed in allow_lists.</span>
+</td>
+<td>replication: PASSED<br>lag: ecommerce-catalog-service: PASSED<br>functional test: 1-shop-product-image: PASSED</td>
+</tr>
+<tr>
+<td>ecommerce-image-service &times; <code>tenant.tenant.events</code> on Apache Kafka: INBOUND, UNRESOLVED<br><span class="muted">before: UNRESOLVED on Redpanda</span></td>
+<td>Keep tenant-event delivery to Catalog and Image after they move to Kafka; the producer (Tenant) stays on Redpanda. <span class="muted">(K1)</span></td>
+<td>Proof A <span class="MATCHED">MATCHED</span>, Proof B <span class="COVERED">COVERED</span>
+<span class="agent">CHK-01: Check that the redpanda-&gt;kafka flow works: tenant.tenant.events exists on Kafka with Redpanda&#39;s partition count and its per-partition end offsets reach Redpanda&#39;s; MM2 logs show tasks for the three catalog.* topics in the kafka-&gt;redpanda flow and no errors; MM2 created only the expected internal topics. Stop and report on any failure. · [broker_tool] docker exec redpanda rpk topic describe tenant.tenant.events -p; docker exec kafka /opt/kafka/bin/kafka-get-offsets.sh --bootstrap-server localhost:9092 --topic tenant.tenant.events · [broker_tool] docker logs catalog-move-mm2; kafka-topics.sh --list on Kafka; rpk topic list on Redpanda · [reasoning] Offsets on two brokers need not be numerically equal if the source has gaps; compare record counts per partition when end offsets differ.</span>
+<span class="agent">CHK-02: With both services stopped, check on Kafka that groups ecommerce-catalog-service and ecommerce-image-service have committed offsets on every partition of tenant.tenant.events, and that their lag there is no smaller than on Redpanda (a larger lag means some redelivery). Check that ecommerce-image-service has no committed offset on catalog.product.events on Kafka. Stop and report on any failure. · [broker_tool] docker exec kafka /opt/kafka/bin/kafka-consumer-groups.sh --bootstrap-server localhost:9092 --describe --group &lt;group&gt;; docker exec redpanda rpk group describe &lt;group&gt; · [reasoning] Without translated offsets the services would start at earliest on Kafka (default-auto-offset-reset earliest) and reprocess the whole tenant history; that is a check the cutover relies on.</span>
+<span class="agent">MM2-02: Check that no container named catalog-move-mm2 exists, then start MirrorMaker 2 in dedicated mode as container catalog-move-mm2 on shared-network from the host&#39;s apache/kafka image, mounting the workspace mm2 directory read-only. · [broker_tool] docker ps -a --filter name=^catalog-move-mm2$ (must be empty); docker run -d --name catalog-move-mm2 --network shared-network -v &lt;workspace&gt;/mm2:/mm2:ro apache/kafka:4.1.2@sha256:5cc2a2fd93fa2687b44015eee04fb2c3edd9e526bd64bf8bec5ff1e268772e0e /opt/kafka/bin/connect-mirror-maker.sh /mm2/mm2.properties · [reasoning] One MM2 process runs both flows; direction above names the first flow, the second (kafka-&gt;redpanda) is listed in allow_lists.</span>
+</td>
+<td>replication: PASSED<br>lag: ecommerce-image-service: PASSED<br>functional test: 1-shop-product-image: PASSED</td>
+</tr>
+<tr>
+<td>ecommerce-category-query-service &times; <code>catalog.attribute.events</code> on Redpanda: OUTBOUND, UNRESOLVED<br><span class="muted">before: UNRESOLVED on Redpanda</span></td>
+<td>Keep attribute-event delivery to Product Query and Category Query on Redpanda after Catalog produces on Kafka. <span class="muted">(K4)</span></td>
+<td>Proof A <span class="MATCHED">MATCHED</span>, Proof B <span class="COVERED">COVERED</span>
+<span class="agent">CHK-03: Check the moved services and the downstream consumers: pods Ready and logs connect to kafka:29092; both groups active on Kafka for tenant.tenant.events and ecommerce-image-service active on Kafka for catalog.product.events; catalog.* end offsets on Redpanda grow after Kafka&#39;s do; product-query and category-query groups on Redpanda keep lag near 0. Stop and report on any failure. · [broker_tool] kubectl -n dev get pods; kubectl -n dev logs deploy/&lt;name&gt;; kafka-consumer-groups.sh --describe; kafka-get-offsets.sh; rpk topic describe -p; rpk group describe ecommerce-product-query-service / ecommerce-category-query-service · [reasoning] AIP never establishes delivery between brokers (binding picture tool description), so the bridge is checked with broker tools only.</span>
+</td>
+<td>replication: PASSED<br>lag: ecommerce-category-query-service: PASSED<br>functional test: 3-attribute-update: PASSED</td>
+</tr>
+<tr>
+<td>ecommerce-product-query-service &times; <code>catalog.attribute.events</code> on Redpanda: OUTBOUND, UNRESOLVED<br><span class="muted">before: UNRESOLVED on Redpanda</span></td>
+<td>Keep attribute-event delivery to Product Query and Category Query on Redpanda after Catalog produces on Kafka. <span class="muted">(K4)</span></td>
+<td>Proof A <span class="MATCHED">MATCHED</span>, Proof B <span class="COVERED">COVERED</span>
+<span class="agent">CHK-03: Check the moved services and the downstream consumers: pods Ready and logs connect to kafka:29092; both groups active on Kafka for tenant.tenant.events and ecommerce-image-service active on Kafka for catalog.product.events; catalog.* end offsets on Redpanda grow after Kafka&#39;s do; product-query and category-query groups on Redpanda keep lag near 0. Stop and report on any failure. · [broker_tool] kubectl -n dev get pods; kubectl -n dev logs deploy/&lt;name&gt;; kafka-consumer-groups.sh --describe; kafka-get-offsets.sh; rpk topic describe -p; rpk group describe ecommerce-product-query-service / ecommerce-category-query-service · [reasoning] AIP never establishes delivery between brokers (binding picture tool description), so the bridge is checked with broker tools only.</span>
+</td>
+<td>replication: PASSED<br>lag: ecommerce-product-query-service: PASSED<br>functional test: 3-attribute-update: PASSED</td>
+</tr>
+<tr>
+<td>ecommerce-category-query-service &times; <code>catalog.category.events</code> on Redpanda: OUTBOUND, UNRESOLVED<br><span class="muted">before: UNRESOLVED on Redpanda</span></td>
+<td>Keep category-event delivery to Category Query on Redpanda after Catalog produces on Kafka. <span class="muted">(K3)</span></td>
+<td>Proof A <span class="MATCHED">MATCHED</span>, Proof B <span class="COVERED">COVERED</span>
+<span class="agent">CHK-03: Check the moved services and the downstream consumers: pods Ready and logs connect to kafka:29092; both groups active on Kafka for tenant.tenant.events and ecommerce-image-service active on Kafka for catalog.product.events; catalog.* end offsets on Redpanda grow after Kafka&#39;s do; product-query and category-query groups on Redpanda keep lag near 0. Stop and report on any failure. · [broker_tool] kubectl -n dev get pods; kubectl -n dev logs deploy/&lt;name&gt;; kafka-consumer-groups.sh --describe; kafka-get-offsets.sh; rpk topic describe -p; rpk group describe ecommerce-product-query-service / ecommerce-category-query-service · [reasoning] AIP never establishes delivery between brokers (binding picture tool description), so the bridge is checked with broker tools only.</span>
+</td>
+<td>replication: PASSED<br>lag: ecommerce-category-query-service: PASSED<br>functional test: 2-category-update: PASSED</td>
+</tr>
+<tr>
+<td>ecommerce-product-query-service &times; <code>catalog.product.events</code> on Redpanda: OUTBOUND, PROMISED_AND_OBSERVED<br><span class="muted">before: PROMISED_AND_OBSERVED on Redpanda</span></td>
+<td>Keep product-event delivery to Product Query on Redpanda after Catalog and Image produce on Kafka. <span class="muted">(K2)</span></td>
+<td>Proof A <span class="MATCHED">MATCHED</span>, Proof B <span class="COVERED">COVERED</span>
+<span class="agent">CHK-03: Check the moved services and the downstream consumers: pods Ready and logs connect to kafka:29092; both groups active on Kafka for tenant.tenant.events and ecommerce-image-service active on Kafka for catalog.product.events; catalog.* end offsets on Redpanda grow after Kafka&#39;s do; product-query and category-query groups on Redpanda keep lag near 0. Stop and report on any failure. · [broker_tool] kubectl -n dev get pods; kubectl -n dev logs deploy/&lt;name&gt;; kafka-consumer-groups.sh --describe; kafka-get-offsets.sh; rpk topic describe -p; rpk group describe ecommerce-product-query-service / ecommerce-category-query-service · [reasoning] AIP never establishes delivery between brokers (binding picture tool description), so the bridge is checked with broker tools only.</span>
+</td>
+<td>replication: PASSED<br>lag: ecommerce-product-query-service: PASSED<br>functional test: 1-shop-product-image: PASSED</td>
+</tr>
+</table>
+
+<h3>Proof A: the plan against the answer key</h3>
+<p>The answer key was frozen before the agent run. The agent did not see it.</p>
+<table>
+<tr><th>Key item</th><th>Verdict</th><th>Plan items</th><th>Recorded reason</th></tr>
+<tr><td>K1</td><td class="MATCHED">MATCHED</td><td>CHK-01, CHK-02, MM2-02</td><td></td></tr>
+<tr><td>K2</td><td class="MATCHED">MATCHED</td><td>CHK-03</td><td></td></tr>
+<tr><td>K3</td><td class="MATCHED">MATCHED</td><td>CHK-03</td><td></td></tr>
+<tr><td>K4</td><td class="MATCHED">MATCHED</td><td>CHK-03</td><td></td></tr>
+<tr><td>K5</td><td class="MATCHED">MATCHED</td><td></td><td></td></tr>
+<tr><td>K7</td><td class="MATCHED">MATCHED</td><td>CUT-02</td><td></td></tr>
+<tr><td>K6.1: group-offset translation is configured for the two groups (MirrorMaker 2 checkpoints and group-offset sync)</td><td class="MATCHED">MATCHED</td><td>MM2-01</td><td>MM2-01 configures checkpoints and consumer-group offset synchronization for Catalog and Image on the Redpanda-to-Kafka flow.</td></tr>
+<tr><td>K6.2: per group and partition: the final committed offset on Redpanda equals a checkpoint&#39;s upstream offset, and the offset installed on Kafka equals that checkpoint&#39;s downstream offset, before the moved services start</td><td class="DIFFERENT">DIFFERENT</td><td>CHK-02</td><td>CHK-02 checks that Kafka committed offsets exist and compares lag, but does not require, for each group and partition before restart, final Redpanda offset = checkpoint upstream and installed Kafka offset = checkpoint downstream. The subsequent passing S4 hand-off check does not retroactively make the frozen plan complete.</td></tr>
+<tr><td>K8.1: before any mirror starts: the catalog topics exist empty on Kafka, and the allow-lists are disjoint</td><td class="MATCHED">MATCHED</td><td>KAFKA-01, MM2-01, PRE-01</td><td>PRE-01 establishes the empty Kafka state, KAFKA-01 creates the topics before mirroring, and MM2-01 specifies disjoint mirror flows.</td></tr>
+<tr><td>K8.2: the Redpanda to Kafka mirror for the tenant topic is started, with group-offset sync for Catalog and Image, and replication is caught up before Catalog stops</td><td class="MATCHED">MATCHED</td><td>CHK-01, CUT-01, MM2-01, MM2-02</td><td>MM2-01 configures tenant-topic group synchronization, while MM2-02 starts replication and CHK-01 checks catch-up before CUT-01 stops Catalog.</td></tr>
+<tr><td>K8.3: Catalog stops only after Image has lag 0 on catalog.product.events</td><td class="DIFFERENT">DIFFERENT</td><td>CUT-01</td><td>The key requires Image lag 0 before Catalog stops. CUT-01 stops Catalog first and checks Image lag only afterward; the specified ordering is reversed.</td></tr>
+<tr><td>K8.4: Image stops; both moved groups show zero live attachment on Redpanda</td><td class="DIFFERENT">DIFFERENT</td><td>CHK-02, CUT-01</td><td>CUT-01 stops Image and CHK-02 checks that both services are stopped, but the described plan does not explicitly check that both moved consumer groups have zero live attachment on Redpanda. The later A-R capture establishes observed state, not that this check was planned.</td></tr>
+<tr><td>K8.5: the remaining Redpanda consumers (Product Query, Category Query) are drained to lag 0 on the catalog topics</td><td class="MISSING">MISSING</td><td></td><td>No pre-cut-over drain-to-lag-0 step exists for Product Query and Category Query. CHK-03&#39;s &#39;lag near 0&#39; check after restart is neither a pre-cut-over drain nor an exact zero-lag condition.</td></tr>
+<tr><td>K8.6: the offset hand-off of K6 is verified</td><td class="DIFFERENT">DIFFERENT</td><td>CHK-02</td><td>CHK-02 checks Kafka offsets and lag but does not establish the K6 checkpoint upstream/downstream equality for both groups before restart. The independent S4 hand-off check passed, but Proof A evaluates the frozen plan.</td></tr>
+<tr><td>K8.7: the Kafka to Redpanda mirror for the catalog topics starts only after the producers have stopped and the drain is done</td><td class="DIFFERENT">DIFFERENT</td><td>CUT-01, MM2-02</td><td>MM2-02 starts the Kafka-to-Redpanda flow together with the forward flow before CUT-01 stops the producers; the required producer-stop, drain, then reverse-mirror order is not followed.</td></tr>
+<tr><td>K8.8: Catalog and Image start on Kafka, and both groups are Stable there</td><td class="MATCHED">MATCHED</td><td>CHK-03, CUT-02</td><td>CUT-02 restarts Catalog and Image on Kafka, and CHK-03 supplies the post-restart consumer-group verification identified in the frozen plan. This matches the restart/stability intent as described in the supplied plan summary.</td></tr>
+<tr><td>K8.9: restart checks: replication caught up on the catalog mirror after new traffic; lag 0 for the consumers on both brokers; the functional test passes</td><td class="DIFFERENT">DIFFERENT</td><td>CHK-03, TEST-01</td><td>CHK-03 and TEST-01 provide post-restart checks and a functional test, but the plan describes lag as &#39;near 0&#39;, not the required lag 0, and does not explicitly require catalog replication catch-up after new traffic. The later S4 passing checks are separately reported operational evidence.</td></tr>
+</table>
+<p>Plan items that no key item claims: PRE-02, REPORT-01.</p>
+
+<h3>Proof B: the AIP claims the plan cites</h3>
+<p>A pass means that the binding behind a plan item is evidenced. It never means that the action is
+correct; the mechanism is checked by the broker tools and the functional test.</p>
+<table>
+<tr><th>Key item</th><th>Coverage</th><th>Missing rows</th></tr>
+<tr><td>K1</td><td class="COVERED">COVERED</td><td></td></tr>
+<tr><td>K2</td><td class="COVERED">COVERED</td><td></td></tr>
+<tr><td>K3</td><td class="COVERED">COVERED</td><td></td></tr>
+<tr><td>K4</td><td class="COVERED">COVERED</td><td></td></tr>
+</table>
+<p>Mechanism items without an implementation justification: none.
+Citations that did not resolve: REPORT-01.</p>
+
+<h3>The plan, item by item, with the AIP claims each item cites</h3>
+<table>
+<tr><th>Plan item</th><th>AIP claims cited (resolution, support)</th><th>Implementation justification</th></tr>
+<tr><td><span class="agent">PRE-01: Read-only preflight: list topics and all consumer groups on Redpanda (rpk topic list, rpk topic describe, rpk group list, rpk group describe for every group), confirm Kafka has no topics, confirm the Kafka image digest is on the host, and confirm the Deployments and ConfigMaps of both services in namespace dev. Stop and report if any group other than the ones AIP lists consumes a catalog.* topic, tenant.tenant.events or tenant.tenant.events.dlq in a way the plan does not cover, if Kafka is not empty, or if any MM2 internal topic name the plan will create already exists on either broker.</span></td>
+<td>ecommerce-category-query-service &times; <code>catalog.attribute.events</code> <span class="RESOLVED">RESOLVED</span><br>ecommerce-product-query-service &times; <code>catalog.attribute.events</code> <span class="RESOLVED">RESOLVED</span><br>ecommerce-category-query-service &times; <code>catalog.category.events</code> <span class="RESOLVED">RESOLVED</span><br>ecommerce-image-service &times; <code>catalog.product.events</code> <span class="RESOLVED">RESOLVED</span><br>ecommerce-product-query-service &times; <code>catalog.product.events</code> <span class="RESOLVED">RESOLVED</span><br>ecommerce-catalog-service &times; <code>tenant.tenant.events</code> <span class="RESOLVED">RESOLVED</span><br>ecommerce-image-service &times; <code>tenant.tenant.events</code> <span class="RESOLVED">RESOLVED</span><br></td>
+<td><span class="JUSTIFIED">JUSTIFIED</span><span class="agent">[reasoning] AIP limitation CAPTURE_SCOPE_LIMITED: each capture covers only its configured consumer groups; the binding picture outcome is PARTIAL.: The broker itself must be asked for the full group list before relying on AIP&#39;s consumer set.</span><span class="agent">[broker_tool] docker exec redpanda rpk group list; docker exec redpanda rpk group describe &lt;group&gt;; docker exec redpanda rpk topic describe &lt;topic&gt; -p</span><span class="agent">[broker_tool] docker exec kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list: Use the in-container listener; the exact listener is confirmed from the container&#39;s config at run time.</span><span class="agent">[source] src/ecommerce-commons/pkg/kafka/config/defaults.go:61-64: DLQ topic defaults to &lt;topic&gt;.dlq, so catalog and image produce tenant.tenant.events.dlq.</span><span class="agent">[reasoning] docker image ls --digests must show apache/kafka:4.1.2@sha256:5cc2a2fd93fa2687b44015eee04fb2c3edd9e526bd64bf8bec5ff1e268772e0e</span></td></tr>
+<tr><td><span class="agent">PRE-02: Save the current ConfigMaps ecommerce-catalog-service-config and ecommerce-image-service-config and the current replica counts of both Deployments into the workspace, so the cutover can be reversed.</span></td>
+<td>ecommerce-catalog-service &times; <code>tenant.tenant.events</code> <span class="RESOLVED">RESOLVED</span><br></td>
+<td><span class="JUSTIFIED">JUSTIFIED</span><span class="agent">[source] src/ecommerce-infrastructure/helm/shared-helpers/templates/_configmap.tpl:4: ConfigMap is named &lt;name&gt;-config and holds config.yaml.</span><span class="agent">[configuration] src/ecommerce-infrastructure/environments/local/Tiltfile:209-217: Tilt applies helm-templated manifests with k8s_yaml; there is no Helm release to upgrade, so the live ConfigMap is the thing to change.</span><span class="agent">[broker_tool] kubectl -n dev get configmap &lt;name&gt;-config -o yaml; kubectl -n dev get deploy &lt;name&gt; -o jsonpath=&#39;{.spec.replicas}&#39;</span></td></tr>
+<tr><td><span class="agent">KAFKA-01: Create catalog.product.events, catalog.category.events and catalog.attribute.events on Apache Kafka with the same partition counts as on Redpanda (read in PRE-01) and replication factor 1, before any producer or MirrorMaker 2 touches them.</span></td>
+<td>ecommerce-image-service &times; <code>catalog.product.events</code> <span class="RESOLVED">RESOLVED</span><br>ecommerce-category-query-service &times; <code>catalog.category.events</code> <span class="RESOLVED">RESOLVED</span><br>ecommerce-product-query-service &times; <code>catalog.attribute.events</code> <span class="RESOLVED">RESOLVED</span><br></td>
+<td><span class="JUSTIFIED">JUSTIFIED</span><span class="agent">[source] src/ecommerce-catalog-service-api/pkg/events/topics.go:11-13: The three topics the catalog service produces.</span><span class="agent">[source] src/ecommerce-image-service-api/pkg/events/topics.go:11: Image service produces to catalog.product.events.</span><span class="agent">[source] src/ecommerce-commons/pkg/kafka/producer/fxconfig/module.go:35: Producers allow auto topic creation, which would create topics with broker defaults; creating them first keeps the partition count and so per-key ordering.</span><span class="agent">[broker_tool] docker exec kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --create --topic &lt;t&gt; --partitions &lt;n from Redpanda&gt; --replication-factor 1</span></td></tr>
+<tr><td><span class="agent">MM2-01: Write the MirrorMaker 2 configuration with two one-way flows: redpanda-&gt;kafka for tenant.tenant.events only (with checkpoints and group offset sync for the groups ecommerce-catalog-service and ecommerce-image-service), and kafka-&gt;redpanda for the three catalog.* topics only (no checkpoints, no offset syncs). IdentityReplicationPolicy keeps topic names; heartbeats, ACL sync and topic-config sync are off; all replication factors are 1.</span></td>
+<td>ecommerce-catalog-service &times; <code>tenant.tenant.events</code> <span class="RESOLVED">RESOLVED</span><br>ecommerce-image-service &times; <code>tenant.tenant.events</code> <span class="RESOLVED">RESOLVED</span><br>ecommerce-product-query-service &times; <code>catalog.product.events</code> <span class="RESOLVED">RESOLVED</span><br>ecommerce-category-query-service &times; <code>catalog.category.events</code> <span class="RESOLVED">RESOLVED</span><br>ecommerce-category-query-service &times; <code>catalog.attribute.events</code> <span class="RESOLVED">RESOLVED</span><br>ecommerce-product-query-service &times; <code>catalog.attribute.events</code> <span class="RESOLVED">RESOLVED</span><br></td>
+<td><span class="JUSTIFIED">JUSTIFIED</span><span class="agent">[configuration] src/ecommerce-infrastructure/environments/local/values/ecommerce-catalog-service.yaml:31-42: Catalog consumes only tenant.tenant.events, group ecommerce-catalog-service, offset reset earliest.</span><span class="agent">[configuration] src/ecommerce-infrastructure/environments/local/values/ecommerce-image-service.yaml:23-35: Image consumes catalog.product.events and tenant.tenant.events, group ecommerce-image-service.</span><span class="agent">[source] src/ecommerce-tenant-service-api/pkg/events/topics.go:11: tenant.tenant.events is produced by the tenant service, which stays on Redpanda.</span><span class="agent">[reasoning] IdentityReplicationPolicy cannot detect cycles, so the two allow-lists are disjoint and heartbeats are off; no topic is mirrored in both directions.</span><span class="agent">[reasoning] Checkpoints filter by the flow&#39;s topic list, so offsets of ecommerce-image-service on catalog.product.events are not copied to Kafka; only tenant.tenant.events offsets are translated.</span></td></tr>
+<tr><td><span class="agent">MM2-02: Check that no container named catalog-move-mm2 exists, then start MirrorMaker 2 in dedicated mode as container catalog-move-mm2 on shared-network from the host&#39;s apache/kafka image, mounting the workspace mm2 directory read-only.</span></td>
+<td>ecommerce-image-service &times; <code>tenant.tenant.events</code> <span class="RESOLVED">RESOLVED</span>, <span class="SUPPORTS">SUPPORTS</span><br></td>
+<td><span class="JUSTIFIED">JUSTIFIED</span><span class="agent">[broker_tool] docker ps -a --filter name=^catalog-move-mm2$ (must be empty); docker run -d --name catalog-move-mm2 --network shared-network -v &lt;workspace&gt;/mm2:/mm2:ro apache/kafka:4.1.2@sha256:5cc2a2fd93fa2687b44015eee04fb2c3edd9e526bd64bf8bec5ff1e268772e0e /opt/kafka/bin/connect-mirror-maker.sh /mm2/mm2.properties</span><span class="agent">[reasoning] One MM2 process runs both flows; direction above names the first flow, the second (kafka-&gt;redpanda) is listed in allow_lists.</span></td></tr>
+<tr><td><span class="agent">CHK-01: Check that the redpanda-&gt;kafka flow works: tenant.tenant.events exists on Kafka with Redpanda&#39;s partition count and its per-partition end offsets reach Redpanda&#39;s; MM2 logs show tasks for the three catalog.* topics in the kafka-&gt;redpanda flow and no errors; MM2 created only the expected internal topics. Stop and report on any failure.</span></td>
+<td>ecommerce-catalog-service &times; <code>tenant.tenant.events</code> <span class="RESOLVED">RESOLVED</span>, <span class="SUPPORTS">SUPPORTS</span><br></td>
+<td><span class="JUSTIFIED">JUSTIFIED</span><span class="agent">[broker_tool] docker exec redpanda rpk topic describe tenant.tenant.events -p; docker exec kafka /opt/kafka/bin/kafka-get-offsets.sh --bootstrap-server localhost:9092 --topic tenant.tenant.events</span><span class="agent">[broker_tool] docker logs catalog-move-mm2; kafka-topics.sh --list on Kafka; rpk topic list on Redpanda</span><span class="agent">[reasoning] Offsets on two brokers need not be numerically equal if the source has gaps; compare record counts per partition when end offsets differ.</span></td></tr>
+<tr><td><span class="agent">CUT-01: Stop the producers in order: scale ecommerce-catalog-service to 0; then wait until group ecommerce-image-service has lag 0 on catalog.product.events on Redpanda; then scale ecommerce-image-service to 0. Stop and report if the image group does not reach lag 0.</span></td>
+<td>ecommerce-image-service &times; <code>catalog.product.events</code> <span class="RESOLVED">RESOLVED</span><br></td>
+<td><span class="JUSTIFIED">JUSTIFIED</span><span class="agent">[source] src/ecommerce-workspace/docs/architecture/product-update-flow.md: Catalog writes events to a MongoDB outbox; unsent entries stay in MongoDB while the pod is down and are published after restart, to the new broker.</span><span class="agent">[reasoning] The Kafka copy of catalog.product.events starts empty and is not seeded from Redpanda, so the image service must finish the Redpanda copy before it moves.</span><span class="agent">[broker_tool] kubectl -n dev scale deploy/&lt;name&gt; --replicas=0; docker exec redpanda rpk group describe ecommerce-image-service</span></td></tr>
+<tr><td><span class="agent">CHK-02: With both services stopped, check on Kafka that groups ecommerce-catalog-service and ecommerce-image-service have committed offsets on every partition of tenant.tenant.events, and that their lag there is no smaller than on Redpanda (a larger lag means some redelivery). Check that ecommerce-image-service has no committed offset on catalog.product.events on Kafka. Stop and report on any failure.</span></td>
+<td>ecommerce-catalog-service &times; <code>tenant.tenant.events</code> <span class="RESOLVED">RESOLVED</span>, <span class="SUPPORTS">SUPPORTS</span><br>ecommerce-image-service &times; <code>tenant.tenant.events</code> <span class="RESOLVED">RESOLVED</span>, <span class="SUPPORTS">SUPPORTS</span><br></td>
+<td><span class="JUSTIFIED">JUSTIFIED</span><span class="agent">[broker_tool] docker exec kafka /opt/kafka/bin/kafka-consumer-groups.sh --bootstrap-server localhost:9092 --describe --group &lt;group&gt;; docker exec redpanda rpk group describe &lt;group&gt;</span><span class="agent">[reasoning] Without translated offsets the services would start at earliest on Kafka (default-auto-offset-reset earliest) and reprocess the whole tenant history; that is a check the cutover relies on.</span></td></tr>
+<tr><td><span class="agent">CUT-02: Change kafka.brokers from redpanda:29092 to kafka:29092 in the live ConfigMaps of both services (a copy of each patched manifest is kept in the workspace), then scale both Deployments back to the replica counts saved in PRE-02.</span></td>
+<td>ecommerce-image-service &times; <code>catalog.product.events</code> <span class="RESOLVED">RESOLVED</span><br>ecommerce-catalog-service &times; <code>tenant.tenant.events</code> <span class="RESOLVED">RESOLVED</span><br></td>
+<td><span class="JUSTIFIED">JUSTIFIED</span><span class="agent">[configuration] src/ecommerce-infrastructure/environments/local/values/ecommerce-catalog-service.yaml:32 and ecommerce-image-service.yaml:24 (kafka.brokers)</span><span class="agent">[source] src/ecommerce-commons/pkg/kafka/config/types.go:7: One brokers setting serves producer, consumers and DLQ producer.</span><span class="agent">[source] src/ecommerce-infrastructure/helm/shared-helpers/templates/_deployment.tpl:58: The config checksum annotation is set at render time and does not change; scaling from 0 starts new pods that read the patched ConfigMap.</span><span class="agent">[broker_tool] kubectl -n dev apply -f patched/&lt;name&gt;-config.yaml; kubectl -n dev scale deploy/&lt;name&gt; --replicas=&lt;saved&gt;; kubectl -n dev rollout status deploy/&lt;name&gt;</span></td></tr>
+<tr><td><span class="agent">CHK-03: Check the moved services and the downstream consumers: pods Ready and logs connect to kafka:29092; both groups active on Kafka for tenant.tenant.events and ecommerce-image-service active on Kafka for catalog.product.events; catalog.* end offsets on Redpanda grow after Kafka&#39;s do; product-query and category-query groups on Redpanda keep lag near 0. Stop and report on any failure.</span></td>
+<td>ecommerce-product-query-service &times; <code>catalog.product.events</code> <span class="RESOLVED">RESOLVED</span>, <span class="SUPPORTS">SUPPORTS</span><br>ecommerce-category-query-service &times; <code>catalog.category.events</code> <span class="RESOLVED">RESOLVED</span>, <span class="SUPPORTS">SUPPORTS</span><br>ecommerce-category-query-service &times; <code>catalog.attribute.events</code> <span class="RESOLVED">RESOLVED</span>, <span class="SUPPORTS">SUPPORTS</span><br>ecommerce-product-query-service &times; <code>catalog.attribute.events</code> <span class="RESOLVED">RESOLVED</span>, <span class="SUPPORTS">SUPPORTS</span><br></td>
+<td><span class="JUSTIFIED">JUSTIFIED</span><span class="agent">[broker_tool] kubectl -n dev get pods; kubectl -n dev logs deploy/&lt;name&gt;; kafka-consumer-groups.sh --describe; kafka-get-offsets.sh; rpk topic describe -p; rpk group describe ecommerce-product-query-service / ecommerce-category-query-service</span><span class="agent">[reasoning] AIP never establishes delivery between brokers (binding picture tool description), so the bridge is checked with broker tools only.</span></td></tr>
+<tr><td><span class="agent">TEST-01: Ask the operator to run the functional test and wait for the result; stop and report if it fails.</span></td>
+<td>ecommerce-product-query-service &times; <code>catalog.product.events</code> <span class="RESOLVED">RESOLVED</span><br></td>
+<td><span class="JUSTIFIED">JUSTIFIED</span><span class="agent">[reasoning] TASK.md: write &#39;OPERATOR: please run the functional test&#39; and wait for the reply.</span></td></tr>
+<tr><td><span class="agent">REPORT-01: Report the result: what was created (Kafka topics, MM2 container and its internal topics, workspace files), what was changed (two ConfigMaps), the check results, and that delivery is at-least-once with possible redelivery, not lossless or exactly-once. Leave the MM2 bridge running; delete nothing.</span></td>
+<td><code>{"snapshot_id": "aip:snapshot:v1:4d8db6483e03a6564e593a3cbcf07bd1bcb7795c22bd975e95dd9e5ab11313a6"}</code> <span class="UNRESOLVED">UNRESOLVED</span><br></td>
+<td><span class="JUSTIFIED">JUSTIFIED</span><span class="agent">[reasoning] MM2 is the bridge the goal requires; removing it would cut the Redpanda consumers off from catalog events.</span></td></tr>
+</table>
+
+<h3>The agent's plan, as written</h3>
+<blockquote class="agent"># Plan: move Catalog Management from Redpanda to Apache Kafka
+
+AIP snapshot: `aip:snapshot:v1:4d8db6483e03a6564e593a3cbcf07bd1bcb7795c22bd975e95dd9e5ab11313a6`
+(`get_binding_picture`, `catalog-management`, `local`, broker `kafka:sokol111-local` = the Redpanda
+broker. Outcome **PARTIAL**, broker capture at 2026-10-28T11:55:58Z.)
+
+## What AIP shows and what the source confirms
+
+Event bindings that touch Catalog Management (rows of the binding picture):
+
+| Topic | Producer (declared) | Consumer | Crossing | Status |
+|---|---|---|---|---|
+| catalog.product.events | catalog, image | ecommerce-image-service | INSIDE | PROMISED_AND_OBSERVED |
+| catalog.product.events | catalog, image | ecommerce-product-query-service | OUTBOUND | PROMISED_AND_OBSERVED |
+| catalog.category.events | catalog | ecommerce-category-query-service | OUTBOUND | UNRESOLVED (PROMISE_COVERAGE_MISSING) |
+| catalog.attribute.events | catalog | ecommerce-category-query-service | OUTBOUND | UNRESOLVED (PROMISE_COVERAGE_MISSING) |
+| catalog.attribute.events | catalog | ecommerce-product-query-service | OUTBOUND | UNRESOLVED (PROMISE_COVERAGE_MISSING) |
+| tenant.tenant.events | tenant | ecommerce-catalog-service | INBOUND | UNRESOLVED (PROMISE_COVERAGE_MISSING) |
+| tenant.tenant.events | tenant | ecommerce-image-service | INBOUND | UNRESOLVED (PROMISE_COVERAGE_MISSING) |
+| tenant.tenant.events | tenant | product-query, category-query | NONE | (not affected) |
+
+The three &#34;UNRESOLVED / PROMISE_COVERAGE_MISSING&#34; outbound rows are observed bindings that the
+event catalog does not declare. They are real consumers and I treat them like the declared ones.
+The local Helm values (`environments/local/values/*-query-service.yaml`) match them.
+
+AIP&#39;s limits that shape the plan:
+- **CAPTURE_SCOPE_LIMITED**: the capture covers only configured groups. So PRE-01 lists *all*
+  groups on Redpanda before the move. If an unknown group reads a topic that this plan doesn&#39;t
+  cover, I stop.
+- **PRODUCER_SIDE_DECLARED_ONLY**: AIP only declares producers and never observes them. The
+  source code confirms them: `ecommerce-catalog-service-api/pkg/events/topics.go` lists the three
+  catalog topics, and `ecommerce-image-service-api/pkg/events/topics.go` shows the image service
+  writes to `catalog.product.events`.
+- AIP never establishes delivery between brokers. I check the bridge only with broker tools.
+
+During planning I could not run `rpk`, `docker` or `kubectl` because those calls were denied. So
+partition counts, the full group list, replica counts and the Kafka listener inside the container
+are not known yet. PRE-01 reads them first.
+
+## Topology after the move
+
+- **Kafka** gets the producers of `catalog.product.events`, `catalog.category.events` and
+  `catalog.attribute.events` (catalog, image) and the consumers of `tenant.tenant.events` (catalog,
+  image) and `catalog.product.events` (image).
+- **Redpanda** keeps `tenant.tenant.events` (producer: tenant service) and the consumers
+  product-query and category-query.
+
+So there are two MM2 flows, and they share no topics:
+
+| Flow | Topics |
+|---|---|
+| redpanda -&gt; kafka | `tenant.tenant.events` |
+| kafka -&gt; redpanda | `catalog.product.events`, `catalog.category.events`, `catalog.attribute.events` |
+
+No topic is mirrored both ways. `IdentityReplicationPolicy` keeps topic names, so the consumers
+need no change. That policy cannot detect loops, which is why the disjoint allow-lists matter.
+Heartbeats are also turned off, so MM2 creates no `heartbeats` topic for the two flows to copy back
+and forth.
+
+**Not mirrored:** `tenant.tenant.events.dlq`. Catalog and image write their DLQ messages for
+tenant events to `&lt;topic&gt;.dlq` (`commons/pkg/kafka/config/defaults.go:61`), so after the move
+their DLQ messages land on Kafka. AIP shows no consumer of this DLQ. PRE-01 checks Redpanda for
+one, and if one exists I stop rather than add a flow without an amendment.
+
+## Sequence and why
+
+1. **PRE-01 / PRE-02.** Read-only checks, then back up the two ConfigMaps and the replica counts.
+   Tilt deployed with `helm template` + `k8s_yaml`, so there is no Helm release to upgrade. The
+   live ConfigMap `&lt;name&gt;-config` is what the pods read.
+2. **KAFKA-01.** Create the three catalog topics on Kafka with the same partition counts as on
+   Redpanda. The producers allow auto-creation, which would use broker defaults and could change
+   which partition a key goes to.
+3. **MM2-01 / MM2-02.** Run one dedicated MM2 process (`catalog-move-mm2`, host image by digest,
+   on `shared-network`) with both flows. The redpanda-&gt;kafka flow also emits checkpoints and syncs
+   group offsets, only for `ecommerce-catalog-service` and `ecommerce-image-service`, and with
+   `offset-syncs.topic.location=target` so MM2 writes nothing to Redpanda for that flow. Checkpoints
+   follow the flow&#39;s topic list, so the image group&#39;s Redpanda offsets on `catalog.product.events`
+   are not copied onto Kafka&#39;s new, separate topic.
+4. **CHK-01.** `tenant.tenant.events` on Kafka has caught up with Redpanda, and MM2 has tasks for
+   the catalog topics.
+5. **CUT-01.** Stop catalog first. Its outbox keeps unsent events in MongoDB, and they publish to
+   Kafka after restart. Then let the image service drain `catalog.product.events` on Redpanda to lag
+   0 and stop it. This step matters because the Kafka copy of that topic starts empty. Seeding it
+   from Redpanda would mean mirroring the topic in both directions.
+6. **CHK-02.** Both groups have translated offsets on Kafka `tenant.tenant.events`, so they
+   continue where they stopped instead of replaying from `earliest`. Translation is conservative: it
+   may point earlier, which means some events get delivered again. It never points past unread
+   events.
+7. **CUT-02.** Set `kafka.brokers: &#34;kafka:29092&#34;` in both ConfigMaps and scale back up. One
+   setting covers the producer, the consumers and the DLQ producer.
+8. **CHK-03, TEST-01, REPORT-01.** Check the consumers on both brokers and ask the operator for
+   the functional test. The MM2 bridge stays running; it is part of the target state.
+
+Any failed check stops the run and is reported.
+
+## What this plan creates (and so may later remove)
+
+- Kafka topics `catalog.product.events`, `catalog.category.events`, `catalog.attribute.events`.
+  `tenant.tenant.events` and `tenant.tenant.events.dlq` appear on Kafka through MM2 and the
+  services.
+- Container `catalog-move-mm2`.
+- MM2 internal topics. On Kafka: `mm2-configs/offsets/status.redpanda.internal`,
+  `redpanda.checkpoints.internal`, `mm2-offset-syncs.kafka.internal`. On Redpanda:
+  `mm2-configs/offsets/status.kafka.internal`. PRE-01 checks that none of these exist before the
+  move.
+- Kafka consumer-group offsets for the two moved groups.
+- Workspace files `mm2/`, `backup/`, `patched/`.
+- Changed: the ConfigMaps `ecommerce-catalog-service-config` and `ecommerce-image-service-config`.
+  The repo values files are not edited.
+
+Nothing is deleted in this plan. Before anything created is removed later, I check it by name
+against this list.
+
+## Rollback (only if the operator asks; recorded as an amendment)
+
+1. Scale both services to 0.
+2. Apply the `backup/` ConfigMaps and scale back to the saved replica counts.
+
+Events produced on Kafka in the meantime have already been mirrored to Redpanda. The image group&#39;s
+old Redpanda offset on `catalog.product.events` is then behind, so those events are delivered
+again.
+
+## Delivery guarantees
+
+The move gives at-least-once delivery at best. Some events may be delivered again: offset
+translation is conservative and MM2 can redeliver on restart. Ordering is kept per partition
+within each topic. The two brokers also stay mixed for a while, because catalog topics on Redpanda
+hold pre-move records written directly and post-move records mirrored from Kafka. I make no claim
+that the move is lossless or exactly-once. The query services&#39; versioned projections
+(product-update-flow.md) tolerate duplicates and out-of-order messages, but that is their design,
+not something the move guarantees.
+</blockquote>
+<h3>Amendments made while carrying out the plan</h3>
+<blockquote class="agent">2026-10-28T13:11:27Z changed PRE-01: The plan&#39;s Kafka admin commands use --bootstrap-server localhost:9092 inside the kafka container; nothing listens there (TimeoutException). Container env shows KAFKA_LISTENERS=PLAINTEXT://:29092,HOST://:19092,CONTROLLER://:9093 with HOST advertised as localhost:19092. All kafka-*.sh calls run inside the kafka container (PRE-01, KAFKA-01, CHK-01, CHK-02, CHK-03) therefore use --bootstrap-server localhost:19092. The plan itself said the listener would be confirmed at run time. Nothing else changes.</blockquote>
+<blockquote class="agent">2026-10-28T13:25:03Z changed MM2-01: CHK-01 failed: the kafka-&gt;redpanda MirrorSourceConnector was rejected, so catalog events would not reach the Redpanda consumers. The owner approved this fix at the reported stop. Also restart catalog-move-mm2 (the container this plan created) so it reads the new file, then re-run CHK-01. New items created by the fix: Redpanda topic mm2-offset-syncs.kafka.internal. Also recorded as created, though not predicted by the plan: heartbeats (both brokers), redpanda.heartbeats (Kafka), mm2-offset-syncs.redpanda.internal (Kafka, instead of the predicted mm2-offset-syncs.kafka.internal), Redpanda group kafka-mm2, Kafka group redpanda-mm2.</blockquote>
+<blockquote class="agent">2026-10-28T13:27:37Z changed CHK-01: Re-run of CHK-01 after the MM2-01 fix: the kafka-&gt;redpanda source connector now runs and is assigned catalog.product/category/attribute.events-0. But both flows are also assigned heartbeats-0 (MM2 adds heartbeat topics to every flow regardless of the topics allow-list, and IdentityReplicationPolicy gives them the same name on both brokers). So the topic heartbeats is mirrored in both directions, which TASK.md forbids. It is empty on both brokers (heartbeats:0:0 on Kafka, high watermark 0 on Redpanda). CHK-01 failed. Container catalog-move-mm2 was stopped (docker stop, not removed) to end the bidirectional mirroring. No cutover had happened, so all services and consumers are still on Redpanda. The run stops here and is reported to the owner.</blockquote>
+<blockquote class="agent">2026-10-28T13:35:23Z changed MM2-01: Owner asked for a verified fix of the bidirectional heartbeats mirroring found at the 13:27:37Z stop. Verified: final assignments contain no heartbeats partition. Note: for about 1.5 s after the restart (13:34:09.9 to 13:34:11.6), the tasks ran from the old stored config with heartbeats-0 assigned, until MM2 replaced it. All heartbeat topics (heartbeats on both brokers, redpanda.heartbeats on Kafka, kafka.heartbeats on Redpanda) have end offset 0, so no heartbeat record was copied. Also created by MM2 and now recorded: Redpanda topics kafka.heartbeats and mm2-offset-syncs.kafka.internal. CHK-01 re-run passed: tenant.tenant.events end offset 1 on both brokers, kafka-&gt;redpanda tasks for the three catalog topics, and the only ERROR is the intended MirrorCheckpointConnector rejection for kafka-&gt;redpanda.</blockquote>
+<blockquote class="agent">2026-10-28T13:38:58Z changed CHK-03: No catalog event was produced after the cutover (Kafka catalog.* end offsets 0:0:0; Redpanda 120/4/20, unchanged), so the part &#39;catalog.* end offsets on Redpanda grow after Kafka&#39;s do&#39; cannot be observed yet. Synthetic events are not injected, because the real query consumers would process them. That part, plus the product-query and category-query lag on Redpanda, is checked right after TEST-01 using the functional test&#39;s traffic, before reporting. Every other CHK-03 condition passed at this time: both pods Ready; no ERROR/WARN in logs; ecommerce-catalog-service active on Kafka tenant.tenant.events (offset 1, lag 0); ecommerce-image-service active on Kafka tenant.tenant.events (offset 1, lag 0) and catalog.product.events; both query groups Stable on Redpanda with lag 0; no MM2 errors since 13:34:30Z.</blockquote>
+
+<h2>4. After: the binding picture on both brokers</h2>
+<p class="question">(5) What does the evidence after the move establish?</p>
+<table>
+<tr><th>Broker</th><th>Consumer</th><th>Topic</th><th>Crossing</th><th>Status</th><th>Consumer groups</th></tr>
+<tr><td>Apache Kafka</td><td>ecommerce-image-service</td><td><code>catalog.product.events</code></td><td>INSIDE</td>
+<td>PROMISED_AND_OBSERVED</td>
+<td>ecommerce-image-service</td></tr>
+<tr><td>Apache Kafka</td><td>ecommerce-catalog-service</td><td><code>tenant.tenant.events</code></td><td>INBOUND</td>
+<td class="undeclared">UNRESOLVED / PROMISE_COVERAGE_MISSING</td>
+<td>ecommerce-catalog-service</td></tr>
+<tr><td>Apache Kafka</td><td>ecommerce-image-service</td><td><code>tenant.tenant.events</code></td><td>INBOUND</td>
+<td class="undeclared">UNRESOLVED / PROMISE_COVERAGE_MISSING</td>
+<td>ecommerce-image-service</td></tr>
+<tr><td>Redpanda</td><td>ecommerce-category-query-service</td><td><code>catalog.attribute.events</code></td><td>OUTBOUND</td>
+<td class="undeclared">UNRESOLVED / PROMISE_COVERAGE_MISSING</td>
+<td>ecommerce-category-query-service</td></tr>
+<tr><td>Redpanda</td><td>ecommerce-product-query-service</td><td><code>catalog.attribute.events</code></td><td>OUTBOUND</td>
+<td class="undeclared">UNRESOLVED / PROMISE_COVERAGE_MISSING</td>
+<td>ecommerce-product-query-service</td></tr>
+<tr><td>Redpanda</td><td>ecommerce-category-query-service</td><td><code>catalog.category.events</code></td><td>OUTBOUND</td>
+<td class="undeclared">UNRESOLVED / PROMISE_COVERAGE_MISSING</td>
+<td>ecommerce-category-query-service</td></tr>
+<tr><td>Redpanda</td><td>ecommerce-image-service</td><td><code>catalog.product.events</code></td><td>INSIDE</td>
+<td>PROMISED_NOT_OBSERVED</td>
+<td></td></tr>
+<tr><td>Redpanda</td><td>ecommerce-product-query-service</td><td><code>catalog.product.events</code></td><td>OUTBOUND</td>
+<td>PROMISED_AND_OBSERVED</td>
+<td>ecommerce-product-query-service</td></tr>
+<tr><td>Redpanda</td><td>ecommerce-category-query-service</td><td><code>tenant.tenant.events</code></td><td>NONE</td>
+<td class="undeclared">UNRESOLVED / PROMISE_COVERAGE_MISSING</td>
+<td>ecommerce-category-query-service</td></tr>
+<tr><td>Redpanda</td><td>ecommerce-product-query-service</td><td><code>tenant.tenant.events</code></td><td>NONE</td>
+<td class="undeclared">UNRESOLVED / PROMISE_COVERAGE_MISSING</td>
+<td>ecommerce-product-query-service</td></tr>
+</table>
+<p class="muted">Limitations of this answer: CAPTURE_SCOPE_LIMITED, CROSS_BROKER_DELIVERY_NOT_ESTABLISHED, EVENT_HANDLING_NOT_ESTABLISHED, PRODUCER_SIDE_DECLARED_ONLY, PROMISES_ASSUMED_CONFIRMED. Each broker keeps its own
+Topic ids; AIP does not merge them and does not establish delivery across the brokers.</p>
+<p>No live attachment here after the move (a comparison of the two captures, not a detachment claim
+beyond them):</p>
+<ul>
+<li>ecommerce-image-service &times; <code>catalog.product.events</code> on Redpanda</li>
+<li>ecommerce-catalog-service &times; <code>tenant.tenant.events</code> on Redpanda</li>
+<li>ecommerce-image-service &times; <code>tenant.tenant.events</code> on Redpanda</li>
+</ul>
+
+<p>Proof C, the after-wave answer against the reference frozen before the run
+(<code>expected-after.json</code>): <span class="PASSED">PASSED</span>.</p>
+
+<h3>External checks, apart from AIP's claims</h3>
+<table>
+<tr><th>Check</th><th>Established by</th><th>Result</th></tr>
+<tr><td>replication caught up: catalog.attribute.events, catalog.category.events, catalog.product.events</td><td>broker tools</td><td class="PASSED">PASSED</td></tr>
+<tr><td>replication caught up: tenant.tenant.events</td><td>broker tools</td><td class="PASSED">PASSED</td></tr>
+<tr><td>consumer lag 0: ecommerce-catalog-service</td><td>broker tools</td><td class="PASSED">PASSED</td></tr>
+<tr><td>consumer lag 0: ecommerce-category-query-service</td><td>broker tools</td><td class="PASSED">PASSED</td></tr>
+<tr><td>consumer lag 0: ecommerce-image-service</td><td>broker tools</td><td class="PASSED">PASSED</td></tr>
+<tr><td>consumer lag 0: ecommerce-product-query-service</td><td>broker tools</td><td class="PASSED">PASSED</td></tr>
+<tr><td>offset hand-off (installed offset as reported by the agent; the operator's later reads beside it)</td><td>broker tools and the agent's transcript</td><td class="PASSED">PASSED</td></tr>
+<tr><td>applied MirrorMaker 2 configuration</td><td>the operator's reading of the running containers</td><td class="FAILED">FAILED</td></tr>
+<tr><td>applied Catalog and Image configuration</td><td>the operator's reading of the ConfigMaps</td><td class="PASSED">PASSED</td></tr>
+<tr><td>functional test 1-shop-product-image</td><td>the services' Connect-RPC endpoints</td><td class="PASSED">PASSED</td></tr>
+<tr><td>functional test 2-category-update</td><td>the services' Connect-RPC endpoints</td><td class="PASSED">PASSED</td></tr>
+<tr><td>functional test 3-attribute-update</td><td>the services' Connect-RPC endpoints</td><td class="PASSED">PASSED</td></tr>
+</table>
+<table>
+<tr><th>Hand-off entry</th><th>(a) final offset on Redpanda</th><th>(c) installed on Kafka</th><th>Checkpoint matches</th><th>Kafka position now</th><th>Replay amount</th></tr>
+<tr><td>ecommerce-catalog-service tenant.tenant.events-0</td><td>1</td><td>1 <span class="muted">(agent-reported (execution d1e0491a line 259))</span></td>
+<td>True</td><td>2</td><td>MEASURED: 0</td></tr>
+<tr><td>ecommerce-image-service tenant.tenant.events-0</td><td>1</td><td>1 <span class="muted">(agent-reported (execution d1e0491a line 259))</span></td>
+<td>True</td><td>2</td><td>MEASURED: 0</td></tr>
+</table>
+
+<h2>Proof boundaries</h2>
+<table>
+<tr><th>Claim</th><th>Established by</th></tr>
+<tr><td>group state and topic assignments per broker, before and after, attributed to Services</td><td>AIP</td></tr>
+<tr><td>offsets, lag, replication progress</td><td>broker tools (<code>rpk</code>, <code>kafka-consumer-groups</code>), stored as ground truth</td></tr>
+<tr><td>the migrated behaviour works</td><td>the functional test after the cut-over</td></tr>
+</table>
+<p>What an instrument measures is not what people conclude from it. Each claim on this page names
+the instrument that establishes it.</p>
+
+<h2>How the agent run was kept independent</h2>
+<ul>
+<li>Agent: claude-opus-5-5 in Claude Code 2.1.312.</li>
+<li>The agent saw a task card with the goal and the safety constraints only (SHA-256 <code>daac8fefceb41c9aa6470d5bcb7461ce760ebd05132c2e01df286cd53840ea06</code>). It did not see the answer key, the reference runbook, the specifications or the web.</li>
+<li>The plan was frozen at 2026-10-28T12:59:16Z (SHA-256 <code>7ccd53f4821fff6ca195320c9a8bc4b7c28264cc26436a80ba05a82b4d65d0d4</code>), before the first command that changed the environment.</li>
+<li>Transcript audit: 6 hit(s), each waived by the owner as an environment fault that exposed nothing withheld, with its evidence in the run record.</li>
+<li>Interventions: 2, each with its cause and action (UTC):<ul><li>2026-10-28T13:24:47Z: the agent&#39;s check CHK-01 failed (MirrorMaker 2 refused the kafka-&gt;redpanda connectors); the agent stopped and asked whether to apply its proposed fix. Action: owner decision under the stop rule, relayed verbatim: proceed with the proposed fix as an amendment, re-run CHK-01, continue under TASK.md</li><li>2026-10-28T13:32:52Z: CHK-01 failed again (both flows also replicated the heartbeats topic); the agent stopped MirrorMaker 2 and asked which of three options to take. Action: owner decision under the stop rule, relayed verbatim: choose the fix you judge correct, verify it, record it as an amendment, continue under TASK.md</li></ul></li>
+</ul>
+
+<h2>Disclosures</h2>
+<ul>
+<li>The EventCatalog and its owners are generated for the showcase from Sokol111's two architecture documents by a fixed rule. Its entries count as confirmed promises by assumption; they are not promises that the service teams made.</li>
+<li>The topic inventory, the producer and Service declarations and the consumer group to Service mapping are authored from source and configuration.</li>
+<li>The second broker and the bridge are authored for the showcase: a local Apache Kafka stands in for a managed platform, and Sokol111 itself runs one Redpanda broker.</li>
+<li>Local adaptations, none committed to a Sokol111 repository: MinIO from frozen Bitnami images, Logto pinned by digest, the k3d host adaptations, a host DNS workaround, and the Logto seed run a second time.</li>
+<li>The agent, its task card and its sessions are described above. The answer key is the authors' expected plan, written before the run.</li>
+</ul>
+
+<h2>Evaluate it on your own architecture</h2>
+<p>This page shows one move in one system. The question it asks applies to any change that crosses a
+boundary: which bindings cross it, which are declared, and what the evidence establishes before and
+after. We invite you to ask that question of your own architecture with AIP.</p>
+</body>
+</html>

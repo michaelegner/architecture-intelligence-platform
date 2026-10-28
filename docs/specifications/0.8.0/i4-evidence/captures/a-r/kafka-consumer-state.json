@@ -1,0 +1,117 @@
+{
+  "schema": "aip-kafka-consumer-state/1",
+  "broker_id": "kafka:sokol111-local",
+  "environment": "local",
+  "captured_at": "2026-10-28T13:59:11Z",
+  "tool_version": "aip-kafka-capture/1+confluent-kafka-2.16.0",
+  "kafka_version": "not-established",
+  "complete": true,
+  "group_scope": [
+    "ecommerce-catalog-service",
+    "ecommerce-category-query-service",
+    "ecommerce-image-service",
+    "ecommerce-product-query-service"
+  ],
+  "groups": [
+    {
+      "group_id": "ecommerce-catalog-service",
+      "state": "Empty",
+      "members": []
+    },
+    {
+      "group_id": "ecommerce-category-query-service",
+      "state": "Stable",
+      "members": [
+        {
+          "member_id": "kgo-340e6746-f18c-4749-bc33-e06fd274ac4c",
+          "client_id": "kgo",
+          "host": "172.20.0.4",
+          "assignments": [
+            {
+              "topic": "catalog.category.events",
+              "partitions": [
+                0
+              ]
+            }
+          ]
+        },
+        {
+          "member_id": "kgo-5c2b42a8-4496-45a6-8fee-2e10469c535b",
+          "client_id": "kgo",
+          "host": "172.20.0.4",
+          "assignments": [
+            {
+              "topic": "tenant.tenant.events",
+              "partitions": [
+                0
+              ]
+            }
+          ]
+        },
+        {
+          "member_id": "kgo-e938f6f5-81de-4309-8d6e-3f021e7c92ad",
+          "client_id": "kgo",
+          "host": "172.20.0.4",
+          "assignments": [
+            {
+              "topic": "catalog.attribute.events",
+              "partitions": [
+                0
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "group_id": "ecommerce-image-service",
+      "state": "Empty",
+      "members": []
+    },
+    {
+      "group_id": "ecommerce-product-query-service",
+      "state": "Stable",
+      "members": [
+        {
+          "member_id": "kgo-3e130a77-8074-4ed7-878a-d068726158b6",
+          "client_id": "kgo",
+          "host": "172.20.0.3",
+          "assignments": [
+            {
+              "topic": "tenant.tenant.events",
+              "partitions": [
+                0
+              ]
+            }
+          ]
+        },
+        {
+          "member_id": "kgo-52877700-6c48-4413-bbf1-346d5cd80cfb",
+          "client_id": "kgo",
+          "host": "172.20.0.3",
+          "assignments": [
+            {
+              "topic": "catalog.attribute.events",
+              "partitions": [
+                0
+              ]
+            }
+          ]
+        },
+        {
+          "member_id": "kgo-c64a0db7-57c5-46c2-9f3c-4612878cbbe2",
+          "client_id": "kgo",
+          "host": "172.20.0.3",
+          "assignments": [
+            {
+              "topic": "catalog.product.events",
+              "partitions": [
+                0
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

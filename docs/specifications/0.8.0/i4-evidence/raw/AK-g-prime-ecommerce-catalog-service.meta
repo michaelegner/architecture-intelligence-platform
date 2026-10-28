@@ -1,0 +1,3 @@
+utc: 2026-10-28T13:59:25Z
+command: ktool kafka:29092 kafka-consumer-groups.sh --describe --group ecommerce-catalog-service
+exit: 0

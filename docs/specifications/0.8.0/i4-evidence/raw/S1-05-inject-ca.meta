@@ -1,0 +1,3 @@
+utc: 2026-10-28T11:48:43Z
+command: make -C src/ecommerce-infrastructure/environments/local cluster-inject-ca
+exit: 0

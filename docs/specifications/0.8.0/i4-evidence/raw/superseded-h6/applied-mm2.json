@@ -1,0 +1,85 @@
+{
+  "allow_lists": [
+    {
+      "flow": "1d60aa4861787d10fb3c5dfa6d2d3e418d403e4150220e678612be0166dc079b-1.properties:redpanda->kafka",
+      "source": "redpanda",
+      "target": "kafka",
+      "topics": [
+        "tenant.tenant.events"
+      ]
+    },
+    {
+      "flow": "1d60aa4861787d10fb3c5dfa6d2d3e418d403e4150220e678612be0166dc079b-1.properties:kafka->redpanda",
+      "source": "kafka",
+      "target": "redpanda",
+      "topics": [
+        "catalog.attribute.events",
+        "catalog.category.events",
+        "catalog.product.events"
+      ]
+    }
+  ],
+  "internal_topics": {
+    "kafka->redpanda": {
+      "source": [],
+      "target": [
+        "kafka.checkpoints.internal",
+        "mm2-configs.kafka.internal",
+        "mm2-offset-syncs.redpanda.internal",
+        "mm2-offsets.kafka.internal",
+        "mm2-status.kafka.internal"
+      ]
+    },
+    "redpanda->kafka": {
+      "source": [],
+      "target": [
+        "mm2-configs.redpanda.internal",
+        "mm2-offset-syncs.kafka.internal",
+        "mm2-offsets.redpanda.internal",
+        "mm2-status.redpanda.internal",
+        "redpanda.checkpoints.internal"
+      ]
+    }
+  },
+  "kind": "applied-mm2",
+  "pairs": [
+    {
+      "checkpoints": "redpanda.checkpoints.internal",
+      "configs": "mm2-configs.redpanda.internal",
+      "offset_syncs": "mm2-offset-syncs.kafka.internal",
+      "offset_syncs_on": "target",
+      "offsets": "mm2-offsets.redpanda.internal",
+      "pair": "redpanda->kafka",
+      "source": "redpanda",
+      "status": "mm2-status.redpanda.internal",
+      "target": "kafka",
+      "topics": [
+        "tenant.tenant.events"
+      ]
+    },
+    {
+      "checkpoints": "kafka.checkpoints.internal",
+      "configs": "mm2-configs.kafka.internal",
+      "offset_syncs": "mm2-offset-syncs.redpanda.internal",
+      "offset_syncs_on": "target",
+      "offsets": "mm2-offsets.kafka.internal",
+      "pair": "kafka->redpanda",
+      "source": "kafka",
+      "status": "mm2-status.kafka.internal",
+      "target": "redpanda",
+      "topics": [
+        "catalog.attribute.events",
+        "catalog.category.events",
+        "catalog.product.events"
+      ]
+    }
+  ],
+  "problems": [
+    "P2 kafka->redpanda: emit.checkpoints.enabled is not true"
+  ],
+  "result": "FAILED",
+  "rule": "P1a replication factor 1, P2 checkpoints/offset-syncs/identity policy, P3 disjoint",
+  "sources": [
+    "<run home>/package/applied-mm2/1d60aa4861787d10fb3c5dfa6d2d3e418d403e4150220e678612be0166dc079b-1.properties"
+  ]
+}

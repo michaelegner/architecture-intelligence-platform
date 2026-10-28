@@ -1,0 +1,4 @@
+["MirrorCheckpointConnector",{"partition":0,"topic":"tenant.tenant.events","group":"ecommerce-image-service"}]	{"offset":0}
+["MirrorSourceConnector",{"cluster":"redpanda","partition":0,"topic":"tenant.tenant.events"}]	{"offset":0}
+["MirrorSourceConnector",{"cluster":"redpanda","partition":0,"topic":"tenant.tenant.events"}]	{"offset":1}
+["MirrorCheckpointConnector",{"partition":0,"topic":"tenant.tenant.events","group":"ecommerce-catalog-service"}]	{"offset":0}

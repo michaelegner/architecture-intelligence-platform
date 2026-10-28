@@ -1,0 +1,31 @@
+{
+  "deployments": [
+    {
+      "changed": [
+        "ecommerce-catalog-service-config"
+      ],
+      "configmaps": [
+        "ecommerce-catalog-service-config"
+      ],
+      "deployment": "ecommerce-catalog-service",
+      "problems": []
+    },
+    {
+      "changed": [
+        "ecommerce-image-service-config"
+      ],
+      "configmaps": [
+        "ecommerce-image-service-config"
+      ],
+      "deployment": "ecommerce-image-service",
+      "problems": []
+    }
+  ],
+  "kind": "applied-helm",
+  "problems": [],
+  "result": "PASSED",
+  "rule": "per moved service: same ConfigMaps; the only change is kafka.brokers -> kafka:29092",
+  "sources": [
+    "<run home>/package/helm"
+  ]
+}

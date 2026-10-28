@@ -1,0 +1,57 @@
+apiVersion: v1
+data:
+  config.yaml: |
+    logger:
+      level: "debug"
+      development: true
+    multi-tenancy:
+      enabled: true
+    mongo:
+      host: "mongo"
+      database: "catalog"
+      replica-set: rs0
+    security:
+      jwks:
+        jwks-url: "http://logto:3001/oidc/jwks"
+        issuer: "http://localhost:3001/oidc"
+        audience: "https://api.sokolshop.com"
+      client-credentials:
+        token-url: "http://logto:3001/oidc/token"
+        resource: "https://api.sokolshop.com"
+        scopes:
+          - "openid"
+          - "tenants:read"
+    kafka:
+      brokers: "kafka:29092"
+      consumers-config:
+        default-group-id: "ecommerce-catalog-service"
+        default-auto-offset-reset: "earliest"
+        consumers:
+          - name: "tenant-events"
+            topic: "tenant.tenant.events"
+            max-retries: 5
+            initial-backoff: 2s
+            max-backoff: 30s
+            enable-dlq: true
+    observability:
+      otel-collector-endpoint: "alloy.observability.svc:4317"
+      tracing:
+        enabled: true
+      metrics:
+        enabled: false
+      profiling:
+        enabled: true
+        endpoint: "http://alloy.observability.svc:4040"
+    tenant:
+      grpc:
+        address: "ecommerce-tenant-service:8080"
+kind: ConfigMap
+metadata:
+  labels:
+    app.kubernetes.io/instance: ecommerce-catalog-service
+    app.kubernetes.io/managed-by: tilt
+    app.kubernetes.io/name: ecommerce-catalog-service
+    app.kubernetes.io/version: latest
+    helm.sh/chart: ecommerce-catalog-service-0.0.1
+  name: ecommerce-catalog-service-config
+  namespace: dev

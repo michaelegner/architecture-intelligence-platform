@@ -1,0 +1,73 @@
+{
+  "kind": "e6-gate",
+  "problems": [
+    "package/applied-mm2.json: FAILED",
+    "package/p1b-kafka-to-redpanda.json: FAILED"
+  ],
+  "result": "FAILED",
+  "rule": "every S4 configuration and ground-truth verdict says PASSED",
+  "sources": [
+    "package/applied-helm.json",
+    "package/applied-mm2.json",
+    "package/handoff-after.json",
+    "package/p1b-kafka-to-redpanda.json",
+    "package/p1b-redpanda-to-kafka.json",
+    "package/raw/FT-s3r1.check.json",
+    "package/raw/GT-ecommerce-catalog-service-kafka-lag.check.json",
+    "package/raw/GT-ecommerce-category-query-service-lag.check.json",
+    "package/raw/GT-ecommerce-image-service-kafka-lag.check.json",
+    "package/raw/GT-ecommerce-product-query-service-lag.check.json",
+    "package/raw/GT-kafka-to-redpanda-replication.check.json",
+    "package/raw/GT-redpanda-to-kafka-replication.check.json"
+  ],
+  "verdicts": [
+    {
+      "file": "package/applied-mm2.json",
+      "result": "FAILED"
+    },
+    {
+      "file": "package/p1b-redpanda-to-kafka.json",
+      "result": "PASSED"
+    },
+    {
+      "file": "package/p1b-kafka-to-redpanda.json",
+      "result": "FAILED"
+    },
+    {
+      "file": "package/applied-helm.json",
+      "result": "PASSED"
+    },
+    {
+      "file": "package/raw/GT-redpanda-to-kafka-replication.check.json",
+      "result": "PASSED"
+    },
+    {
+      "file": "package/raw/GT-kafka-to-redpanda-replication.check.json",
+      "result": "PASSED"
+    },
+    {
+      "file": "package/raw/GT-ecommerce-product-query-service-lag.check.json",
+      "result": "PASSED"
+    },
+    {
+      "file": "package/raw/GT-ecommerce-category-query-service-lag.check.json",
+      "result": "PASSED"
+    },
+    {
+      "file": "package/raw/GT-ecommerce-catalog-service-kafka-lag.check.json",
+      "result": "PASSED"
+    },
+    {
+      "file": "package/raw/GT-ecommerce-image-service-kafka-lag.check.json",
+      "result": "PASSED"
+    },
+    {
+      "file": "package/handoff-after.json",
+      "result": "PASSED"
+    },
+    {
+      "file": "package/raw/FT-s3r1.check.json",
+      "result": "PASSED"
+    }
+  ]
+}

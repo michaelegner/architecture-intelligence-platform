@@ -1,0 +1,3 @@
+PID                 COMMAND
+1505                /sbin/docker-init -- /entrypoint.sh /etc/docker/registry/config.yml
+1623                registry serve /etc/docker/registry/config.yml

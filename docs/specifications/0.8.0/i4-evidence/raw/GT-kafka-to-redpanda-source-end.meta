@@ -1,0 +1,3 @@
+utc: 2026-10-28T13:54:47Z
+command: ktool kafka:29092 kafka-get-offsets.sh --topic-partitions catalog\.attribute\.events|catalog\.category\.events|catalog\.product\.events
+exit: 0

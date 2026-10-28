@@ -1,0 +1,35 @@
+5.15.153.1-microsoft-standard-WSL2
+cgroup fs: tmpfs
+docker 29.9.2
+Docker Compose version v5.6.1
+k3d version v5.9.0
+k3s version v1.35.5-k3s1 (default)
+v0.37.8, built 2026-10-01
+v3.22.0+g144ca65
+Client Version: v1.36.1
+Kustomize Version: v5.8.1
+--- listeners on run ports:
+none
+--- dangling images: 0
+--- containers:
+valkey
+mongodb
+sql_server_2019
+--- networks:
+bridge
+host
+kind
+none
+--- volumes:
+3fe3b34e54b64a884690c501c1e8f9c44e7771bc4a8bd2c41cce0fde3dc498c4
+90f900759a228e022d24222cc5fa1d8dafbbff07c3366701101a448dd488a9c3
+749c0f2b835f34acbc58784b4e1ded157b6ecdccf09d98efb69698248965d0ac
+904b8a2249593b397e21c6ff65b806e6c2f3031171ea7185477225645b796c82
+1478eff1625eb6d086a7039cfaddb42866538eae7717375ad2c769bbd446e3ea
+ca4a9cd9e70292aed458b86e98929822f04b4382d4a1d249e5f1bff60214f55b
+e1c9c74edfb2dea695bbfbc0a674c314bd0ae301f51ce59b8d4a795825488bd7
+e9957bbd01c042d737517776e15d1c04cf3ba9c4fa93a6cf7fd81c329905ff26
+f309ea965b45a05ca92df6ab28c20a05b0730cd51ee532fad11ae67d52059f6f
+f455684a998a78fb6ce502cc184fd3b32ada1a9293623b2c98122d4fe437345d
+--- k3d clusters:
+NAME   SERVERS   AGENTS   LOADBALANCER

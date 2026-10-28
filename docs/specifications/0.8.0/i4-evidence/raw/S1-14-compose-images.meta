@@ -1,0 +1,3 @@
+utc: 2026-10-28T11:54:10Z
+command: bash -c for c in $(docker ps --filter label=com.docker.compose.project=ecommerce --format "{{.Names}}" | sort); do printf "%s\t%s\t%s\n" "$c" "$(docker inspect "$c" --format "{{.Config.Image}}")" "$(docker image inspect "$(docker inspect "$c" --format "{{.Image}}")" --format "{{join .RepoDigests \",\"}}")"; done
+exit: 0

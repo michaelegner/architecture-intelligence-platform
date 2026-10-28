@@ -1,0 +1,33 @@
+PID                 COMMAND
+1185                /sbin/docker-init -- /bin/k3d-entrypoint.sh agent --kubelet-arg=fail-cgroupv1=false
+1212                /bin/sh /bin/k3d-entrypoint.sh agent --kubelet-arg=fail-cgroupv1=false
+1281                /bin/k3s agent
+1410                containerd
+2796                /bin/containerd-shim-runc-v2 -namespace k8s.io -id f5ddf8fdf7f06f6e61f1016ede0c8f342490eb84184a836fdf0e6b9277c8c855 -address /run/k3s/containerd/containerd.sock
+2797                /bin/containerd-shim-runc-v2 -namespace k8s.io -id eeeebe4b12f715ebb274d58ca2735fdf5c96f58ab12ecd601e91454f0f04f9c5 -address /run/k3s/containerd/containerd.sock
+2798                /bin/containerd-shim-runc-v2 -namespace k8s.io -id 597dec1d11f9342945782caf5a75cf07d56ea5415718ca49710917b4ed44276e -address /run/k3s/containerd/containerd.sock
+3745                /bin/containerd-shim-runc-v2 -namespace k8s.io -id 8a8c3ebad2cbb74b0d6a86adafffe1617a605d24ae1e0d8b1023cdc89b965648 -address /run/k3s/containerd/containerd.sock
+4174                /bin/containerd-shim-runc-v2 -namespace k8s.io -id 41596855f31d3c26f2f8e63eca3a56fbd55b3efacf7ea0230fc8fa28cc42c659 -address /run/k3s/containerd/containerd.sock
+18868               /bin/containerd-shim-runc-v2 -namespace k8s.io -id 2fd57152f918ef897c1382c99970d510f5fdfead796c365b9d3a3b137af90389 -address /run/k3s/containerd/containerd.sock
+18938               /pause
+20274               /bin/sh -c /dlv exec /server \ --listen=:2345 \ --headless=true \ --api-version=2 \ --accept-multiclient \ --continue & DLV_PID=$! # Wait for dlv to start and spawn the Go process sleep 2 # Monitor: if Go process (/server) dies, kill dlv and exit while kill -0 $DLV_PID 2>/dev/null; do # Check if /server process exists (child of dlv) if ! pgrep -x server > /dev/null 2>&1; then sleep 3 # Double-check after short delay if ! pgrep -x server > /dev/null 2>&1; then echo "Go process exited, terminating dlv" kill $DLV_PID 2>/dev/null exit 1 fi fi sleep 2 done wait $DLV_PID
+20301               /dlv exec /server --listen=:2345 --headless=true --api-version=2 --accept-multiclient --continue
+20309               /dlv ** telemetry **
+20315               /server
+29971               sleep 2
+2864                /pause
+3135                /bin/sh /usr/bin/entry
+3177                /bin/sh /usr/bin/entry
+3871                /bin/sh -c /dlv exec /server \ --listen=:2345 \ --headless=true \ --api-version=2 \ --accept-multiclient \ --continue & DLV_PID=$! # Wait for dlv to start and spawn the Go process sleep 2 # Monitor: if Go process (/server) dies, kill dlv and exit while kill -0 $DLV_PID 2>/dev/null; do # Check if /server process exists (child of dlv) if ! pgrep -x server > /dev/null 2>&1; then sleep 3 # Double-check after short delay if ! pgrep -x server > /dev/null 2>&1; then echo "Go process exited, terminating dlv" kill $DLV_PID 2>/dev/null exit 1 fi fi sleep 2 done wait $DLV_PID
+3891                /dlv exec /server --listen=:2345 --headless=true --api-version=2 --accept-multiclient --continue
+3902                /dlv ** telemetry **
+3918                /server
+30027               sleep 2
+3797                /pause
+3660                traefik traefik --entryPoints.metrics.address=:9100/tcp --entryPoints.traefik.address=:8080/tcp --entryPoints.web.address=:80/tcp --entryPoints.websecure.address=:443/tcp --api.dashboard=true --ping=true --metrics.prometheus=true --metrics.prometheus.entrypoint=metrics --providers.kubernetescrd --providers.kubernetescrd.allowEmptyServices=true --providers.kubernetesingress --providers.kubernetesingress.allowEmptyServices=true --providers.kubernetesingress.ingressendpoint.publishedservice=traefik/traefik --entryPoints.websecure.http.tls=true --log.level=INFO --entryPoints.web.address=:80 --entryPoints.websecure.address=:443 --api.dashboard=true --api.insecure=true --providers.kubernetesingress
+2871                /pause
+3557                /coredns -conf /etc/coredns/Corefile
+2865                /pause
+5042                /bin/alloy run /etc/alloy/config.alloy --storage.path=/tmp/alloy --server.http.listen-addr=0.0.0.0:12345 --server.http.ui-path-prefix=/ --stability.level=generally-available
+4197                /pause
+5464                /bin/prometheus-config-reloader --watched-dir=/etc/alloy --reload-url=http://localhost:12345/-/reload

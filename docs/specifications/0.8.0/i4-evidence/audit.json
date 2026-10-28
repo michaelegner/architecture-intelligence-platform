@@ -1,0 +1,53 @@
+{
+  "hits": [
+    {
+      "kind": "PLANNING_CHANGE",
+      "session": "planning",
+      "line": 59,
+      "tool": "Bash",
+      "detail": "for g in",
+      "denied": true
+    },
+    {
+      "kind": "PLANNING_CHANGE",
+      "session": "planning",
+      "line": 59,
+      "tool": "Bash",
+      "detail": "awk NR>1{print $2} );",
+      "denied": true
+    },
+    {
+      "kind": "PLANNING_CHANGE",
+      "session": "planning",
+      "line": 59,
+      "tool": "Bash",
+      "detail": "done",
+      "denied": true
+    },
+    {
+      "kind": "PLANNING_CHANGE",
+      "session": "planning",
+      "line": 134,
+      "tool": "Bash",
+      "detail": "python3 -I -c",
+      "denied": true
+    },
+    {
+      "kind": "PLANNING_CHANGE",
+      "session": "planning",
+      "line": 134,
+      "tool": "Bash",
+      "detail": "import json,jsonschema",
+      "denied": true
+    },
+    {
+      "kind": "PLANNING_CHANGE",
+      "session": "planning",
+      "line": 134,
+      "tool": "Bash",
+      "detail": "jsonschema.validate(json.load(open('plan.json')), json.load(open('plan.schema.json'))); print('valid')\"",
+      "denied": true
+    }
+  ],
+  "clean": false
+}

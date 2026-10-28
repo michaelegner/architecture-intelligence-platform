@@ -1,0 +1,36 @@
+PID                 COMMAND
+881                 /sbin/docker-init -- /bin/k3d-entrypoint.sh server --disable=traefik --kubelet-arg=fail-cgroupv1=false --tls-san 0.0.0.0 --tls-san k3d-dev-cluster-serverlb
+905                 /bin/sh /bin/k3d-entrypoint.sh server --disable=traefik --kubelet-arg=fail-cgroupv1=false --tls-san 0.0.0.0 --tls-san k3d-dev-cluster-serverlb
+974                 /bin/k3s server
+1019                containerd
+2977                /bin/containerd-shim-runc-v2 -namespace k8s.io -id 96edc9bf7fe612fff1e654cb0286ec2731ae9e3bd241c00d93b2b4b20f166c0f -address /run/k3s/containerd/containerd.sock
+2987                /bin/containerd-shim-runc-v2 -namespace k8s.io -id a16cbc3c174f0eefe5a14f83d700ca7e09bab4fce90836165709d8dba6f0dd20 -address /run/k3s/containerd/containerd.sock
+3051                /bin/containerd-shim-runc-v2 -namespace k8s.io -id 1910a467b98dc3c4dfc49ffacb6bd07d00e8f5ec5c25b458d86e49f1fe12c507 -address /run/k3s/containerd/containerd.sock
+3740                /bin/containerd-shim-runc-v2 -namespace k8s.io -id 24d200f9c49d0350b6587377a624701e48af6072da0f45961870600d11173fa4 -address /run/k3s/containerd/containerd.sock
+16712               /bin/containerd-shim-runc-v2 -namespace k8s.io -id 3594eb3c13fee35aa041aa3bb3eb4cbefa4a1208491662976998bdee8b696721 -address /run/k3s/containerd/containerd.sock
+18747               /bin/containerd-shim-runc-v2 -namespace k8s.io -id 6b8042636afdde6a429667eed443a425213fec0c618c5ca9a3c3a3e4649fa5c3 -address /run/k3s/containerd/containerd.sock
+18772               /pause
+19140               /bin/sh -c /dlv exec /server \ --listen=:2345 \ --headless=true \ --api-version=2 \ --accept-multiclient \ --continue & DLV_PID=$! # Wait for dlv to start and spawn the Go process sleep 2 # Monitor: if Go process (/server) dies, kill dlv and exit while kill -0 $DLV_PID 2>/dev/null; do # Check if /server process exists (child of dlv) if ! pgrep -x server > /dev/null 2>&1; then sleep 3 # Double-check after short delay if ! pgrep -x server > /dev/null 2>&1; then echo "Go process exited, terminating dlv" kill $DLV_PID 2>/dev/null exit 1 fi fi sleep 2 done wait $DLV_PID
+19192               /dlv exec /server --listen=:2345 --headless=true --api-version=2 --accept-multiclient --continue
+19200               /dlv ** telemetry **
+19227               /server
+33098               sleep 2
+3304                /bin/sh /usr/bin/entry
+3354                /bin/sh /usr/bin/entry
+3037                /pause
+3947                local-path-provisioner start --config /etc/config/config.json
+3028                /pause
+3861                /bin/sh -c /dlv exec /server \ --listen=:2345 \ --headless=true \ --api-version=2 \ --accept-multiclient \ --continue & DLV_PID=$! # Wait for dlv to start and spawn the Go process sleep 2 # Monitor: if Go process (/server) dies, kill dlv and exit while kill -0 $DLV_PID 2>/dev/null; do # Check if /server process exists (child of dlv) if ! pgrep -x server > /dev/null 2>&1; then sleep 3 # Double-check after short delay if ! pgrep -x server > /dev/null 2>&1; then echo "Go process exited, terminating dlv" kill $DLV_PID 2>/dev/null exit 1 fi fi sleep 2 done wait $DLV_PID
+3893                /dlv exec /server --listen=:2345 --headless=true --api-version=2 --accept-multiclient --continue
+3917                /dlv ** telemetry **
+3929                /server
+33122               sleep 2
+3789                /pause
+16735               /pause
+16809               /bin/sh -c /dlv exec /server \ --listen=:2345 \ --headless=true \ --api-version=2 \ --accept-multiclient \ --continue & DLV_PID=$! sleep 2 while kill -0 $DLV_PID 2>/dev/null; do if ! pgrep -x server > /dev/null 2>&1; then sleep 3 if ! pgrep -x server > /dev/null 2>&1; then echo "Go process exited, terminating dlv" kill $DLV_PID 2>/dev/null exit 1 fi fi sleep 2 done wait $DLV_PID
+16821               /dlv exec /server --listen=:2345 --headless=true --api-version=2 --accept-multiclient --continue
+16829               /dlv ** telemetry **
+16835               /server
+33153               sleep 2
+3084                /pause
+3785                /metrics-server --cert-dir=/tmp --secure-port=10250 --kubelet-preferred-address-types=InternalIP,ExternalIP,Hostname --kubelet-use-node-status-port --metric-resolution=15s --tls-cipher-suites=TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305,TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305

@@ -1,0 +1,20 @@
+GROUP        ecommerce-catalog-service
+COORDINATOR  0
+STATE        Empty
+BALANCER     
+MEMBERS      0
+TOTAL-LAG    1
+
+TOPIC                 PARTITION  CURRENT-OFFSET  LOG-START-OFFSET  LOG-END-OFFSET  LAG   MEMBER-ID  CLIENT-ID  HOST
+tenant.tenant.events  0          1               0                 2               1                           
+
+GROUP        ecommerce-image-service
+COORDINATOR  0
+STATE        Empty
+BALANCER     
+MEMBERS      0
+TOTAL-LAG    123
+
+TOPIC                   PARTITION  CURRENT-OFFSET  LOG-START-OFFSET  LOG-END-OFFSET  LAG   MEMBER-ID  CLIENT-ID  HOST
+catalog.product.events  0          120             0                 242             122                         
+tenant.tenant.events    0          1               0                 2               1                           

@@ -1,0 +1,3 @@
+utc: 2026-10-28T11:57:21Z
+command: curl -sS -X POST localhost:8000/api/binding-picture -H Content-Type: application/json -d {"bounded_context_id": "catalog-management", "environment": "local", "limit": 200, "broker_ids": ["kafka:sokol111-local"]}
+exit: 0

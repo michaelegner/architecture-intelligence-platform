@@ -1,0 +1,2 @@
+Checkpoint{consumerGroupId=ecommerce-image-service, topicPartition=tenant.tenant.events-0, upstreamOffset=1, downstreamOffset=1, metadata=kgo-525ed0aa-3392-4d2f-a044-b30a4ef59567}
+Checkpoint{consumerGroupId=ecommerce-catalog-service, topicPartition=tenant.tenant.events-0, upstreamOffset=1, downstreamOffset=1, metadata=kgo-e731d627-aca5-49ac-b049-1086f752964a}

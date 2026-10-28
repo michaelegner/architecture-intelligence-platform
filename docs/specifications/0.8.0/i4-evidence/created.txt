@@ -1,0 +1,22 @@
+2026-10-28T11:43:49Z	dir	<run home> (run home)
+2026-10-28T11:50:08Z	k3d-cluster	dev-cluster
+2026-10-28T11:50:08Z	container	dev-registry
+2026-10-28T11:50:08Z	network	shared-network
+2026-10-28T11:50:08Z	volume	k3d-dev-cluster-images
+2026-10-28T11:50:08Z	helm-release	traefik-crds,traefik,alloy (in dev-cluster)
+2026-10-28T11:50:39Z	image	sha256:7295b9d88c8380931236371f82354bfcc0c8ad40d7195b7742577c716e92c8e4 (AIP, untagged)
+2026-10-28T11:55:01Z	redpanda-group	aip-i4-probe-group (S1 Empty-group probe)
+2026-10-28T11:55:11Z	removed	redpanda-group aip-i4-probe-group (deleted in S1)
+2026-10-28T11:55:36Z	compose-project	aip-v08-i4 (container kafka; anonymous volumes: 67a4cca683358a39d7d15e45593dede893401d901ce0b5d7e35f88d3350903f9 5d0978d1ad45667aefd65c053a4e394454aea527de818d7ce2885eb53166e3d7 e568a81263f762fe1bbef0ffa01843deffe9ce74ee036eb72c95c570f158ca0a )
+2026-10-28T11:56:49Z	compose-project	aip-v08-i4-aip (containers app, neo4j; network aip-v08-i4-aip_default; anonymous volumes: 041cd619aacbb75cadd1f26db2127cd29eef69caeb60362f20302fc9ea60795d d0b563d0bca6359ad5aa39a88719918e106e2d4c1f5812a4d3b98f9624b8f61c   )
+2026-10-28T11:58:12Z	compose-project	ecommerce (Tilt-managed; containers: imgproxy logto logto-db logto-seed minio minio-init mongo redpanda ; volumes: ecommerce_logto-db-data ecommerce_minio_data ecommerce_mongo1_config ecommerce_mongo1_data )
+2026-10-28T11:58:12Z	image	0f41f782a5b2 localhost:5000/ecommerce-catalog-service:tilt-0f41f782a5b2517f (built by Tilt)
+2026-10-28T11:58:12Z	image	1718acd8f117 ecommerce-logto-seed:latest (built by Tilt)
+2026-10-28T11:58:12Z	image	23bb14e5ea13 localhost:5000/ecommerce-category-query-service:tilt-23bb14e5ea135e88 (built by Tilt)
+2026-10-28T11:58:12Z	image	435b82184376 localhost:5000/ecommerce-product-query-service:tilt-435b82184376ad2e (built by Tilt)
+2026-10-28T11:58:12Z	image	75cfe2c75d5c localhost:5000/ecommerce-seeder:tilt-75cfe2c75d5c2542 (built by Tilt)
+2026-10-28T11:58:12Z	image	7dd1660c29fe localhost:5000/ecommerce-tenant-service:tilt-7dd1660c29fe738d (built by Tilt)
+2026-10-28T11:58:12Z	image	aaca4066d806 localhost:5000/ecommerce-image-service:tilt-aaca4066d8061f38 (built by Tilt)
+2026-10-28T11:58:12Z	dir	<AIP worktree>/.venv (uv, created by capture.sh b-r; gitignored)
+2026-10-28T12:32:46Z	file	<run home>/plan-freeze.txt; workspace/ (planning)
+2026-10-28T14:00:50Z	compose-project	aip-v08-i4-aip recreated after-wave (down -v removed the earlier volumes; anonymous volumes now: bfed09f5fe3285eb60c7acd3609ef702d68a098f79b38c1d7ef79e327bb0fbf3 99d3ac853105aa8e22cc92b5efb9714df9024cbaa51d72728c42a39f7b082be9   )

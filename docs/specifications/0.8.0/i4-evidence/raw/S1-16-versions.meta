@@ -1,0 +1,3 @@
+utc: 2026-10-28T11:54:11Z
+command: bash -c kubectl version; docker exec redpanda rpk version
+exit: 0

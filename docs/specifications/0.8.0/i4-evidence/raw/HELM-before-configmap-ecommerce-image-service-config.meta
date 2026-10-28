@@ -1,0 +1,3 @@
+utc: 2026-10-28T11:55:42Z
+command: kubectl -n dev get configmap ecommerce-image-service-config -o json
+exit: 0

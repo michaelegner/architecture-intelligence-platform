@@ -1,0 +1,21 @@
+{
+  "deadline": 0,
+  "elapsed": 0,
+  "kind": "replication",
+  "missing_topics": [],
+  "partitions": [
+    {
+      "caught_up": true,
+      "end": 2,
+      "last_replicated": 1,
+      "partition": 0,
+      "topic": "tenant.tenant.events"
+    }
+  ],
+  "result": "PASSED",
+  "rule": "last replicated source offset + 1 = source end offset, per source partition",
+  "sources": [
+    "<run home>/package/raw/GT-redpanda-to-kafka-offsets.txt",
+    "<run home>/package/raw/GT-redpanda-to-kafka-source-end.txt"
+  ]
+}

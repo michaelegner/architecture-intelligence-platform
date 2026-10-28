@@ -1,0 +1,95 @@
+{
+  "coverage": {
+    "duplicated": [],
+    "expected": [
+      [
+        "ecommerce-catalog-service",
+        "tenant.tenant.events",
+        0
+      ],
+      [
+        "ecommerce-image-service",
+        "tenant.tenant.events",
+        0
+      ]
+    ],
+    "groups_without_rows": [],
+    "missing": [],
+    "unexpected": []
+  },
+  "entries": [
+    {
+      "a": {
+        "source": "<run home>/package/raw/GT-handoff-source-groups.txt",
+        "value": 1
+      },
+      "c": {
+        "source": "agent-reported (execution d1e0491a line 259)",
+        "value": 1
+      },
+      "checkpoint_matches": true,
+      "checkpoints": {
+        "source": "<run home>/package/raw/GT-handoff-checkpoints.txt",
+        "values": [
+          [
+            1,
+            1
+          ]
+        ]
+      },
+      "group": "ecommerce-catalog-service",
+      "kafka_position_now": {
+        "source": "<run home>/package/raw/GT-handoff-target-groups.txt",
+        "value": 2
+      },
+      "partition": 0,
+      "position_not_behind": true,
+      "replay": {
+        "kind": "MEASURED",
+        "records": 0
+      },
+      "topic": "tenant.tenant.events"
+    },
+    {
+      "a": {
+        "source": "<run home>/package/raw/GT-handoff-source-groups.txt",
+        "value": 1
+      },
+      "c": {
+        "source": "agent-reported (execution d1e0491a line 259)",
+        "value": 1
+      },
+      "checkpoint_matches": true,
+      "checkpoints": {
+        "source": "<run home>/package/raw/GT-handoff-checkpoints.txt",
+        "values": [
+          [
+            1,
+            1
+          ]
+        ]
+      },
+      "group": "ecommerce-image-service",
+      "kafka_position_now": {
+        "source": "<run home>/package/raw/GT-handoff-target-groups.txt",
+        "value": 2
+      },
+      "partition": 0,
+      "position_not_behind": true,
+      "replay": {
+        "kind": "MEASURED",
+        "records": 0
+      },
+      "topic": "tenant.tenant.events"
+    }
+  ],
+  "kind": "handoff-after",
+  "result": "PASSED",
+  "rule": "a checkpoint has upstream (a) and downstream = agent-reported (c); Kafka position >= (c)",
+  "sources": [
+    "<run home>/package/agent-reported-handoff.json",
+    "<run home>/package/raw/GT-handoff-checkpoints.txt",
+    "<run home>/package/raw/GT-handoff-source-groups.txt",
+    "<run home>/package/raw/GT-handoff-target-groups.txt"
+  ]
+}

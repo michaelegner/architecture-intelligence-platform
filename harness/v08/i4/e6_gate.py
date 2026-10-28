@@ -7,7 +7,7 @@ the applied configuration, not from what is on disk, so a pair or a consumer wit
 MISSING:
 
     applied-mm2.json (P1a, P2, P3), p1b-<source>-to-<target>.json per applied pair,
-    applied-helm.json (K7), raw/GT-<pair>-replication.check.json per applied pair,
+    applied-helm.json (K7), raw/GT-<source>-to-<target>-replication.check.json per applied pair,
     raw/GT-<group>-lag.check.json per remaining Redpanda consumer,
     raw/GT-<group>-kafka-lag.check.json per moved group, handoff-after.json, the functional test.
 """
@@ -32,7 +32,10 @@ def expected(package: Path, functional: Path) -> list[Path]:
         pairs = []
     paths += [package / f"p1b-{pair.replace('->', '-to-')}.json" for pair in pairs]
     paths.append(package / "applied-helm.json")
-    paths += [package / "raw" / f"GT-{pair}-replication.check.json" for pair in pairs]
+    paths += [
+        package / "raw" / f"GT-{pair.replace('->', '-to-')}-replication.check.json"
+        for pair in pairs
+    ]
     paths += [package / "raw" / f"GT-{group}-lag.check.json" for group in REMAINING_GROUPS]
     paths += [package / "raw" / f"GT-{group}-kafka-lag.check.json" for group in MOVED_GROUPS]
     return [*paths, package / "handoff-after.json", functional]

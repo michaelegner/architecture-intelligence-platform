@@ -1,0 +1,3 @@
+utc: 2026-10-28T13:53:30Z
+command: dump_topic kafka:29092 redpanda.checkpoints.internal CheckpointFormatter
+exit: 0

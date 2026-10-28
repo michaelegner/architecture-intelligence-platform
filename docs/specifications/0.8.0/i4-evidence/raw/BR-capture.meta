@@ -1,0 +1,3 @@
+utc: 2026-10-28T11:55:58Z
+command: env KAFKA_BOOTSTRAP_SERVERS=localhost:9092 PYTHONPATH=<AIP checkout> uv run --project <AIP checkout> --with confluent-kafka==2.16.0 python <AIP checkout>/harness/kafka-capture/capture.py --broker-id kafka:sokol111-local --environment local --group ecommerce-catalog-service --group ecommerce-category-query-service --group ecommerce-image-service --group ecommerce-product-query-service --out <run home>/package/captures/b-r/kafka-consumer-state.json
+exit: 0

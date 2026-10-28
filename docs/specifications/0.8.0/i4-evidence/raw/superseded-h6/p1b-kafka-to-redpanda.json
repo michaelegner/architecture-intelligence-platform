@@ -1,0 +1,14 @@
+{
+  "kind": "applied-p1b",
+  "pair": "kafka->redpanda",
+  "problems": [
+    "kafka.checkpoints.internal on redpanda: missing",
+    "mm2-offset-syncs.redpanda.internal on redpanda: missing"
+  ],
+  "result": "FAILED",
+  "rule": "every internal topic of the pair exists with replication factor 1",
+  "sources": [
+    "<run home>/package/raw/P1B-kafka-topics.txt",
+    "<run home>/package/raw/P1B-redpanda-topics.txt"
+  ]
+}

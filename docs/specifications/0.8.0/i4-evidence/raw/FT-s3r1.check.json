@@ -1,0 +1,134 @@
+{
+  "kind": "functional",
+  "result": "PASSED",
+  "rule": "the three I3 \u00a76 steps pass through the services' Connect-RPC endpoints",
+  "run_id": "s3r1",
+  "sources": [],
+  "steps": [
+    {
+      "calls": [
+        {
+          "elapsed_ms": 274,
+          "method": "tenant.v1.TenantRegistrationService/RegisterTenant",
+          "response_sha256": "76daedf08e4d81cd667f438e79b6b6b9bb517a5f276cbf913f0f33276fc79c39",
+          "result": "PASSED"
+        },
+        {
+          "elapsed_ms": 12,
+          "method": "tenant.v1.TenantRegistrationService/GetRegistrationStatus",
+          "response_sha256": "76daedf08e4d81cd667f438e79b6b6b9bb517a5f276cbf913f0f33276fc79c39",
+          "result": "PASSED"
+        },
+        {
+          "elapsed_ms": 125,
+          "method": "catalog.v1.AttributeService/CreateAttribute",
+          "response_sha256": "973bb9a1baaa2bdc8ffdabf0e36f6704fc22ceece84539e619d67d4159654fff",
+          "result": "PASSED"
+        },
+        {
+          "elapsed_ms": 25,
+          "method": "catalog.v1.CategoryService/CreateCategory",
+          "response_sha256": "8fb962eb4646c06db0880cc1b89bba925861cc72607a0a5969c3f7c86c0a89c9",
+          "result": "PASSED"
+        },
+        {
+          "elapsed_ms": 74,
+          "method": "image.v1.ImageService/CreatePresign",
+          "response_sha256": "1435a97589145bf0c824edeb48e335e1e46e9fe9dbfa5288f71c2cdd4c3f8cdb",
+          "result": "PASSED"
+        },
+        {
+          "elapsed_ms": 10,
+          "method": "PUT presigned upload_url",
+          "result": "PASSED"
+        },
+        {
+          "elapsed_ms": 34,
+          "method": "image.v1.ImageService/ConfirmUpload",
+          "response_sha256": "f54ccb15ef9e3d0272a651db238b96d2a4465fb6e953033c359432f53f0ab39c",
+          "result": "PASSED"
+        },
+        {
+          "elapsed_ms": 28,
+          "method": "catalog.v1.ProductService/CreateProduct",
+          "response_sha256": "6d01bbc576e352ca8a3c071f383761c82993a735993b60cde5a759322dc6d94e",
+          "result": "PASSED"
+        },
+        {
+          "elapsed_ms": 15,
+          "error": "HTTPError",
+          "method": "product_query.v1.ProductQueryService/GetProductById",
+          "response_sha256": null,
+          "result": "FAILED"
+        },
+        {
+          "elapsed_ms": 8,
+          "method": "product_query.v1.ProductQueryService/GetProductById",
+          "response_sha256": "80ce6100dccf7f00b3a9895998cb3721ac289d83563a6e451f9205012de95809",
+          "result": "PASSED"
+        }
+      ],
+      "reason": null,
+      "result": "PASSED",
+      "step": "1-shop-product-image"
+    },
+    {
+      "calls": [
+        {
+          "elapsed_ms": 42,
+          "method": "catalog.v1.CategoryService/UpdateCategory",
+          "response_sha256": "6d972ebe9eb360fd123b7238514e03ad1584530df9a450788d8edbbe8273cc1a",
+          "result": "PASSED"
+        },
+        {
+          "elapsed_ms": 38,
+          "method": "category_query.v1.CategoryQueryService/GetCategoryById",
+          "response_sha256": "33ccfa54a2ff6137e3f0699ee4863184176dc6cd13d8748130b59e627c33a563",
+          "result": "PASSED"
+        }
+      ],
+      "reason": null,
+      "result": "PASSED",
+      "step": "2-category-update"
+    },
+    {
+      "calls": [
+        {
+          "elapsed_ms": 17,
+          "method": "catalog.v1.AttributeService/GetAttributeById",
+          "response_sha256": "d79834b53f46ed40add1343d54e06190927cad3e2d8d85e7ee873cbf563f2352",
+          "result": "PASSED"
+        },
+        {
+          "elapsed_ms": 25,
+          "method": "catalog.v1.AttributeService/UpdateAttribute",
+          "response_sha256": "e92cf6cd58b21ac5e241151a6cb8c34d58cd6d8dcaa04800686bf4fb92714891",
+          "result": "PASSED"
+        },
+        {
+          "elapsed_ms": 8,
+          "method": "product_query.v1.ProductQueryService/GetProductById",
+          "response_sha256": "80ce6100dccf7f00b3a9895998cb3721ac289d83563a6e451f9205012de95809",
+          "result": "PASSED"
+        },
+        {
+          "elapsed_ms": 8,
+          "method": "product_query.v1.ProductQueryService/GetProductById",
+          "response_sha256": "de89abaa578c268faeda40367d727bcd00ffdf0073dd9f1af0b57428981b2bba",
+          "result": "PASSED"
+        },
+        {
+          "elapsed_ms": 8,
+          "method": "category_query.v1.CategoryQueryService/GetCategoryById",
+          "response_sha256": "b3c6804cd1d06a3bf68fa47994156f2baa8e7a041582a33cefbfac2ca38e56fd",
+          "result": "PASSED"
+        }
+      ],
+      "reason": null,
+      "result": "PASSED",
+      "step": "3-attribute-update"
+    }
+  ],
+  "timeout_seconds": 60,
+  "utc": "2026-10-28T13:39:34Z"
+}

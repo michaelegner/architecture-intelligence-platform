@@ -1,0 +1,3 @@
+utc: 2026-10-28T13:53:17Z
+command: rpk group describe ecommerce-catalog-service ecommerce-image-service
+exit: 0

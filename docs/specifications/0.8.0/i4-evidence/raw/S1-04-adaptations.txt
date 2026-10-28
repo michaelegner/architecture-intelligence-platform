@@ -1,0 +1,97 @@
+diff --git a/environments/local/compose/logto.yml b/environments/local/compose/logto.yml
+index 024b744..d1b926d 100644
+--- a/environments/local/compose/logto.yml
++++ b/environments/local/compose/logto.yml
+@@ -21,7 +21,8 @@ services:
+     restart: unless-stopped
+ 
+   logto:
+-    image: svhd/logto:latest
++    # AIP v0.8 I4b adaptation (disclosed): pinned to the Logto 1.45.0 image the I3 run used.
++    image: svhd/logto@sha256:097cd47689546461edb4637fb6eee60b9ab6d3d4c08ebb20bc44a1b1809b82c0
+     container_name: logto
+     entrypoint: ["sh", "-c", "npm run cli db seed -- --swe && npm start"]
+     environment:
+@@ -50,7 +51,6 @@ services:
+     build:
+       context: ../../..
+       dockerfile: environments/local/docker/Dockerfile.logto-seed
+-      network: host
+     container_name: logto-seed
+     environment:
+       DB_URL: postgres://postgres:postgres@logto-db:5432/logto
+diff --git a/environments/local/compose/storage.yml b/environments/local/compose/storage.yml
+index 3cfbb76..9fef600 100644
+--- a/environments/local/compose/storage.yml
++++ b/environments/local/compose/storage.yml
+@@ -2,9 +2,13 @@ name: ecommerce
+ 
+ services:
+   minio:
+-    image: minio/minio:latest
++    # AIP v0.8 I3b adaptation (disclosed): minio/minio is gone from Docker Hub (404), quay.io needs a
++    # login and dl.min.io returns 410. Bitnami's frozen MinIO build, pinned by digest; it has no
++    # curl, its data path is /bitnami/minio/data, and its entrypoint is a setup script.
++    image: bitnamilegacy/minio@sha256:451fe6858cb770cc9d0e77ba811ce287420f781c7c1b806a386f6896471a349c
+     container_name: minio
+-    command: server /data --console-address ":9001"
++    entrypoint: ["minio"]
++    command: server /bitnami/minio/data --console-address ":9001"
+     ports:
+       - 9000:9000  # API
+       - 9001:9001  # Console
+@@ -13,11 +17,11 @@ services:
+       MINIO_ROOT_PASSWORD: minioadmin123
+       MINIO_REGION_NAME: us-east-1
+     volumes:
+-      - minio_data:/data
++      - minio_data:/bitnami/minio/data
+     networks:
+       - shared-network
+     healthcheck:
+-      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
++      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/9000 && printf 'GET /minio/health/live HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n' >&3 && head -1 <&3 | grep -q ' 200 '"]
+       interval: 10s
+       timeout: 5s
+       retries: 3
+@@ -25,8 +29,12 @@ services:
+ 
+   # MinIO клієнт для створення бакета та lifecycle policy
+   minio-init:
+-    image: minio/mc:latest
++    # AIP v0.8 I3b adaptation (disclosed): Bitnami's frozen mc build, pinned by digest; its HOME is
++    # not writable, so the mc config lives in /tmp.
++    image: bitnamilegacy/minio-client@sha256:00dcc4e58ada0df45bb7d9ee435af98295f96c27c3c68292ce78ec700a87b511
+     container_name: minio-init
++    environment:
++      MC_CONFIG_DIR: /tmp/.mc
+     depends_on:
+       minio:
+         condition: service_healthy
+diff --git a/environments/local/k3d-cluster.yaml b/environments/local/k3d-cluster.yaml
+index 7a45290..5dd9b70 100644
+--- a/environments/local/k3d-cluster.yaml
++++ b/environments/local/k3d-cluster.yaml
+@@ -30,7 +30,7 @@ volumes:
+   - volume: /usr/local/share/ca-certificates:/usr/local/share/ca-certificates
+     nodeFilters:
+       - all
+-  - volume: /home/ihsokolo/projects/ecommerce/ecommerce-infrastructure/environments/local/certs/ca-certificates.crt:/etc/ssl/certs/corp-ca-bundle.crt
++  - volume: <run home>/src/ecommerce-infrastructure/environments/local/certs/ca-certificates.crt:/etc/ssl/certs/corp-ca-bundle.crt
+     nodeFilters:
+       - all
+ 
+@@ -48,6 +48,12 @@ options:
+       - arg: "--disable=traefik"
+         nodeFilters:
+           - server:*
++      # Host compatibility for AIP v0.8 I4b (WSL2 host on cgroup v1; k3s v1.35's kubelet refuses
++      # cgroup v1 by default). Disclosed in the evidence README, as in v0.7.2 and I3b.
++      - arg: "--kubelet-arg=fail-cgroupv1=false"
++        nodeFilters:
++          - server:*
++          - agent:*
+   kubeconfig:
+     updateDefaultKubeconfig: true
+     switchCurrentContext: true
+\ No newline at end of file

@@ -1,0 +1,2 @@
+OffsetSync{topicPartition=tenant.tenant.events-0, upstreamOffset=0, downstreamOffset=0}
+OffsetSync{topicPartition=tenant.tenant.events-0, upstreamOffset=1, downstreamOffset=1}

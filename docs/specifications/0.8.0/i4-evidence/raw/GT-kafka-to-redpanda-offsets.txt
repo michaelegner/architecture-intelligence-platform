@@ -1,0 +1,3 @@
+["MirrorSourceConnector",{"cluster":"kafka","partition":0,"topic":"catalog.attribute.events"}]	{"offset":21}
+["MirrorSourceConnector",{"cluster":"kafka","partition":0,"topic":"catalog.product.events"}]	{"offset":121}
+["MirrorSourceConnector",{"cluster":"kafka","partition":0,"topic":"catalog.category.events"}]	{"offset":5}

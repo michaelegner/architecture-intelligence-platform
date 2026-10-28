@@ -1,0 +1,2 @@
+ecommerce-catalog-service 1
+ecommerce-image-service 1

@@ -1,0 +1,66 @@
+{
+  "schema": "aip-kafka-consumer-state/1",
+  "broker_id": "kafka:sokol111-kafka",
+  "environment": "local",
+  "captured_at": "2026-10-28T13:59:22Z",
+  "tool_version": "aip-kafka-capture/1+confluent-kafka-2.16.0",
+  "kafka_version": "not-established",
+  "complete": true,
+  "group_scope": [
+    "ecommerce-catalog-service",
+    "ecommerce-image-service"
+  ],
+  "groups": [
+    {
+      "group_id": "ecommerce-catalog-service",
+      "state": "Stable",
+      "members": [
+        {
+          "member_id": "kgo-11e66465-da97-4229-9e31-5d964e1609f7",
+          "client_id": "kgo",
+          "host": "/172.20.0.3",
+          "assignments": [
+            {
+              "topic": "tenant.tenant.events",
+              "partitions": [
+                0
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "group_id": "ecommerce-image-service",
+      "state": "Stable",
+      "members": [
+        {
+          "member_id": "kgo-5d436777-9761-44cb-a2e6-710c1b45663c",
+          "client_id": "kgo",
+          "host": "/172.20.0.4",
+          "assignments": [
+            {
+              "topic": "tenant.tenant.events",
+              "partitions": [
+                0
+              ]
+            }
+          ]
+        },
+        {
+          "member_id": "kgo-ca8e8141-8803-40a8-80a2-81573696f773",
+          "client_id": "kgo",
+          "host": "/172.20.0.4",
+          "assignments": [
+            {
+              "topic": "catalog.product.events",
+              "partitions": [
+                0
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

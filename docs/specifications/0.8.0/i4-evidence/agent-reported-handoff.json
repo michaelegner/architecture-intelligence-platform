@@ -1,0 +1,4 @@
+[
+  {"group": "ecommerce-catalog-service", "topic": "tenant.tenant.events", "partition": 0, "c": 1, "transcript": "execution d1e0491a line 259"},
+  {"group": "ecommerce-image-service", "topic": "tenant.tenant.events", "partition": 0, "c": 1, "transcript": "execution d1e0491a line 259"}
+]

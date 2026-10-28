@@ -87,21 +87,21 @@ ground_truth_reads() {
   # Replication per applied pair (source side), with the pair's own offsets topic. The pairs come in
   # on fd 3: `docker compose exec` forwards stdin and would read the rest of the list (I4b S4).
   while IFS=$'\t' read -r -u 3 pair source target offsets topics; do
-    local src_boot tgt_boot fmt
+    local src_boot tgt_boot fmt name="${pair/->/-to-}"  # file names without '>' (I4b S5)
     [[ "$source" == redpanda ]] && { src_boot="$REDPANDA" tgt_boot="$KAFKA" fmt=rpk; } ||
       { src_boot="$KAFKA" tgt_boot="$REDPANDA" fmt=kafka; }
-    record GT "$pair-offsets" -- dump_topic "$tgt_boot" "$offsets"
+    record GT "$name-offsets" -- dump_topic "$tgt_boot" "$offsets"
     if [[ "$fmt" == rpk ]]; then
       # shellcheck disable=SC2086
-      record GT "$pair-source-end" -- rpk_end $topics
+      record GT "$name-source-end" -- rpk_end $topics
     else
-      record GT "$pair-source-end" -- ktool "$KAFKA" kafka-get-offsets.sh --topic-partitions \
+      record GT "$name-source-end" -- ktool "$KAFKA" kafka-get-offsets.sh --topic-partitions \
         "$(tr ' ' '|' <<<"$topics" | sed 's/\./\\./g')"
     fi
     local topic_args=() topic
     for topic in $topics; do topic_args+=(--topic "$topic"); done
-    verdict GT "$pair-replication" -- replication --offsets "$RAW/GT-$pair-offsets.txt" \
-      --source-end "$RAW/GT-$pair-source-end.txt" --format "$fmt" "${topic_args[@]}"
+    verdict GT "$name-replication" -- replication --offsets "$RAW/GT-$name-offsets.txt" \
+      --source-end "$RAW/GT-$name-source-end.txt" --format "$fmt" "${topic_args[@]}"
   done 3< <(python3 -c 'import json, sys
 for p in json.load(open(sys.argv[1]))["pairs"]:
     print("\t".join([p["pair"], p["source"], p["target"], p["offsets"], " ".join(p["topics"])]))' "$applied")

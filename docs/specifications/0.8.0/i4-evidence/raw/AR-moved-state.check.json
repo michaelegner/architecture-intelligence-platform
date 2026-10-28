@@ -1,0 +1,13 @@
+{
+  "kind": "state",
+  "not_allowed": [],
+  "result": "PASSED",
+  "rule": "each group's state is one of ['Empty', 'Dead']",
+  "sources": [
+    "<run home>/package/raw/AR-g-moved.txt"
+  ],
+  "states": {
+    "ecommerce-catalog-service": "Empty",
+    "ecommerce-image-service": "Empty"
+  }
+}

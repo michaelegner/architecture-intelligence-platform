@@ -1,0 +1,3 @@
+utc: 2026-10-28T13:53:46Z
+command: dump_topic kafka:29092 mm2-offset-syncs.redpanda.internal OffsetSyncFormatter
+exit: 0

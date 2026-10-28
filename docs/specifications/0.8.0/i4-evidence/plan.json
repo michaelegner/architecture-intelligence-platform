@@ -1,0 +1,202 @@
+{
+  "items": [
+    {
+      "id": "PRE-01",
+      "action": "Read-only preflight: list topics and all consumer groups on Redpanda (rpk topic list, rpk topic describe, rpk group list, rpk group describe for every group), confirm Kafka has no topics, confirm the Kafka image digest is on the host, and confirm the Deployments and ConfigMaps of both services in namespace dev. Stop and report if any group other than the ones AIP lists consumes a catalog.* topic, tenant.tenant.events or tenant.tenant.events.dlq in a way the plan does not cover, if Kafka is not empty, or if any MM2 internal topic name the plan will create already exists on either broker.",
+      "topics": ["catalog.product.events", "catalog.category.events", "catalog.attribute.events", "tenant.tenant.events", "tenant.tenant.events.dlq"],
+      "services": ["ecommerce-catalog-service", "ecommerce-image-service", "ecommerce-product-query-service", "ecommerce-category-query-service"],
+      "architecture_citations": [
+        {"snapshot_id": "aip:snapshot:v1:4d8db6483e03a6564e593a3cbcf07bd1bcb7795c22bd975e95dd9e5ab11313a6", "broker_id": "kafka:sokol111-local", "topic_name": "catalog.attribute.events", "consumer_service_id": "service:ecommerce-category-query-service"},
+        {"snapshot_id": "aip:snapshot:v1:4d8db6483e03a6564e593a3cbcf07bd1bcb7795c22bd975e95dd9e5ab11313a6", "broker_id": "kafka:sokol111-local", "topic_name": "catalog.attribute.events", "consumer_service_id": "service:ecommerce-product-query-service"},
+        {"snapshot_id": "aip:snapshot:v1:4d8db6483e03a6564e593a3cbcf07bd1bcb7795c22bd975e95dd9e5ab11313a6", "broker_id": "kafka:sokol111-local", "topic_name": "catalog.category.events", "consumer_service_id": "service:ecommerce-category-query-service"},
+        {"snapshot_id": "aip:snapshot:v1:4d8db6483e03a6564e593a3cbcf07bd1bcb7795c22bd975e95dd9e5ab11313a6", "broker_id": "kafka:sokol111-local", "topic_name": "catalog.product.events", "consumer_service_id": "service:ecommerce-image-service"},
+        {"snapshot_id": "aip:snapshot:v1:4d8db6483e03a6564e593a3cbcf07bd1bcb7795c22bd975e95dd9e5ab11313a6", "broker_id": "kafka:sokol111-local", "topic_name": "catalog.product.events", "consumer_service_id": "service:ecommerce-product-query-service"},
+        {"snapshot_id": "aip:snapshot:v1:4d8db6483e03a6564e593a3cbcf07bd1bcb7795c22bd975e95dd9e5ab11313a6", "broker_id": "kafka:sokol111-local", "topic_name": "tenant.tenant.events", "consumer_service_id": "service:ecommerce-catalog-service"},
+        {"snapshot_id": "aip:snapshot:v1:4d8db6483e03a6564e593a3cbcf07bd1bcb7795c22bd975e95dd9e5ab11313a6", "broker_id": "kafka:sokol111-local", "topic_name": "tenant.tenant.events", "consumer_service_id": "service:ecommerce-image-service"}
+      ],
+      "implementation_justification": [
+        {"kind": "reasoning", "reference": "AIP limitation CAPTURE_SCOPE_LIMITED: each capture covers only its configured consumer groups; the binding picture outcome is PARTIAL.", "note": "The broker itself must be asked for the full group list before relying on AIP's consumer set."},
+        {"kind": "broker_tool", "reference": "docker exec redpanda rpk group list; docker exec redpanda rpk group describe <group>; docker exec redpanda rpk topic describe <topic> -p"},
+        {"kind": "broker_tool", "reference": "docker exec kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list", "note": "Use the in-container listener; the exact listener is confirmed from the container's config at run time."},
+        {"kind": "source", "reference": "src/ecommerce-commons/pkg/kafka/config/defaults.go:61-64", "note": "DLQ topic defaults to <topic>.dlq, so catalog and image produce tenant.tenant.events.dlq."},
+        {"kind": "reasoning", "reference": "docker image ls --digests must show apache/kafka:4.1.2@sha256:5cc2a2fd93fa2687b44015eee04fb2c3edd9e526bd64bf8bec5ff1e268772e0e"}
+      ]
+    },
+    {
+      "id": "PRE-02",
+      "action": "Save the current ConfigMaps ecommerce-catalog-service-config and ecommerce-image-service-config and the current replica counts of both Deployments into the workspace, so the cutover can be reversed.",
+      "services": ["ecommerce-catalog-service", "ecommerce-image-service"],
+      "files": [
+        {"path": "backup/ecommerce-catalog-service-config.yaml"},
+        {"path": "backup/ecommerce-image-service-config.yaml"},
+        {"path": "backup/replicas.txt"}
+      ],
+      "architecture_citations": [
+        {"snapshot_id": "aip:snapshot:v1:4d8db6483e03a6564e593a3cbcf07bd1bcb7795c22bd975e95dd9e5ab11313a6", "broker_id": "kafka:sokol111-local", "topic_name": "tenant.tenant.events", "consumer_service_id": "service:ecommerce-catalog-service"}
+      ],
+      "implementation_justification": [
+        {"kind": "source", "reference": "src/ecommerce-infrastructure/helm/shared-helpers/templates/_configmap.tpl:4", "note": "ConfigMap is named <name>-config and holds config.yaml."},
+        {"kind": "configuration", "reference": "src/ecommerce-infrastructure/environments/local/Tiltfile:209-217", "note": "Tilt applies helm-templated manifests with k8s_yaml; there is no Helm release to upgrade, so the live ConfigMap is the thing to change."},
+        {"kind": "broker_tool", "reference": "kubectl -n dev get configmap <name>-config -o yaml; kubectl -n dev get deploy <name> -o jsonpath='{.spec.replicas}'"}
+      ]
+    },
+    {
+      "id": "KAFKA-01",
+      "action": "Create catalog.product.events, catalog.category.events and catalog.attribute.events on Apache Kafka with the same partition counts as on Redpanda (read in PRE-01) and replication factor 1, before any producer or MirrorMaker 2 touches them.",
+      "topics": ["catalog.product.events", "catalog.category.events", "catalog.attribute.events"],
+      "services": ["ecommerce-catalog-service", "ecommerce-image-service"],
+      "architecture_citations": [
+        {"snapshot_id": "aip:snapshot:v1:4d8db6483e03a6564e593a3cbcf07bd1bcb7795c22bd975e95dd9e5ab11313a6", "broker_id": "kafka:sokol111-local", "topic_name": "catalog.product.events", "consumer_service_id": "service:ecommerce-image-service"},
+        {"snapshot_id": "aip:snapshot:v1:4d8db6483e03a6564e593a3cbcf07bd1bcb7795c22bd975e95dd9e5ab11313a6", "broker_id": "kafka:sokol111-local", "topic_name": "catalog.category.events", "consumer_service_id": "service:ecommerce-category-query-service"},
+        {"snapshot_id": "aip:snapshot:v1:4d8db6483e03a6564e593a3cbcf07bd1bcb7795c22bd975e95dd9e5ab11313a6", "broker_id": "kafka:sokol111-local", "topic_name": "catalog.attribute.events", "consumer_service_id": "service:ecommerce-product-query-service"}
+      ],
+      "implementation_justification": [
+        {"kind": "source", "reference": "src/ecommerce-catalog-service-api/pkg/events/topics.go:11-13", "note": "The three topics the catalog service produces."},
+        {"kind": "source", "reference": "src/ecommerce-image-service-api/pkg/events/topics.go:11", "note": "Image service produces to catalog.product.events."},
+        {"kind": "source", "reference": "src/ecommerce-commons/pkg/kafka/producer/fxconfig/module.go:35", "note": "Producers allow auto topic creation, which would create topics with broker defaults; creating them first keeps the partition count and so per-key ordering."},
+        {"kind": "broker_tool", "reference": "docker exec kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --create --topic <t> --partitions <n from Redpanda> --replication-factor 1"}
+      ]
+    },
+    {
+      "id": "MM2-01",
+      "action": "Write the MirrorMaker 2 configuration with two one-way flows: redpanda->kafka for tenant.tenant.events only (with checkpoints and group offset sync for the groups ecommerce-catalog-service and ecommerce-image-service), and kafka->redpanda for the three catalog.* topics only (no checkpoints, no offset syncs). IdentityReplicationPolicy keeps topic names; heartbeats, ACL sync and topic-config sync are off; all replication factors are 1.",
+      "topics": ["tenant.tenant.events", "catalog.product.events", "catalog.category.events", "catalog.attribute.events"],
+      "files": [
+        {"path": "mm2/mm2.properties", "keys": ["clusters", "redpanda.bootstrap.servers", "kafka.bootstrap.servers", "replication.policy.class", "replication.factor", "checkpoints.topic.replication.factor", "heartbeats.topic.replication.factor", "offset-syncs.topic.replication.factor", "offset.storage.replication.factor", "status.storage.replication.factor", "config.storage.replication.factor", "emit.heartbeats.enabled", "sync.topic.acls.enabled", "sync.topic.configs.enabled", "refresh.topics.interval.seconds", "refresh.groups.interval.seconds", "redpanda->kafka.enabled", "redpanda->kafka.topics", "redpanda->kafka.groups", "redpanda->kafka.emit.checkpoints.enabled", "redpanda->kafka.emit.checkpoints.interval.seconds", "redpanda->kafka.sync.group.offsets.enabled", "redpanda->kafka.sync.group.offsets.interval.seconds", "redpanda->kafka.offset-syncs.topic.location", "redpanda->kafka.offset.lag.max", "kafka->redpanda.enabled", "kafka->redpanda.topics", "kafka->redpanda.emit.checkpoints.enabled", "kafka->redpanda.sync.group.offsets.enabled", "kafka->redpanda.emit.offset-syncs.enabled"]}
+      ],
+      "architecture_citations": [
+        {"snapshot_id": "aip:snapshot:v1:4d8db6483e03a6564e593a3cbcf07bd1bcb7795c22bd975e95dd9e5ab11313a6", "broker_id": "kafka:sokol111-local", "topic_name": "tenant.tenant.events", "consumer_service_id": "service:ecommerce-catalog-service"},
+        {"snapshot_id": "aip:snapshot:v1:4d8db6483e03a6564e593a3cbcf07bd1bcb7795c22bd975e95dd9e5ab11313a6", "broker_id": "kafka:sokol111-local", "topic_name": "tenant.tenant.events", "consumer_service_id": "service:ecommerce-image-service"},
+        {"snapshot_id": "aip:snapshot:v1:4d8db6483e03a6564e593a3cbcf07bd1bcb7795c22bd975e95dd9e5ab11313a6", "broker_id": "kafka:sokol111-local", "topic_name": "catalog.product.events", "consumer_service_id": "service:ecommerce-product-query-service"},
+        {"snapshot_id": "aip:snapshot:v1:4d8db6483e03a6564e593a3cbcf07bd1bcb7795c22bd975e95dd9e5ab11313a6", "broker_id": "kafka:sokol111-local", "topic_name": "catalog.category.events", "consumer_service_id": "service:ecommerce-category-query-service"},
+        {"snapshot_id": "aip:snapshot:v1:4d8db6483e03a6564e593a3cbcf07bd1bcb7795c22bd975e95dd9e5ab11313a6", "broker_id": "kafka:sokol111-local", "topic_name": "catalog.attribute.events", "consumer_service_id": "service:ecommerce-category-query-service"},
+        {"snapshot_id": "aip:snapshot:v1:4d8db6483e03a6564e593a3cbcf07bd1bcb7795c22bd975e95dd9e5ab11313a6", "broker_id": "kafka:sokol111-local", "topic_name": "catalog.attribute.events", "consumer_service_id": "service:ecommerce-product-query-service"}
+      ],
+      "implementation_justification": [
+        {"kind": "configuration", "reference": "src/ecommerce-infrastructure/environments/local/values/ecommerce-catalog-service.yaml:31-42", "note": "Catalog consumes only tenant.tenant.events, group ecommerce-catalog-service, offset reset earliest."},
+        {"kind": "configuration", "reference": "src/ecommerce-infrastructure/environments/local/values/ecommerce-image-service.yaml:23-35", "note": "Image consumes catalog.product.events and tenant.tenant.events, group ecommerce-image-service."},
+        {"kind": "source", "reference": "src/ecommerce-tenant-service-api/pkg/events/topics.go:11", "note": "tenant.tenant.events is produced by the tenant service, which stays on Redpanda."},
+        {"kind": "reasoning", "reference": "IdentityReplicationPolicy cannot detect cycles, so the two allow-lists are disjoint and heartbeats are off; no topic is mirrored in both directions."},
+        {"kind": "reasoning", "reference": "Checkpoints filter by the flow's topic list, so offsets of ecommerce-image-service on catalog.product.events are not copied to Kafka; only tenant.tenant.events offsets are translated."}
+      ]
+    },
+    {
+      "id": "MM2-02",
+      "action": "Check that no container named catalog-move-mm2 exists, then start MirrorMaker 2 in dedicated mode as container catalog-move-mm2 on shared-network from the host's apache/kafka image, mounting the workspace mm2 directory read-only.",
+      "topics": ["tenant.tenant.events", "catalog.product.events", "catalog.category.events", "catalog.attribute.events"],
+      "direction": {"source": "redpanda", "target": "kafka"},
+      "files": [{"path": "mm2/mm2.properties"}],
+      "architecture_citations": [
+        {"snapshot_id": "aip:snapshot:v1:4d8db6483e03a6564e593a3cbcf07bd1bcb7795c22bd975e95dd9e5ab11313a6", "broker_id": "kafka:sokol111-local", "topic_name": "tenant.tenant.events", "consumer_service_id": "service:ecommerce-image-service"}
+      ],
+      "implementation_justification": [
+        {"kind": "broker_tool", "reference": "docker ps -a --filter name=^catalog-move-mm2$ (must be empty); docker run -d --name catalog-move-mm2 --network shared-network -v <workspace>/mm2:/mm2:ro apache/kafka:4.1.2@sha256:5cc2a2fd93fa2687b44015eee04fb2c3edd9e526bd64bf8bec5ff1e268772e0e /opt/kafka/bin/connect-mirror-maker.sh /mm2/mm2.properties"},
+        {"kind": "reasoning", "reference": "One MM2 process runs both flows; direction above names the first flow, the second (kafka->redpanda) is listed in allow_lists."}
+      ]
+    },
+    {
+      "id": "CHK-01",
+      "action": "Check that the redpanda->kafka flow works: tenant.tenant.events exists on Kafka with Redpanda's partition count and its per-partition end offsets reach Redpanda's; MM2 logs show tasks for the three catalog.* topics in the kafka->redpanda flow and no errors; MM2 created only the expected internal topics. Stop and report on any failure.",
+      "topics": ["tenant.tenant.events", "catalog.product.events", "catalog.category.events", "catalog.attribute.events"],
+      "direction": {"source": "redpanda", "target": "kafka"},
+      "architecture_citations": [
+        {"snapshot_id": "aip:snapshot:v1:4d8db6483e03a6564e593a3cbcf07bd1bcb7795c22bd975e95dd9e5ab11313a6", "broker_id": "kafka:sokol111-local", "topic_name": "tenant.tenant.events", "consumer_service_id": "service:ecommerce-catalog-service"}
+      ],
+      "implementation_justification": [
+        {"kind": "broker_tool", "reference": "docker exec redpanda rpk topic describe tenant.tenant.events -p; docker exec kafka /opt/kafka/bin/kafka-get-offsets.sh --bootstrap-server localhost:9092 --topic tenant.tenant.events"},
+        {"kind": "broker_tool", "reference": "docker logs catalog-move-mm2; kafka-topics.sh --list on Kafka; rpk topic list on Redpanda"},
+        {"kind": "reasoning", "reference": "Offsets on two brokers need not be numerically equal if the source has gaps; compare record counts per partition when end offsets differ."}
+      ]
+    },
+    {
+      "id": "CUT-01",
+      "action": "Stop the producers in order: scale ecommerce-catalog-service to 0; then wait until group ecommerce-image-service has lag 0 on catalog.product.events on Redpanda; then scale ecommerce-image-service to 0. Stop and report if the image group does not reach lag 0.",
+      "topics": ["catalog.product.events", "catalog.category.events", "catalog.attribute.events"],
+      "services": ["ecommerce-catalog-service", "ecommerce-image-service"],
+      "architecture_citations": [
+        {"snapshot_id": "aip:snapshot:v1:4d8db6483e03a6564e593a3cbcf07bd1bcb7795c22bd975e95dd9e5ab11313a6", "broker_id": "kafka:sokol111-local", "topic_name": "catalog.product.events", "consumer_service_id": "service:ecommerce-image-service"}
+      ],
+      "implementation_justification": [
+        {"kind": "source", "reference": "src/ecommerce-workspace/docs/architecture/product-update-flow.md", "note": "Catalog writes events to a MongoDB outbox; unsent entries stay in MongoDB while the pod is down and are published after restart, to the new broker."},
+        {"kind": "reasoning", "reference": "The Kafka copy of catalog.product.events starts empty and is not seeded from Redpanda, so the image service must finish the Redpanda copy before it moves."},
+        {"kind": "broker_tool", "reference": "kubectl -n dev scale deploy/<name> --replicas=0; docker exec redpanda rpk group describe ecommerce-image-service"}
+      ]
+    },
+    {
+      "id": "CHK-02",
+      "action": "With both services stopped, check on Kafka that groups ecommerce-catalog-service and ecommerce-image-service have committed offsets on every partition of tenant.tenant.events, and that their lag there is no smaller than on Redpanda (a larger lag means some redelivery). Check that ecommerce-image-service has no committed offset on catalog.product.events on Kafka. Stop and report on any failure.",
+      "topics": ["tenant.tenant.events", "catalog.product.events"],
+      "direction": {"source": "redpanda", "target": "kafka"},
+      "services": ["ecommerce-catalog-service", "ecommerce-image-service"],
+      "architecture_citations": [
+        {"snapshot_id": "aip:snapshot:v1:4d8db6483e03a6564e593a3cbcf07bd1bcb7795c22bd975e95dd9e5ab11313a6", "broker_id": "kafka:sokol111-local", "topic_name": "tenant.tenant.events", "consumer_service_id": "service:ecommerce-catalog-service"},
+        {"snapshot_id": "aip:snapshot:v1:4d8db6483e03a6564e593a3cbcf07bd1bcb7795c22bd975e95dd9e5ab11313a6", "broker_id": "kafka:sokol111-local", "topic_name": "tenant.tenant.events", "consumer_service_id": "service:ecommerce-image-service"}
+      ],
+      "implementation_justification": [
+        {"kind": "broker_tool", "reference": "docker exec kafka /opt/kafka/bin/kafka-consumer-groups.sh --bootstrap-server localhost:9092 --describe --group <group>; docker exec redpanda rpk group describe <group>"},
+        {"kind": "reasoning", "reference": "Without translated offsets the services would start at earliest on Kafka (default-auto-offset-reset earliest) and reprocess the whole tenant history; that is a check the cutover relies on."}
+      ]
+    },
+    {
+      "id": "CUT-02",
+      "action": "Change kafka.brokers from redpanda:29092 to kafka:29092 in the live ConfigMaps of both services (a copy of each patched manifest is kept in the workspace), then scale both Deployments back to the replica counts saved in PRE-02.",
+      "services": ["ecommerce-catalog-service", "ecommerce-image-service"],
+      "files": [
+        {"path": "patched/ecommerce-catalog-service-config.yaml", "keys": ["data.config.yaml: kafka.brokers"]},
+        {"path": "patched/ecommerce-image-service-config.yaml", "keys": ["data.config.yaml: kafka.brokers"]}
+      ],
+      "architecture_citations": [
+        {"snapshot_id": "aip:snapshot:v1:4d8db6483e03a6564e593a3cbcf07bd1bcb7795c22bd975e95dd9e5ab11313a6", "broker_id": "kafka:sokol111-local", "topic_name": "catalog.product.events", "consumer_service_id": "service:ecommerce-image-service"},
+        {"snapshot_id": "aip:snapshot:v1:4d8db6483e03a6564e593a3cbcf07bd1bcb7795c22bd975e95dd9e5ab11313a6", "broker_id": "kafka:sokol111-local", "topic_name": "tenant.tenant.events", "consumer_service_id": "service:ecommerce-catalog-service"}
+      ],
+      "implementation_justification": [
+        {"kind": "configuration", "reference": "src/ecommerce-infrastructure/environments/local/values/ecommerce-catalog-service.yaml:32 and ecommerce-image-service.yaml:24 (kafka.brokers)"},
+        {"kind": "source", "reference": "src/ecommerce-commons/pkg/kafka/config/types.go:7", "note": "One brokers setting serves producer, consumers and DLQ producer."},
+        {"kind": "source", "reference": "src/ecommerce-infrastructure/helm/shared-helpers/templates/_deployment.tpl:58", "note": "The config checksum annotation is set at render time and does not change; scaling from 0 starts new pods that read the patched ConfigMap."},
+        {"kind": "broker_tool", "reference": "kubectl -n dev apply -f patched/<name>-config.yaml; kubectl -n dev scale deploy/<name> --replicas=<saved>; kubectl -n dev rollout status deploy/<name>"}
+      ]
+    },
+    {
+      "id": "CHK-03",
+      "action": "Check the moved services and the downstream consumers: pods Ready and logs connect to kafka:29092; both groups active on Kafka for tenant.tenant.events and ecommerce-image-service active on Kafka for catalog.product.events; catalog.* end offsets on Redpanda grow after Kafka's do; product-query and category-query groups on Redpanda keep lag near 0. Stop and report on any failure.",
+      "topics": ["catalog.product.events", "catalog.category.events", "catalog.attribute.events", "tenant.tenant.events"],
+      "direction": {"source": "kafka", "target": "redpanda"},
+      "services": ["ecommerce-catalog-service", "ecommerce-image-service", "ecommerce-product-query-service", "ecommerce-category-query-service"],
+      "architecture_citations": [
+        {"snapshot_id": "aip:snapshot:v1:4d8db6483e03a6564e593a3cbcf07bd1bcb7795c22bd975e95dd9e5ab11313a6", "broker_id": "kafka:sokol111-local", "topic_name": "catalog.product.events", "consumer_service_id": "service:ecommerce-product-query-service"},
+        {"snapshot_id": "aip:snapshot:v1:4d8db6483e03a6564e593a3cbcf07bd1bcb7795c22bd975e95dd9e5ab11313a6", "broker_id": "kafka:sokol111-local", "topic_name": "catalog.category.events", "consumer_service_id": "service:ecommerce-category-query-service"},
+        {"snapshot_id": "aip:snapshot:v1:4d8db6483e03a6564e593a3cbcf07bd1bcb7795c22bd975e95dd9e5ab11313a6", "broker_id": "kafka:sokol111-local", "topic_name": "catalog.attribute.events", "consumer_service_id": "service:ecommerce-category-query-service"},
+        {"snapshot_id": "aip:snapshot:v1:4d8db6483e03a6564e593a3cbcf07bd1bcb7795c22bd975e95dd9e5ab11313a6", "broker_id": "kafka:sokol111-local", "topic_name": "catalog.attribute.events", "consumer_service_id": "service:ecommerce-product-query-service"}
+      ],
+      "implementation_justification": [
+        {"kind": "broker_tool", "reference": "kubectl -n dev get pods; kubectl -n dev logs deploy/<name>; kafka-consumer-groups.sh --describe; kafka-get-offsets.sh; rpk topic describe -p; rpk group describe ecommerce-product-query-service / ecommerce-category-query-service"},
+        {"kind": "reasoning", "reference": "AIP never establishes delivery between brokers (binding picture tool description), so the bridge is checked with broker tools only."}
+      ]
+    },
+    {
+      "id": "TEST-01",
+      "action": "Ask the operator to run the functional test and wait for the result; stop and report if it fails.",
+      "services": ["ecommerce-catalog-service", "ecommerce-image-service", "ecommerce-product-query-service", "ecommerce-category-query-service"],
+      "architecture_citations": [
+        {"snapshot_id": "aip:snapshot:v1:4d8db6483e03a6564e593a3cbcf07bd1bcb7795c22bd975e95dd9e5ab11313a6", "broker_id": "kafka:sokol111-local", "topic_name": "catalog.product.events", "consumer_service_id": "service:ecommerce-product-query-service"}
+      ],
+      "implementation_justification": [
+        {"kind": "reasoning", "reference": "TASK.md: write 'OPERATOR: please run the functional test' and wait for the reply."}
+      ]
+    },
+    {
+      "id": "REPORT-01",
+      "action": "Report the result: what was created (Kafka topics, MM2 container and its internal topics, workspace files), what was changed (two ConfigMaps), the check results, and that delivery is at-least-once with possible redelivery, not lossless or exactly-once. Leave the MM2 bridge running; delete nothing.",
+      "architecture_citations": [
+        {"snapshot_id": "aip:snapshot:v1:4d8db6483e03a6564e593a3cbcf07bd1bcb7795c22bd975e95dd9e5ab11313a6"}
+      ],
+      "implementation_justification": [
+        {"kind": "reasoning", "reference": "MM2 is the bridge the goal requires; removing it would cut the Redpanda consumers off from catalog events."}
+      ]
+    }
+  ],
+  "allow_lists": [
+    {"flow": "redpanda->kafka", "source": "redpanda", "target": "kafka", "topics": ["tenant.tenant.events"]},
+    {"flow": "kafka->redpanda", "source": "kafka", "target": "redpanda", "topics": ["catalog.product.events", "catalog.category.events", "catalog.attribute.events"]}
+  ]
+}

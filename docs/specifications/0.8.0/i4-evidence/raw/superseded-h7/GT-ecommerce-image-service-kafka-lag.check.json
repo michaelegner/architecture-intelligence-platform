@@ -1,0 +1,26 @@
+{
+  "deadline": 0,
+  "elapsed": 0,
+  "group": "ecommerce-image-service",
+  "kind": "lag",
+  "missing_topics": [],
+  "partitions": [
+    {
+      "current": 122,
+      "lag": 0,
+      "partition": 0,
+      "topic": "catalog.product.events"
+    },
+    {
+      "current": 2,
+      "lag": 0,
+      "partition": 0,
+      "topic": "tenant.tenant.events"
+    }
+  ],
+  "result": "PASSED",
+  "rule": "lag 0 for the group on every partition of each topic",
+  "sources": [
+    "<run home>/package/raw/GT-ecommerce-image-service-kafka-describe.txt"
+  ]
+}

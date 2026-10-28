@@ -1,0 +1,291 @@
+{
+  "extra": [
+    "CUT-01",
+    "KAFKA-01",
+    "MM2-01",
+    "PRE-01",
+    "PRE-02",
+    "REPORT-01",
+    "TEST-01"
+  ],
+  "key_items": [
+    {
+      "id": "K1",
+      "in_allow_list": true,
+      "plan_items": [
+        "CHK-01",
+        "CHK-02",
+        "MM2-02"
+      ],
+      "reason": null,
+      "verdict": "MATCHED"
+    },
+    {
+      "id": "K2",
+      "in_allow_list": true,
+      "plan_items": [
+        "CHK-03"
+      ],
+      "reason": null,
+      "verdict": "MATCHED"
+    },
+    {
+      "id": "K3",
+      "in_allow_list": true,
+      "plan_items": [
+        "CHK-03"
+      ],
+      "reason": null,
+      "verdict": "MATCHED"
+    },
+    {
+      "id": "K4",
+      "in_allow_list": true,
+      "plan_items": [
+        "CHK-03"
+      ],
+      "reason": null,
+      "verdict": "MATCHED"
+    },
+    {
+      "applied": {
+        "kafka->redpanda": [
+          "catalog.attribute.events",
+          "catalog.category.events",
+          "catalog.product.events"
+        ],
+        "redpanda->kafka": [
+          "tenant.tenant.events"
+        ]
+      },
+      "id": "K5",
+      "plan_items": [],
+      "planned": {
+        "kafka->redpanda": [
+          "catalog.attribute.events",
+          "catalog.category.events",
+          "catalog.product.events"
+        ],
+        "redpanda->kafka": [
+          "tenant.tenant.events"
+        ]
+      },
+      "problems": [],
+      "reason": null,
+      "verdict": "MATCHED"
+    },
+    {
+      "id": "K7",
+      "plan_items": [
+        "CUT-02"
+      ],
+      "problems": [],
+      "reason": null,
+      "verdict": "MATCHED"
+    }
+  ],
+  "missing_reasons": [
+    "K6.1",
+    "K6.2",
+    "K8.1",
+    "K8.2",
+    "K8.3",
+    "K8.4",
+    "K8.5",
+    "K8.6",
+    "K8.7",
+    "K8.8",
+    "K8.9"
+  ],
+  "owner_judged": [
+    {
+      "candidates": [
+        "CUT-01",
+        "KAFKA-01",
+        "MM2-01",
+        "PRE-01",
+        "PRE-02",
+        "REPORT-01",
+        "TEST-01"
+      ],
+      "check": "group-offset translation is configured for the two groups (MirrorMaker 2 checkpoints and group-offset sync)",
+      "id": "K6.1",
+      "plan_items": [],
+      "reason": null,
+      "verdict": "PENDING_OWNER"
+    },
+    {
+      "candidates": [
+        "CUT-01",
+        "KAFKA-01",
+        "MM2-01",
+        "PRE-01",
+        "PRE-02",
+        "REPORT-01",
+        "TEST-01"
+      ],
+      "check": "per group and partition: the final committed offset on Redpanda equals a checkpoint's upstream offset, and the offset installed on Kafka equals that checkpoint's downstream offset, before the moved services start",
+      "id": "K6.2",
+      "plan_items": [],
+      "reason": null,
+      "verdict": "PENDING_OWNER"
+    },
+    {
+      "candidates": [
+        "CUT-01",
+        "KAFKA-01",
+        "MM2-01",
+        "PRE-01",
+        "PRE-02",
+        "REPORT-01",
+        "TEST-01"
+      ],
+      "check": "before any mirror starts: the catalog topics exist empty on Kafka, and the allow-lists are disjoint",
+      "id": "K8.1",
+      "plan_items": [],
+      "reason": null,
+      "verdict": "PENDING_OWNER"
+    },
+    {
+      "candidates": [
+        "CUT-01",
+        "KAFKA-01",
+        "MM2-01",
+        "PRE-01",
+        "PRE-02",
+        "REPORT-01",
+        "TEST-01"
+      ],
+      "check": "the Redpanda to Kafka mirror for the tenant topic is started, with group-offset sync for Catalog and Image, and replication is caught up before Catalog stops",
+      "id": "K8.2",
+      "plan_items": [],
+      "reason": null,
+      "verdict": "PENDING_OWNER"
+    },
+    {
+      "candidates": [
+        "CUT-01",
+        "KAFKA-01",
+        "MM2-01",
+        "PRE-01",
+        "PRE-02",
+        "REPORT-01",
+        "TEST-01"
+      ],
+      "check": "Catalog stops only after Image has lag 0 on catalog.product.events",
+      "id": "K8.3",
+      "plan_items": [],
+      "reason": null,
+      "verdict": "PENDING_OWNER"
+    },
+    {
+      "candidates": [
+        "CUT-01",
+        "KAFKA-01",
+        "MM2-01",
+        "PRE-01",
+        "PRE-02",
+        "REPORT-01",
+        "TEST-01"
+      ],
+      "check": "Image stops; both moved groups show zero live attachment on Redpanda",
+      "id": "K8.4",
+      "plan_items": [],
+      "reason": null,
+      "verdict": "PENDING_OWNER"
+    },
+    {
+      "candidates": [
+        "CUT-01",
+        "KAFKA-01",
+        "MM2-01",
+        "PRE-01",
+        "PRE-02",
+        "REPORT-01",
+        "TEST-01"
+      ],
+      "check": "the remaining Redpanda consumers (Product Query, Category Query) are drained to lag 0 on the catalog topics",
+      "id": "K8.5",
+      "plan_items": [],
+      "reason": null,
+      "verdict": "PENDING_OWNER"
+    },
+    {
+      "candidates": [
+        "CUT-01",
+        "KAFKA-01",
+        "MM2-01",
+        "PRE-01",
+        "PRE-02",
+        "REPORT-01",
+        "TEST-01"
+      ],
+      "check": "the offset hand-off of K6 is verified",
+      "id": "K8.6",
+      "plan_items": [],
+      "reason": null,
+      "verdict": "PENDING_OWNER"
+    },
+    {
+      "candidates": [
+        "CUT-01",
+        "KAFKA-01",
+        "MM2-01",
+        "PRE-01",
+        "PRE-02",
+        "REPORT-01",
+        "TEST-01"
+      ],
+      "check": "the Kafka to Redpanda mirror for the catalog topics starts only after the producers have stopped and the drain is done",
+      "id": "K8.7",
+      "plan_items": [],
+      "reason": null,
+      "verdict": "PENDING_OWNER"
+    },
+    {
+      "candidates": [
+        "CUT-01",
+        "KAFKA-01",
+        "MM2-01",
+        "PRE-01",
+        "PRE-02",
+        "REPORT-01",
+        "TEST-01"
+      ],
+      "check": "Catalog and Image start on Kafka, and both groups are Stable there",
+      "id": "K8.8",
+      "plan_items": [],
+      "reason": null,
+      "verdict": "PENDING_OWNER"
+    },
+    {
+      "candidates": [
+        "CUT-01",
+        "KAFKA-01",
+        "MM2-01",
+        "PRE-01",
+        "PRE-02",
+        "REPORT-01",
+        "TEST-01"
+      ],
+      "check": "restart checks: replication caught up on the catalog mirror after new traffic; lag 0 for the consumers on both brokers; the functional test passes",
+      "id": "K8.9",
+      "plan_items": [],
+      "reason": null,
+      "verdict": "PENDING_OWNER"
+    }
+  ],
+  "pending_owner": [
+    "K6.1",
+    "K6.2",
+    "K8.1",
+    "K8.2",
+    "K8.3",
+    "K8.4",
+    "K8.5",
+    "K8.6",
+    "K8.7",
+    "K8.8",
+    "K8.9"
+  ]
+}

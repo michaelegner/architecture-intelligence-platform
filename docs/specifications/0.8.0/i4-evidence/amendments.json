@@ -1,0 +1,131 @@
+[
+  {
+    "utc": "2026-10-28T13:11:27Z",
+    "item_id": "PRE-01",
+    "change": "changed",
+    "reason": "The plan's Kafka admin commands use --bootstrap-server localhost:9092 inside the kafka container; nothing listens there (TimeoutException). Container env shows KAFKA_LISTENERS=PLAINTEXT://:29092,HOST://:19092,CONTROLLER://:9093 with HOST advertised as localhost:19092. All kafka-*.sh calls run inside the kafka container (PRE-01, KAFKA-01, CHK-01, CHK-02, CHK-03) therefore use --bootstrap-server localhost:19092. The plan itself said the listener would be confirmed at run time. Nothing else changes."
+  },
+  {
+    "utc": "2026-10-28T13:25:03Z",
+    "item_id": "MM2-01",
+    "change": "changed",
+    "item": {
+      "id": "MM2-01",
+      "action": "Write the MirrorMaker 2 configuration with two one-way flows: redpanda->kafka for tenant.tenant.events only (with checkpoints and group offset sync for ecommerce-catalog-service and ecommerce-image-service, offset syncs on Kafka), and kafka->redpanda for the three catalog.* topics only (no checkpoints, no group offset sync; offset syncs left on with offset-syncs.topic.location=target, so they live on Redpanda). IdentityReplicationPolicy, heartbeats/ACL/topic-config sync off, replication factors 1.",
+      "topics": [
+        "tenant.tenant.events",
+        "catalog.product.events",
+        "catalog.category.events",
+        "catalog.attribute.events"
+      ],
+      "files": [
+        {
+          "path": "mm2/mm2.properties",
+          "keys": [
+            "kafka->redpanda.emit.offset-syncs.enabled (removed)",
+            "kafka->redpanda.offset-syncs.topic.location (added, = target)"
+          ]
+        }
+      ],
+      "architecture_citations": [
+        {
+          "snapshot_id": "aip:snapshot:v1:4d8db6483e03a6564e593a3cbcf07bd1bcb7795c22bd975e95dd9e5ab11313a6",
+          "broker_id": "kafka:sokol111-local",
+          "topic_name": "catalog.product.events",
+          "consumer_service_id": "service:ecommerce-product-query-service"
+        },
+        {
+          "snapshot_id": "aip:snapshot:v1:4d8db6483e03a6564e593a3cbcf07bd1bcb7795c22bd975e95dd9e5ab11313a6",
+          "broker_id": "kafka:sokol111-local",
+          "topic_name": "catalog.category.events",
+          "consumer_service_id": "service:ecommerce-category-query-service"
+        },
+        {
+          "snapshot_id": "aip:snapshot:v1:4d8db6483e03a6564e593a3cbcf07bd1bcb7795c22bd975e95dd9e5ab11313a6",
+          "broker_id": "kafka:sokol111-local",
+          "topic_name": "catalog.attribute.events",
+          "consumer_service_id": "service:ecommerce-category-query-service"
+        },
+        {
+          "snapshot_id": "aip:snapshot:v1:4d8db6483e03a6564e593a3cbcf07bd1bcb7795c22bd975e95dd9e5ab11313a6",
+          "broker_id": "kafka:sokol111-local",
+          "topic_name": "catalog.attribute.events",
+          "consumer_service_id": "service:ecommerce-product-query-service"
+        }
+      ],
+      "implementation_justification": [
+        {
+          "kind": "broker_tool",
+          "reference": "docker logs catalog-move-mm2: 'MirrorSourceConnector can't setup offset-syncs feature while emit.offset-syncs.enabled set to false' for kafka->redpanda"
+        },
+        {
+          "kind": "reasoning",
+          "reference": "Offset-syncs topic naming: location=target names it after the source alias, location=source after the target alias. With the default (source) the kafka->redpanda flow would write mm2-offset-syncs.redpanda.internal on Kafka, the topic redpanda->kafka already uses. With target it becomes mm2-offset-syncs.kafka.internal on Redpanda, checked absent at 13:25:03Z."
+        },
+        {
+          "kind": "reasoning",
+          "reference": "MirrorCheckpointConnector for kafka->redpanda stays rejected because emit.checkpoints.enabled=false; that rejection is intended (no checkpoints in this flow) and is the only ERROR CHK-01 accepts."
+        }
+      ]
+    },
+    "reason": "CHK-01 failed: the kafka->redpanda MirrorSourceConnector was rejected, so catalog events would not reach the Redpanda consumers. The owner approved this fix at the reported stop. Also restart catalog-move-mm2 (the container this plan created) so it reads the new file, then re-run CHK-01. New items created by the fix: Redpanda topic mm2-offset-syncs.kafka.internal. Also recorded as created, though not predicted by the plan: heartbeats (both brokers), redpanda.heartbeats (Kafka), mm2-offset-syncs.redpanda.internal (Kafka, instead of the predicted mm2-offset-syncs.kafka.internal), Redpanda group kafka-mm2, Kafka group redpanda-mm2."
+  },
+  {
+    "utc": "2026-10-28T13:27:37Z",
+    "item_id": "CHK-01",
+    "change": "changed",
+    "reason": "Re-run of CHK-01 after the MM2-01 fix: the kafka->redpanda source connector now runs and is assigned catalog.product/category/attribute.events-0. But both flows are also assigned heartbeats-0 (MM2 adds heartbeat topics to every flow regardless of the topics allow-list, and IdentityReplicationPolicy gives them the same name on both brokers). So the topic heartbeats is mirrored in both directions, which TASK.md forbids. It is empty on both brokers (heartbeats:0:0 on Kafka, high watermark 0 on Redpanda). CHK-01 failed. Container catalog-move-mm2 was stopped (docker stop, not removed) to end the bidirectional mirroring. No cutover had happened, so all services and consumers are still on Redpanda. The run stops here and is reported to the owner."
+  },
+  {
+    "utc": "2026-10-28T13:35:23Z",
+    "item_id": "MM2-01",
+    "change": "changed",
+    "item": {
+      "id": "MM2-01",
+      "action": "As in the 13:25:03Z amendment, plus heartbeats.replication.enabled=false for both flows, so each MirrorSourceConnector replicates only its allow-list and never a heartbeats topic.",
+      "topics": [
+        "tenant.tenant.events",
+        "catalog.product.events",
+        "catalog.category.events",
+        "catalog.attribute.events"
+      ],
+      "files": [
+        {
+          "path": "mm2/mm2.properties",
+          "keys": [
+            "heartbeats.replication.enabled (added, = false)"
+          ]
+        }
+      ],
+      "architecture_citations": [
+        {
+          "snapshot_id": "aip:snapshot:v1:4d8db6483e03a6564e593a3cbcf07bd1bcb7795c22bd975e95dd9e5ab11313a6",
+          "broker_id": "kafka:sokol111-local",
+          "topic_name": "tenant.tenant.events",
+          "consumer_service_id": "service:ecommerce-image-service"
+        }
+      ],
+      "implementation_justification": [
+        {
+          "kind": "broker_tool",
+          "reference": "docker logs catalog-move-mm2: connector config dump lists 'heartbeats.replication.enabled = true' (default), so the setting exists in MM2 4.1.2."
+        },
+        {
+          "kind": "broker_tool",
+          "reference": "After docker start at 13:34:00Z the final task assignments are redpanda->kafka [tenant.tenant.events-0] and kafka->redpanda [catalog.attribute.events-0, catalog.product.events-0, catalog.category.events-0], with no heartbeats-0."
+        },
+        {
+          "kind": "reasoning",
+          "reference": "Logs show MM2 had written the heartbeat copies under new names (Redpanda heartbeats -> Kafka redpanda.heartbeats, Kafka heartbeats -> Redpanda kafka.heartbeats), so nothing went back to where it came from. But the topic named heartbeats was still a source in both flows; this setting removes it from both."
+        }
+      ]
+    },
+    "reason": "Owner asked for a verified fix of the bidirectional heartbeats mirroring found at the 13:27:37Z stop. Verified: final assignments contain no heartbeats partition. Note: for about 1.5 s after the restart (13:34:09.9 to 13:34:11.6), the tasks ran from the old stored config with heartbeats-0 assigned, until MM2 replaced it. All heartbeat topics (heartbeats on both brokers, redpanda.heartbeats on Kafka, kafka.heartbeats on Redpanda) have end offset 0, so no heartbeat record was copied. Also created by MM2 and now recorded: Redpanda topics kafka.heartbeats and mm2-offset-syncs.kafka.internal. CHK-01 re-run passed: tenant.tenant.events end offset 1 on both brokers, kafka->redpanda tasks for the three catalog topics, and the only ERROR is the intended MirrorCheckpointConnector rejection for kafka->redpanda."
+  },
+  {
+    "utc": "2026-10-28T13:38:58Z",
+    "item_id": "CHK-03",
+    "change": "changed",
+    "reason": "No catalog event was produced after the cutover (Kafka catalog.* end offsets 0:0:0; Redpanda 120/4/20, unchanged), so the part 'catalog.* end offsets on Redpanda grow after Kafka's do' cannot be observed yet. Synthetic events are not injected, because the real query consumers would process them. That part, plus the product-query and category-query lag on Redpanda, is checked right after TEST-01 using the functional test's traffic, before reporting. Every other CHK-03 condition passed at this time: both pods Ready; no ERROR/WARN in logs; ecommerce-catalog-service active on Kafka tenant.tenant.events (offset 1, lag 0); ecommerce-image-service active on Kafka tenant.tenant.events (offset 1, lag 0) and catalog.product.events; both query groups Stable on Redpanda with lag 0; no MM2 errors since 13:34:30Z."
+  }
+]

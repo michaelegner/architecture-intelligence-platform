@@ -310,9 +310,9 @@ def test_e6_gate_fails_on_a_failed_verdict(tmp_path):
 def test_e6_gate_fails_on_a_missing_verdict(tmp_path):
     """I4b S4: a pair whose replication was never evaluated must not pass by absence."""
     package, functional = e6_package(tmp_path)
-    (package / "raw" / "GT-kafka->redpanda-replication.check.json").unlink()
+    (package / "raw" / "GT-kafka-to-redpanda-replication.check.json").unlink()
     result = e6_gate.gate(package, functional)
     assert result["result"] == "FAILED"
     assert result["problems"] == [
-        f"{package}/raw/GT-kafka->redpanda-replication.check.json: MISSING"
+        f"{package}/raw/GT-kafka-to-redpanda-replication.check.json: MISSING"
     ]

@@ -1,0 +1,19 @@
+PID                 COMMAND
+1545                /sbin/docker-init -- /bin/sh -c nginx-proxy
+1613                /bin/sh /usr/bin/nginx-proxy
+1970                confd -watch -backend file -file /etc/confd/values.yaml -log-level debug
+1971                nginx: master process nginx -g daemon off;
+1995                nginx: worker process
+1996                nginx: worker process
+1997                nginx: worker process
+1998                nginx: worker process
+1999                nginx: worker process
+2000                nginx: worker process
+2001                nginx: worker process
+2002                nginx: worker process
+2003                nginx: worker process
+2004                nginx: worker process
+2005                nginx: worker process
+2006                nginx: worker process
+2007                nginx: worker process
+2008                nginx: worker process

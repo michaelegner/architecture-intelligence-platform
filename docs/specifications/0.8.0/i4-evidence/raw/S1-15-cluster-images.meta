@@ -1,0 +1,3 @@
+utc: 2026-10-28T11:54:10Z
+command: kubectl get pods -A -o jsonpath={range .items[*]}{.metadata.namespace}{"\t"}{.metadata.name}{"\t"}{range .status.containerStatuses[*]}{.image}{" "}{.imageID}{end}{"\n"}{end}
+exit: 0
