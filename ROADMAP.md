@@ -775,6 +775,13 @@ contextual tooling can turn its evidence-qualified binding picture into useful, 
 architectural understanding. AIP owns architectural claims and bounded semantic projections;
 contextual tools own navigation, visualization and cross-source interpretation.
 
+**Demonstration question:**
+
+> **Can independent contextual tooling use AIP's evidence-qualified binding picture to help an
+> architect understand why particular cross-boundary relationships matter to a proposed change,
+> which assumptions they challenge, and what the evidence does and does not establish—beyond
+> what the tooling can establish without AIP?**
+
 **Requirements:**
 
 - **Customer problem first:** Identify at least one representative customer role, cross-boundary
