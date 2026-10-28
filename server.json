@@ -3,7 +3,7 @@
   "name": "io.github.michaelegner/architecture-intelligence-platform",
   "title": "Architecture Intelligence Platform",
   "description": "Evidence-qualified architecture context for coding agents.",
-  "version": "0.7.2",
+  "version": "0.8.0",
   "websiteUrl": "https://github.com/michaelegner/architecture-intelligence-platform#connect-aip-to-your-coding-agent",
   "repository": {
     "url": "https://github.com/michaelegner/architecture-intelligence-platform",

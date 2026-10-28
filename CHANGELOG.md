@@ -9,6 +9,47 @@ aren't yet guaranteed stable pre-1.0.
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-10-28
+
+### v0.8.0 — Binding Picture Showcase (demonstration release)
+
+See the [release notes](docs/release-validation/v0.8.0-release-notes.md). The new promise,
+assessment and projection semantics are experimental and do not become a v1.0 contract.
+
+### Added
+
+- **Experimental `get_binding_picture` MCP tool and its REST twin** (`POST /api/binding-picture`,
+  `POST /api/binding-picture/evidence`), present only when `config.yaml` sets
+  `architecture_intelligence.experimental.binding-picture: true` (default off; with it off, the tool
+  list stays at six and the binding-picture routes do not exist). For one Bounded Context and its brokers it returns one
+  row per consumer Service × Topic × broker, with the crossing (`INBOUND`, `INSIDE`, `OUTBOUND`,
+  `NONE`, `UNRESOLVED`), the promise and observation status, the declared producers and
+  `binding-evidence:` refs; evidence mode resolves those refs at the same snapshot. Frozen schemas:
+  `schemas/architecture_intelligence/v0.8/` (v0.8 I2).
+- **EventCatalog source** (`sources.event_catalogs`): reads domains, owners and `sends`/`receives`
+  into a promise record kept apart from Current State, with file and digest provenance; one catalog
+  per environment (v0.8 I1, I2a).
+- **AsyncAPI:** a qualified Topic channel without operations is accepted (topic-only declarations).
+  A document whose channels are all topic-only, rejected before, is now accepted; documents accepted
+  before map to byte-identical output, and `mapping_rule_version` stays `v2` (v0.8 I1).
+
+### Changed
+
+- `get_destination_consumers`: the schemas describe the two identifier fields. `destination_id` is
+  the exact canonical Topic id (`topic:owned:…`), not a topic name; `broker_id` is the declared broker
+  id (`x-aip-broker-id`), not a bootstrap address. Field names, types, patterns, refusal codes and
+  answers are unchanged (v0.8 I2c).
+- The import report schemas (`schemas/import/v0.5/`) accept the `event-catalog` source kind and the
+  five `EVENTCATALOG_*` reason codes (additive).
+- The locked `pydantic` moves to 2.14.1, `fastapi` to 0.150.0, `openai` to 3.35.1 and `neo4j` to
+  6.4.1.
+
+### Showcase
+
+- The Sokol111 showcase run, its frozen evidence and the report are in
+  `docs/specifications/0.8.0/` (I1–I4). The release notes record its outcome, including the
+  acceptance checks that were not met.
+
 ## [0.7.2] - 2026-10-23
 
 ### v0.7.2 — Context-Engine Interoperability + Product-Boundary Qualification
