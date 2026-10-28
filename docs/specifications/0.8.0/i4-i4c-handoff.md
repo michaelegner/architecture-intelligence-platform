@@ -9,7 +9,7 @@ Governing: [I4 spec](i4-agent-run-report-and-release.md) §13 (I4c, E9) and the
 |---|---|---|
 | The showcase report | [`i4-evidence/report.html`](i4-evidence/report.html) | built only from frozen inputs; the replay test renders it byte for byte |
 | The run package | [`i4-evidence/`](i4-evidence/) with `SHA256SUMS` | sanitized (`<run home>`, `<AIP checkout>`), secret-scanned before the digests |
-| The outcome | [`i4-completion-record.md`](i4-completion-record.md) | E1–E3, E5, E7, E8 met; **E4 and E6 not met**, recorded as failures |
+| The outcome | [`i4-completion-record.md`](i4-completion-record.md) | E1–E3, E5, E7 met; **E4 and E6 not met**, recorded as failures; **E8 qualified**: replay passed, strict E8 not fully met (owner-accepted deviation 9) |
 | The replay | `tests/integration/test_v080_i4b_replay.py` | qualification tier |
 
 ## 2. What I4c must keep in its release-facing text
@@ -20,7 +20,10 @@ Governing: [I4 spec](i4-agent-run-report-and-release.md) §13 (I4c, E9) and the
 - Delivery across the brokers is established by the broker tools and the functional test, never by
   AIP; the agent and the report make no lossless or exactly-once claim.
 - The snapshot ids in the package depend on the absolute paths AIP read (completion record,
-  deviation 9). Release text must not claim byte-identical replay of AIP's answers.
+  deviation 9). E8 is qualified: the replay does not verify exact equality of the snapshot ids and
+  evidence refs, nor fresh citation resolution against the replayed snapshot. Release text keeps
+  this qualification next to the E4 and E6 failures and must not claim byte-identical replay of
+  AIP's answers.
 
 ## 3. Known behaviour
 

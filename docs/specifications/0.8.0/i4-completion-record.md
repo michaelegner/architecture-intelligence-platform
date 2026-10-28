@@ -2,7 +2,8 @@
 
 **Status:** COMPLETE on merge of the I4b PR. The closure SHA is added in a follow-up only if the owner asks.
 **Outcome:** recorded by the owner on merging the I4b PR. The run is valid (every audit hit waived
-with evidence); E4 and E6 are not met and are recorded as failures (below).
+with evidence); E4 and E6 are not met and are recorded as failures; E8 is qualified: the replay
+passed, but strict E8 is not fully met (owner-accepted deviation 9, below).
 
 This record covers I4b of the [I4 spec](i4-agent-run-report-and-release.md), Draft 0.3, under the
 [v0.8 specification](specification.md). Each slice's approved plan is kept verbatim in its PR
@@ -32,7 +33,7 @@ Claude Code 2.1.312, headless.
 | **E5** | Met | [`proof-c.json`](i4-evidence/proof-c.json) `PASSED` (A-R and A-K reproduce `expected-after.json`); B-R gives the nine I2 §8.1 rows and their four limitations (run record S1) |
 | **E6** | **Not met** | [`e6-gate.json`](i4-evidence/e6-gate.json) `FAILED` on 2 of 12 verdicts: `applied-mm2.json` (P2: checkpoints off on the kafka→redpanda flow) and `p1b-kafka-to-redpanda.json` (its checkpoints topic is never created), the same choice of the agent. Passed: the functional test, P1a/P3, P1b redpanda→kafka, K7, replication for both pairs, lag for all four consumers, the hand-off. Recorded as FAILED by owner decision; all are recorded apart from AIP's claims |
 | **E7** | Met | [`report.html`](i4-evidence/report.html): the four parts, the five questions, a requirement chain for each crossing row after the wave, the disclosures; the wording guard passes |
-| **E8** | Met, with deviation 9 (accepted by the owner) | `tests/integration/test_v080_i4b_replay.py` (qualification tier): the three phases pass and the report is byte-identical. Tampering with one recorded answer field and one capture field fails all four tests |
+| **E8** | **Qualified: replay passed; strict E8 not fully met** (owner-accepted deviation 9) | `tests/integration/test_v080_i4b_replay.py` (qualification tier) passes: the nine binding rows, every answer field apart from the snapshot block and the evidence refs, Proof C, and the byte-identical report. Tampering with one recorded answer field and one capture field fails all four tests. **Not verified:** §9 phase 1's exact equality with the recorded answers (the snapshot ids and the evidence refs, which depend on the absolute input paths, are compared only as ref counts per kind), and fresh citation resolution against the replayed snapshot (`citations.check` runs on the frozen recording only) |
 
 ## Decisions and deviations
 
