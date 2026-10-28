@@ -103,13 +103,17 @@ def named_topics(pair: dict) -> dict[str, str]:
     def named(key: str, default: str) -> str:
         return lookup(props, source, target, key) or default
 
+    syncs_on = lookup(props, source, target, "offset-syncs.topic.location") or "source"
+    # The offset-syncs topic is named after the other cluster than the one that holds it (I4b S4:
+    # with location=target, `mm2-offset-syncs.<source>.internal` on the target).
+    syncs_alias = target if syncs_on == "source" else source
     return {
         "configs": named("config.storage.topic", f"mm2-configs.{source}.internal"),
         "offsets": named("offset.storage.topic", f"mm2-offsets.{source}.internal"),
         "status": named("status.storage.topic", f"mm2-status.{source}.internal"),
         "checkpoints": f"{source}.checkpoints.internal",
-        "offset_syncs": f"mm2-offset-syncs.{target}.internal",
-        "offset_syncs_on": lookup(props, source, target, "offset-syncs.topic.location") or "source",
+        "offset_syncs": f"mm2-offset-syncs.{syncs_alias}.internal",
+        "offset_syncs_on": syncs_on,
     }
 
 
@@ -228,7 +232,7 @@ MM2_ANCHORS = ("connect-mirror-maker.sh", "org.apache.kafka.connect.mirror.Mirro
 
 def mm2_properties(top: str) -> list[str]:
     """The properties files of the MirrorMaker 2 processes in one container's `docker top <id> -eo
-    args` output. A flow may run as the container's command or through `docker exec`, as the shell
+    pid,args` output. A flow may run as the container's command or through `docker exec`, as the shell
     script or as the Java process it execs; the file is the argument after the script or class."""
     found = []
     for line in top.splitlines():

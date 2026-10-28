@@ -5,6 +5,7 @@
 #   capture.sh helm before|after   the Catalog and Image deployments and their ConfigMaps (K7)
 #   capture.sh mm2-config          the MirrorMaker 2 properties of every running MM2 container, and
 #                                  config_checks.py static on them (§5)
+#   capture.sh p1b                 P1b per applied pair: both topic listings, config_checks.py p1b
 #   capture.sh images before|after the host's image inventory (audit.py IMAGE_ADDED)
 #   capture.sh ground-truth        replication per applied pair, lag per consumer, the hand-off reads,
 #                                  and ground_truth.py (needs package/agent-reported-handoff.json)
@@ -65,8 +66,9 @@ mm2_config() {
   mkdir -p "$dir"
   record MM2 containers -- docker ps --no-trunc --format '{{.ID}} {{.Names}}'
   while read -r id _; do
-    record MM2 "$id-top" -- docker top "$id" -eo args
+    record MM2 "$id-top" -- docker top "$id" -eo pid,args
     while read -r file; do
+      [[ -n "$file" ]] || continue  # a container without MirrorMaker 2 prints one empty line
       n=$((n + 1))
       record MM2 "$id-properties-$n" -- docker cp "$id:$file" -
       tar -xOf "$RAW/MM2-$id-properties-$n.txt" >"$dir/$id-$n.properties"
@@ -82,8 +84,9 @@ ground_truth_reads() {
   local applied="$PACKAGE/applied-mm2.json" pair
   [[ -f "$applied" ]] || stop "run capture.sh mm2-config first"
   [[ -f "$PACKAGE/agent-reported-handoff.json" ]] || stop "transcribe the agent-reported (c) first (README, S4)"
-  # Replication per applied pair (source side), with the pair's own offsets topic.
-  while IFS=$'\t' read -r pair source target offsets topics; do
+  # Replication per applied pair (source side), with the pair's own offsets topic. The pairs come in
+  # on fd 3: `docker compose exec` forwards stdin and would read the rest of the list (I4b S4).
+  while IFS=$'\t' read -r -u 3 pair source target offsets topics; do
     local src_boot tgt_boot fmt
     [[ "$source" == redpanda ]] && { src_boot="$REDPANDA" tgt_boot="$KAFKA" fmt=rpk; } ||
       { src_boot="$KAFKA" tgt_boot="$REDPANDA" fmt=kafka; }
@@ -99,7 +102,7 @@ ground_truth_reads() {
     for topic in $topics; do topic_args+=(--topic "$topic"); done
     verdict GT "$pair-replication" -- replication --offsets "$RAW/GT-$pair-offsets.txt" \
       --source-end "$RAW/GT-$pair-source-end.txt" --format "$fmt" "${topic_args[@]}"
-  done < <(python3 -c 'import json, sys
+  done 3< <(python3 -c 'import json, sys
 for p in json.load(open(sys.argv[1]))["pairs"]:
     print("\t".join([p["pair"], p["source"], p["target"], p["offsets"], " ".join(p["topics"])]))' "$applied")
   # Lag: the remaining Redpanda consumers on the catalog topics; the moved groups on Kafka.
@@ -134,6 +137,20 @@ for p in json.load(open(sys.argv[1]))["pairs"]:
     --out "$PACKAGE/handoff-after.json" || true
 }
 
+# P1b for every applied pair (owner review of the I4b plan): both brokers' topic listings once, then
+# config_checks.py p1b per pair into p1b-<source>-to-<target>.json.
+p1b_reads() {
+  local applied="$PACKAGE/applied-mm2.json" pair
+  [[ -f "$applied" ]] || stop "run capture.sh mm2-config first"
+  record P1B kafka-topics -- ktool "$KAFKA" kafka-topics.sh --describe
+  record P1B redpanda-topics -- rpk topic list
+  while read -r pair; do
+    python3 "$I4_DIR/config_checks.py" --out "$PACKAGE/p1b-${pair/->/-to-}.json" p1b --static "$applied" \
+      --pair "$pair" "$RAW/P1B-kafka-topics.txt" "$RAW/P1B-redpanda-topics.txt" || true
+  done < <(python3 -c 'import json, sys
+print("\n".join(p["pair"] for p in json.load(open(sys.argv[1]))["pairs"]))' "$applied")
+}
+
 case "$WHAT" in
   b-r) capture b-r BR kafka:sokol111-local localhost:9092 "${REDPANDA_GROUPS[@]}" ;;
   a-r) capture a-r AR kafka:sokol111-local localhost:9092 "${REDPANDA_GROUPS[@]}" ;;
@@ -145,6 +162,7 @@ case "$WHAT" in
     cp "$RAW/IMAGES-$2.txt" "$PACKAGE/images/$2.txt"
     ;;
   mm2-config) mm2_config ;;
+  p1b) p1b_reads ;;
   ground-truth) ground_truth_reads ;;
   *) stop "unknown: $WHAT" ;;
 esac

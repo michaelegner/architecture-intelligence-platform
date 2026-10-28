@@ -6,6 +6,7 @@
 - helm_checks.py (K7 against the applied ConfigMaps): only kafka.brokers changes, nothing else.
 - ground_truth.py: the hand-off read after the wave, on the I3 run's real broker-tool output, with
   the installed offset labelled agent-reported.
+- e6_gate.py (I4b): every expected verdict says PASSED; a FAILED or a missing verdict fails it.
 """
 
 import json
@@ -18,6 +19,7 @@ REPO = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO / "harness/v08/i4"))
 
 import config_checks
+import e6_gate
 import ground_truth
 import helm_checks
 from _i3 import checker
@@ -55,6 +57,14 @@ def test_derived_internal_topics_equal_the_i3_names():
         assert result["internal_topics"][pair] == {
             role: sorted(names) for role, names in checker.internal_topics(flow).items()
         }
+
+
+def test_offset_syncs_on_the_target_are_named_after_the_source(tmp_path):
+    """MirrorMaker 2 names the offset-syncs topic after the cluster that does not hold it; the I4b
+    run's flows used `offset-syncs.topic.location = target` (S4, both broker listings)."""
+    flow_a = edited(tmp_path, FLOWS[0], add="redpanda->kafka.offset-syncs.topic.location = target")
+    topics = config_checks.check_static([flow_a, FLOWS[1]])["internal_topics"]["redpanda->kafka"]
+    assert "mm2-offset-syncs.redpanda.internal" in topics["target"] and topics["source"] == []
 
 
 @pytest.mark.parametrize(
@@ -232,6 +242,9 @@ def test_mm2_processes_in_both_shapes():
     )
     assert config_checks.mm2_properties(top) == ["/etc/mm2/flow-a.properties", "/work/b.properties"]
     assert config_checks.mm2_properties("COMMAND\n/etc/kafka/docker/run\n") == []
+    # Docker 29 refuses `-eo args` without a PID column (I4b S4): `-eo pid,args`.
+    with_pid = "PID   COMMAND\n92653 java -cp x org.apache.kafka.connect.mirror.MirrorMaker /mm2/mm2.properties\n"
+    assert config_checks.mm2_properties(with_pid) == ["/mm2/mm2.properties"]
 
 
 # --- Proof C ---------------------------------------------------------------------------------------
@@ -267,3 +280,39 @@ def test_handoff_must_cover_both_moved_groups_exactly(tmp_path, groups, problem)
     result = handoff(tmp_path, 1, groups)
     assert result["result"] == "FAILED"
     assert result["coverage"][problem]
+
+
+def e6_package(tmp_path: Path) -> tuple[Path, Path]:
+    """A package with every verdict the gate expects, all PASSED."""
+    pairs = [{"pair": "redpanda->kafka"}, {"pair": "kafka->redpanda"}]
+    (tmp_path / "raw").mkdir()
+    (tmp_path / "applied-mm2.json").write_text(json.dumps({"result": "PASSED", "pairs": pairs}))
+    functional = tmp_path / "raw" / "FT.check.json"
+    for path in e6_gate.expected(tmp_path, functional)[1:]:
+        path.write_text('{"result": "PASSED"}')
+    return tmp_path, functional
+
+
+def test_e6_gate_passes_only_on_every_expected_verdict(tmp_path):
+    package, functional = e6_package(tmp_path)
+    assert e6_gate.gate(package, functional)["result"] == "PASSED"
+    assert len(e6_gate.expected(package, functional)) == 12
+
+
+def test_e6_gate_fails_on_a_failed_verdict(tmp_path):
+    package, functional = e6_package(tmp_path)
+    (package / "p1b-kafka-to-redpanda.json").write_text('{"result": "FAILED"}')
+    result = e6_gate.gate(package, functional)
+    assert result["result"] == "FAILED"
+    assert result["problems"] == [f"{package}/p1b-kafka-to-redpanda.json: FAILED"]
+
+
+def test_e6_gate_fails_on_a_missing_verdict(tmp_path):
+    """I4b S4: a pair whose replication was never evaluated must not pass by absence."""
+    package, functional = e6_package(tmp_path)
+    (package / "raw" / "GT-kafka->redpanda-replication.check.json").unlink()
+    result = e6_gate.gate(package, functional)
+    assert result["result"] == "FAILED"
+    assert result["problems"] == [
+        f"{package}/raw/GT-kafka->redpanda-replication.check.json: MISSING"
+    ]
