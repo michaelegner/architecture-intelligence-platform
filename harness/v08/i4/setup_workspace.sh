@@ -70,6 +70,11 @@ for rule in settings["permissions"]["deny"]:
     else:
         rules.append(rule.replace("/__RUN_HOME__", "/" + run_home))
 settings["permissions"]["deny"] = rules
+# Plan-file rules are absolute: a relative `./plan.json` follows the session's Bash `cd` (I4b S2
+# attempt 1: after `cd src`, the allowed plan write was denied).
+settings["permissions"]["allow"] = [
+    rule.replace("/__RUN_HOME__", "/" + run_home) for rule in settings["permissions"]["allow"]
+]
 open(out, "w").write(json.dumps(settings, indent=2) + "\n")
 EOF
 

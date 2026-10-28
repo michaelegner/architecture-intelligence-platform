@@ -17,8 +17,8 @@
       "Read(/__RUN_HOME__/claude-planning/**)",
       "Edit(//**/.claude/**)",
       "Edit(/__RUN_HOME__/claude-*/**)",
-      "Edit(./plan.json)",
-      "Edit(./plan.md)",
+      "Edit(/__RUN_HOME__/workspace/plan.json)",
+      "Edit(/__RUN_HOME__/workspace/plan.md)",
       "WebFetch",
       "WebSearch"
     ]

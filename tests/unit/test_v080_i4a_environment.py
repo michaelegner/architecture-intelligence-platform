@@ -66,15 +66,18 @@ def test_session_settings_deny_operator_state_and_the_package(session):
 
 def test_planning_writes_only_the_plan():
     allow = json.loads((I4 / "agent/settings.planning.json").read_text())["permissions"]["allow"]
-    assert [r for r in allow if r.startswith("Edit")] == ["Edit(./plan.json)", "Edit(./plan.md)"]
+    assert [r for r in allow if r.startswith("Edit")] == [
+        "Edit(/__RUN_HOME__/workspace/plan.json)",
+        "Edit(/__RUN_HOME__/workspace/plan.md)",
+    ]
     assert "Bash" not in allow and all(not r.startswith("Bash(docker rm") for r in allow)
 
 
 def test_execution_cannot_touch_the_frozen_plan_or_the_planning_session():
     deny = json.loads((I4 / "agent/settings.execution.json").read_text())["permissions"]["deny"]
     assert {
-        "Edit(./plan.json)",
-        "Edit(./plan.md)",
+        "Edit(/__RUN_HOME__/workspace/plan.json)",
+        "Edit(/__RUN_HOME__/workspace/plan.md)",
         "Read(/__RUN_HOME__/claude-planning/**)",
     } <= set(deny)
 
@@ -122,6 +125,9 @@ def test_setup_planning_then_execution(tmp_path):
     slug = str(REPO).replace("/", "-")
     assert any(rule.startswith("Read(//tmp/claude-") and slug in rule for rule in deny)
     assert f"Read(/{run_home.resolve()}/package/**)" in deny
+    allow = json.loads((config / "settings.json").read_text())["permissions"]["allow"]
+    assert not any("__RUN_HOME__" in rule for rule in allow)
+    assert f"Edit(/{run_home.resolve()}/workspace/plan.json)" in allow
     assert "CLAUDE_CODE_DISABLE_AUTO_MEMORY=1" in result.stdout
 
     again = setup(run_home, "planning", home)
@@ -135,6 +141,7 @@ def test_setup_planning_then_execution(tmp_path):
     assert setup(run_home, "execution", home).returncode == 0
     execution = json.loads((run_home / "claude-execution/settings.json").read_text())
     assert f"Read(/{run_home.resolve()}/claude-planning/**)" in execution["permissions"]["deny"]
+    assert f"Edit(/{run_home.resolve()}/workspace/plan.md)" in execution["permissions"]["deny"]
 
 
 def test_run_audit_passes_every_withheld_location(tmp_path):
