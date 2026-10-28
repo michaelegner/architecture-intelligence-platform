@@ -768,25 +768,32 @@ v0.8 also adds schema field descriptions for `destination_id` and `broker_id` on
 
 ## v0.9 — Contextual Architecture Intelligence Integration (proposed)
 
-**Goal:** Combine AIP's evidence-qualified binding picture with independent contextual tooling
-to support problem-specific architectural understanding ahead of customer evaluation.
-AIP owns architectural semantics and projections; contextual tools own exploration and visualization.
+**Goal:** Prepare AIP's evidence-qualified binding picture for customer evaluation through
+independent contextual tooling that makes architectural relationships understandable for a
+concrete engineering question. AIP owns architectural knowledge and semantic projections;
+contextual tools own problem-specific exploration, visualization and interpretation.
 
-**Increments:**
+**Requirements:**
 
-1. **I1 — Interoperability:** Validate AIP's existing REST/MCP binding-picture and evidence
-   interfaces with an independent client. Address only demonstrated integration gaps.
-2. **I2 — Reference integration:** Explore the same Sokol111 migration question through small
-   **Glamorous Toolkit** (moldable views) and **Unblocked** (cross-source, agent-centered) spikes.
-   Compare contextual understanding, evidence traceability and integration effort; select a
-   suitable candidate for customer evaluation.
-3. **I3 — Evaluation readiness:** Prepare reproducible tasks, expected findings and a comparison
-   of existing tools, contextual tooling alone, and contextual tooling with AIP. Assess
-   comprehension, decision quality and total engineering/owner effort.
+- **Interoperability:** Make existing read-only REST/MCP binding-picture and evidence interfaces
+  usable by independent contextual tooling. Extend AIP only for demonstrated integration gaps.
+- **Reference integrations:** Compare minimal integrations with **Glamorous Toolkit** (moldable,
+  visual exploration) and **Unblocked** (cross-source, agent-centered context) using the same
+  Sokol111 migration scenario. Select the approach best suited to customer evaluation.
+- **Contextual understanding:** Show why a binding matters to the proposed change, which
+  explicit assumptions it challenges, which promises or objectives are relevant, and what
+  qualified before/after evidence establishes. Keep AIP claims distinct from interpretations
+  and engineering decisions.
+- **Traceability:** Preserve qualification, provenance, observation context, limitations and
+  unresolved results when architectural knowledge is presented through contextual tooling.
+- **Evaluation preparation:** Define reproducible customer tasks and independent expected
+  findings. Compare existing engineering tools, contextual tooling without AIP, and the same
+  tooling with AIP for comprehension, decision quality, traceability and total effort.
 
-**Exit:** One usable integration path and a repeatable customer-evaluation protocol.
-No AIP-owned contextual UI or new architecture-question class; product value remains to be
-validated with a target customer.
+**Expected outcome:** One usable, documented integration path with problem-specific architectural
+views and evidence navigation, a justified choice of contextual tooling, and a repeatable
+target-customer evaluation approach. Product value remains to be established with a real customer;
+the release introduces no AIP-owned contextual UI or new architecture-question class.
 
 ## After v0.9 — Target-customer evaluation and scope decisions
 
