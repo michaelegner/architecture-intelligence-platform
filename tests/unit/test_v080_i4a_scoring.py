@@ -231,3 +231,28 @@ def test_reference_digest_is_checked(tmp_path):
     with pytest.raises(SystemExit, match="pinned digest"):
         score.check_reference_digest(changed)
     score.check_reference_digest()
+
+
+def test_a_shared_ref_is_narrowed_by_the_other_refs():
+    """Found on a live answer: a group -> Service mapping ref belongs to every row of that consumer.
+    Cited with the row's attachment ref it names that row; cited alone it names all of them."""
+    rec = recording()
+    rows = rec["agent_requests"][0]["answer"]["data"]["rows"]
+    shared = "binding-evidence:mapping-category-query"
+    for row in rows:
+        if row["consumer_service_id"] == "service:ecommerce-category-query-service":
+            row["mapping_evidence_refs"] = [shared]
+    rec["evidence"][0]["answer"]["data"]["entries"].append({"ref": shared, "status": "RESOLVED"})
+    category = next(r for r in C1["rows"] if r["topic_name"] == "catalog.category.events")
+    plan = perfect_plan()
+    plan["items"][2]["architecture_citations"] = [
+        {"snapshot_id": SNAP, "evidence_refs": [_ref(category, "attachment"), shared]}
+    ]
+    scoring = score.score(plan, [], KEY, plan["allow_lists"], {"result": "PASSED"}, {})
+    assert {c["id"]: c["verdict"] for c in citations.check(plan, KEY, rec, scoring)["coverage"]}[
+        "K3"
+    ] == "COVERED"
+    plan["items"][2]["architecture_citations"] = [{"snapshot_id": SNAP, "evidence_refs": [shared]}]
+    assert {c["id"]: c["verdict"] for c in citations.check(plan, KEY, rec, scoring)["coverage"]}[
+        "K3"
+    ] == "DOES_NOT_SUPPORT"

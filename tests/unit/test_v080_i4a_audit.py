@@ -157,12 +157,65 @@ def test_requests_are_extracted_with_the_answer_the_agent_saw(tmp_path):
     answer = {"outcome": "ANSWERED", "snapshot": {"snapshot_id": "s"}}
     request = {"mode": "query", "bounded_context_id": "catalog-management", "environment": "local"}
     lines = [
-        {"type": "assistant", "message": {"content": [{"type": "tool_use", "id": "a", "name": audit.BINDING_TOOL, "input": request}]}},
+        {"type": "assistant", "message": {"content": [{"type": "tool_use", "id": "a", "name": audit.BINDING_TOOL, "input": {"request": request}}]}},
         {"type": "user", "message": {"content": [{"type": "tool_result", "tool_use_id": "a", "content": [{"type": "text", "text": json.dumps(answer)}]}]}},
-        {"type": "assistant", "message": {"content": [{"type": "tool_use", "id": "b", "name": audit.BINDING_TOOL, "input": {**request, "mode": "evidence"}}]}},
+        {"type": "assistant", "message": {"content": [{"type": "tool_use", "id": "b", "name": audit.BINDING_TOOL, "input": {"request": {**request, "mode": "evidence"}}}]}},
     ]  # fmt: skip
     path = tmp_path / "s.jsonl"
     path.write_text("\n".join(json.dumps(line) for line in lines))
     found: list[dict] = []
     audit.audit_session(path, "planning", [CHECKOUT], [], found)
     assert [(r["request"]["mode"], r["transcript_answer"]) for r in found] == [("query", answer)]
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
+        "kubectl get pods -n dev 2>&1 | head",
+        "grep -E 'a|b' src/x/topics.go",
+        "kubectl get cm x -o json | jq '.data | keys'",
+        "echo $(date -u)",
+        "ls src &>/dev/null; cat src/a.yaml",
+        "docker exec redpanda rpk group list 2>/dev/null || true",
+    ],
+)
+def test_read_only_shell_forms_are_not_planning_changes(tmp_path, command):
+    assert kinds(tmp_path, [bash(command)], session="planning") == []
+
+
+@pytest.mark.parametrize(
+    "command",
+    ["kubectl get cm x -o yaml > values.yaml", "cat a >> b", "echo x | tee out.txt"],
+)
+def test_writes_in_planning(tmp_path, command):
+    assert "PLANNING_CHANGE" in kinds(tmp_path, [bash(command)], session="planning")
+
+
+@pytest.mark.parametrize(
+    ("command", "outside"),
+    [
+        ("cat > probe.sh <<'EOF'\ncurl https://example.com\nEOF\nbash probe.sh", False),
+        ("bash -c 'curl -s https://example.com'", True),
+        ("docker exec -e A=1 kafka curl https://example.com", True),
+        ("curl http://catalog.127.0.0.1.nip.io/x", False),
+        ("curl http://catalog.8.8.8.8.nip.io/x", True),
+        ("curl --connect-to ::127.0.0.1: http://catalog.127.0.0.1.nip.io/x", False),
+    ],
+)
+def test_network_targets(tmp_path, command, outside):
+    assert ("NETWORK_OUTSIDE" in kinds(tmp_path, [bash(command)])) is outside
+
+
+def test_withheld_paths_match_at_a_path_boundary(tmp_path):
+    run_home = f"{CHECKOUT}-run/workspace/src/x.yaml"
+    assert kinds(tmp_path, [("Read", {"file_path": run_home})]) == []
+    assert kinds(tmp_path, [("Read", {"file_path": CHECKOUT})]) == ["WITHHELD_PATH"]
+
+
+def test_file_content_is_not_a_locator(tmp_path):
+    """A plan may quote AIP's producer name; only paths, patterns, URLs and commands count."""
+    content = {
+        "file_path": "/home/op/run/workspace/plan.md",
+        "content": "producer architecture-intelligence-platform",
+    }
+    assert kinds(tmp_path, [("Write", content)], session="planning") == []

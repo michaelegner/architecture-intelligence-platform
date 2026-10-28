@@ -4,7 +4,8 @@ AIP answers (`record_answers.py`), never against a live query.
 Per citation:
 - RESOLVED: a row citation names a row of the recorded answer to one of the agent's requests at the
   cited snapshot; a ref citation names refs that appear in such an answer and that evidence mode
-  resolved (`RESOLVED`) for that request;
+  resolved (`RESOLVED`) for that request. A ref citation names the rows that carry every cited ref
+  (a mapping ref alone is shared by all rows of its consumer);
 - SUPPORTS: for an item that a binding key item (K1-K4) matched, the cited row's topic is one of the
   item's topics and its crossing is INBOUND or OUTBOUND. For other items AIP citations are optional
   and this rule does not apply.
@@ -37,7 +38,9 @@ class Recorded:
 
     def __init__(self, recording: dict):
         self.rows: dict[str, dict[tuple, dict]] = {}
-        self.ref_rows: dict[str, dict[str, tuple]] = {}
+        # A ref can belong to several rows (a group -> Service mapping ref is shared by every row of
+        # that consumer), so each ref keeps the set of its rows, never only the last one.
+        self.ref_rows: dict[str, dict[str, set[tuple]]] = {}
         self.resolved: dict[str, set[str]] = {}
         for exchange in recording["agent_requests"]:
             answer = exchange["answer"]
@@ -48,7 +51,9 @@ class Recorded:
                 self.rows.setdefault(snapshot, {})[row_key(row)] = row
                 for field in REF_FIELDS:
                     for ref in row[field]:
-                        self.ref_rows.setdefault(snapshot, {})[ref] = row_key(row)
+                        self.ref_rows.setdefault(snapshot, {}).setdefault(ref, set()).add(
+                            row_key(row)
+                        )
         for exchange in recording.get("evidence", []):
             answer = exchange["answer"]
             snapshot = exchange["request"]["snapshot_id"]
@@ -60,12 +65,14 @@ class Recorded:
         """(RESOLVED or UNRESOLVED, the row keys the citation names)."""
         snapshot = citation["snapshot_id"]
         if "evidence_refs" in citation:
+            # The citation names the rows that carry every cited ref.
             refs = citation["evidence_refs"]
             known = self.ref_rows.get(snapshot, {})
             ok = bool(refs) and all(
                 r in known and r in self.resolved.get(snapshot, set()) for r in refs
             )
-            return (RESOLVED if ok else UNRESOLVED), sorted({known[r] for r in refs if r in known})
+            rows = set.intersection(*(known[r] for r in refs)) if ok else set()
+            return (RESOLVED if rows else UNRESOLVED), sorted(rows)
         if not all(citation.get(k) for k in ("broker_id", "topic_name", "consumer_service_id")):
             return UNRESOLVED, []
         key = row_key(citation)

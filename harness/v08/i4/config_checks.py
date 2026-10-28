@@ -223,6 +223,24 @@ def check_p1b(static: dict, pair: str, kafka_listing: Path, redpanda_listing: Pa
     )
 
 
+MM2_ANCHORS = ("connect-mirror-maker.sh", "org.apache.kafka.connect.mirror.MirrorMaker")
+
+
+def mm2_properties(top: str) -> list[str]:
+    """The properties files of the MirrorMaker 2 processes in one container's `docker top <id> -eo
+    args` output. A flow may run as the container's command or through `docker exec`, as the shell
+    script or as the Java process it execs; the file is the argument after the script or class."""
+    found = []
+    for line in top.splitlines():
+        words = line.split()
+        for at, word in enumerate(words[:-1]):
+            if word.endswith(MM2_ANCHORS[0]) or word == MM2_ANCHORS[1]:
+                if not words[at + 1].startswith("-"):
+                    found.append(words[at + 1])
+                break
+    return sorted(set(found))
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     sub = parser.add_subparsers(dest="command", required=True)

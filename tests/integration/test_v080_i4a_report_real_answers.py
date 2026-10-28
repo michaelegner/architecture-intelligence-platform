@@ -7,6 +7,7 @@ could drift from them. The inputs are the I2 vectors, not the frozen I3 release 
 before-wave stand-in, then, on a clean graph, the I2 two-broker fixture as the after-wave stand-in.
 """
 
+import json
 import sys
 
 import pytest
@@ -37,6 +38,7 @@ from .binding_picture_support import (
 sys.path.insert(0, str(REPO / "harness/v08/i4"))
 
 import citations
+import proof_c
 import report
 import score
 
@@ -129,5 +131,13 @@ def test_report_on_real_answers(real_inputs, tmp_path):
     assert report.wording_problems(html) == []
     crossing = [r for r in after["data"]["rows"] if r["crossing"] in ("INBOUND", "OUTBOUND")]
     assert len(crossing) == 6
-    assert html.count('<span class="agent">m-') == len(crossing)  # one plan item per chain
+    chains = html[html.index("<h2>3. Agent") : html.index("Proof A: the plan")]
+    assert chains.count('<span class="agent">m-') == len(crossing)  # one plan item per chain
     assert "none: observed, undeclared" in html and "promised: " in html
+
+
+def test_the_two_broker_answer_is_proof_c(real_inputs):
+    """The I2 two-broker fixture is the source of expected-after.json, so its real answer passes."""
+    _, after, _, _ = real_inputs
+    expected = json.loads(proof_c.EXPECTED_AFTER.read_text())
+    assert proof_c.check({"report_request": {"answer": after}}, expected)["result"] == "PASSED"

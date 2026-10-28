@@ -93,17 +93,26 @@ def record(client: httpx.Client, phase: str, agent_requests: list[dict], plan: d
 
     recording: dict = {"phase": phase}
     report = post("/api/binding-picture", report_request(phase))
-    if report["data"] and report["data"]["page"]["next_cursor"]:
+    if report["data"] and report["data"]["page"].get("next_cursor"):
         raise Stop("the report request needs more than one page")
     recording["report_request"] = {"request": report_request(phase), "answer": report}
     if phase == "after":
         return recording
+    cites = any(item["architecture_citations"] for item in (plan or {"items": []})["items"])
+    if cites and not agent_requests:
+        raise Stop(
+            "the plan cites AIP, but no binding-picture request was read from the transcript"
+        )
     exchanges = []
     for entry in agent_requests:
         request = {k: v for k, v in entry["request"].items() if k != "mode"}
         answer = post("/api/binding-picture", request)
         seen = entry.get("transcript_answer")
-        if seen is not None and canonical(seen) != canonical(answer):
+        if seen is None:  # the only proof that the agent saw this snapshot: never skipped
+            raise Stop(
+                f"request {entry['index']}: the agent's answer was not read from the transcript"
+            )
+        if canonical(seen) != canonical(answer):
             raise Stop(f"the replayed answer differs from the agent's (request {entry['index']})")
         exchanges.append({"index": entry["index"], "request": request, "answer": answer})
     recording["agent_requests"] = exchanges

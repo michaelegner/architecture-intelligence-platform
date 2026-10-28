@@ -7,6 +7,7 @@ It is built only from frozen inputs, named in a manifest (JSON, paths relative t
     scoring, citations     score.py and citations.py results
     replication, lag       lists of I3 checker verdicts (broker tools)
     handoff                ground_truth.py result; applied_mm2, applied_helm: the configuration checks
+    proof_c                proof_c.py result
     functional_test        the functional test verdict
     audit, agent           audit.py result; the agent record (model, digests, freeze time,
                            interventions)
@@ -133,6 +134,7 @@ def render(manifest: Path) -> str:
             "scoring",
             "citations",
             "handoff",
+            "proof_c",
             "applied_mm2",
             "applied_helm",
             "functional_test",
@@ -163,6 +165,7 @@ def render(manifest: Path) -> str:
         chains=chains(inputs, key, plan),
         gone=no_live_attachment(inputs),
         plan=plan,
+        plan_items_by_id={item["id"]: item for item in plan["items"]},
         plan_md=(base / paths["plan_md"]).read_text(),
         amendments=amendments,
         key=key,

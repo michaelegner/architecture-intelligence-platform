@@ -19,8 +19,8 @@ h1 { font-size: 1.9rem; margin-top: 2.5rem; } h2 { margin-top: 3rem; border-bott
 table { border-collapse: collapse; width: 100%; margin: 1rem 0; font-size: 0.92rem; display: block; overflow-x: auto; }
 th, td { border: 1px solid var(--line); padding: 0.35rem 0.5rem; text-align: left; vertical-align: top; }
 .undeclared { color: var(--warn); font-weight: 600; }
-.PASSED, .MATCHED, .COVERED { color: var(--ok); font-weight: 600; }
-.FAILED, .DIFFERENT, .MISSING, .INCOMPLETE, .NOT_CITED, .DOES_NOT_SUPPORT { color: var(--bad); font-weight: 600; }
+.PASSED, .MATCHED, .COVERED, .RESOLVED, .SUPPORTS, .JUSTIFIED { color: var(--ok); font-weight: 600; }
+.FAILED, .DIFFERENT, .MISSING, .INCOMPLETE, .NOT_CITED, .DOES_NOT_SUPPORT, .UNRESOLVED, .UNJUSTIFIED { color: var(--bad); font-weight: 600; }
 .agent { background: var(--quote); border-left: 3px solid var(--line); margin: 0.3rem 0; padding: 0.3rem 0.6rem; display: block; white-space: pre-wrap; }
 code { font-size: 0.88em; }
 </style>
@@ -123,6 +123,17 @@ correct; the mechanism is checked by the broker tools and the functional test.</
 <p>Mechanism items without an implementation justification: {{ citations.unjustified | join(", ") or "none" }}.
 Citations that did not resolve: {{ citations.unresolved | join(", ") or "none" }}.</p>
 
+<h3>The plan, item by item, with the AIP claims each item cites</h3>
+<table>
+<tr><th>Plan item</th><th>AIP claims cited (resolution, support)</th><th>Implementation justification</th></tr>
+{% for checked in citations["items"] %}
+{% set item = plan_items_by_id[checked.id] %}
+<tr><td><span class="agent">{{ item.id }}: {{ item.action }}</span></td>
+<td>{% for c in checked.citations %}{% for r in c.rows %}{{ r[2] | service }} &times; <code>{{ r[1] }}</code> {% endfor %}{% if not c.rows %}<code>{{ c.citation | tojson }}</code> {% endif %}<span class="{{ c.resolution }}">{{ c.resolution }}</span>{% if c.support is defined %}, <span class="{{ c.support }}">{{ c.support }}</span>{% endif %}<br>{% else %}none{% endfor %}</td>
+<td><span class="{{ checked.justification }}">{{ checked.justification }}</span>{% for j in item.implementation_justification %}<span class="agent">[{{ j.kind }}] {{ j.reference }}{% if j.get("note") %}: {{ j.note }}{% endif %}</span>{% endfor %}</td></tr>
+{% endfor %}
+</table>
+
 <h3>The agent's plan, as written</h3>
 <blockquote class="agent">{{ plan_md }}</blockquote>
 {% if amendments %}
@@ -152,6 +163,9 @@ beyond them):</p>
 {% endfor %}
 </ul>
 {% endif %}
+
+<p>Proof C, the after-wave answer against the reference frozen before the run
+(<code>expected-after.json</code>): <span class="{{ proof_c.result }}">{{ proof_c.result }}</span>.</p>
 
 <h3>External checks, apart from AIP's claims</h3>
 <table>
@@ -189,7 +203,7 @@ the instrument that establishes it.</p>
 <li>Agent: {{ agent.model }} in Claude Code {{ agent.claude_code_version }}.</li>
 <li>The agent saw a task card with the goal and the safety constraints only (SHA-256 <code>{{ agent.task_card_sha256 }}</code>). It did not see the answer key, the reference runbook, the specifications or the web.</li>
 <li>The plan was frozen at {{ agent.plan_frozen_at }} (SHA-256 <code>{{ agent.plan_sha256 }}</code>), before the first command that changed the environment.</li>
-<li>Transcript audit: {% if audit.clean %}no hit{% else %}{{ audit.hits | length }} hit(s), each recorded with the owner's decision{% endif %}.</li>
+<li>Transcript audit: {% if audit.clean %}no hit{% else %}{{ audit.hits | length }} hit(s), each a waived environment fault that exposed nothing withheld, with its evidence in the run record{% endif %}.</li>
 <li>Operator interventions for environment faults: {% if agent.interventions %}{{ agent.interventions | length }}, listed in the run record{% else %}none{% endif %}.</li>
 </ul>
 

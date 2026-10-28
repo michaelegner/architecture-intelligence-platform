@@ -58,22 +58,22 @@ print("\n".join(helm_checks.configmap_refs(json.load(open(sys.argv[1])))))' \
 }
 
 mm2_config() {
-  local dir="$PACKAGE/applied-mm2" id file files=()
+  # Every running container's processes (docker top), so a flow started as a container's command and
+  # one started with `docker exec` (the task card's kafka image includes MirrorMaker 2) are both found.
+  local dir="$PACKAGE/applied-mm2" id file n=0 files=()
   mkdir -p "$dir"
-  record MM2 containers -- docker ps --no-trunc --format '{{.ID}} {{.Names}} {{.Command}}'
-  while read -r id; do
-    # The properties file is the argument after connect-mirror-maker.sh in the container's command.
-    file="$(docker inspect --format '{{json .Args}} {{json .Config.Cmd}} {{json .Config.Entrypoint}}' "$id" |
-      python3 -c 'import json, sys, re
-words = [w for part in re.findall(r"(\[.*?\]|null)", sys.stdin.read()) for w in (json.loads(part) or [])]
-at = [i for i, w in enumerate(words) if w.endswith("connect-mirror-maker.sh")]
-print(words[at[0] + 1] if at and at[0] + 1 < len(words) else "")')"
-    [[ -n "$file" ]] || stop "container $id: no properties file after connect-mirror-maker.sh"
-    record MM2 "$id-properties" -- docker cp "$id:$file" -
-    tar -xOf "$RAW/MM2-$id-properties.txt" >"$dir/$id.properties"
-    files+=("$dir/$id.properties")
-  done < <(docker ps --no-trunc --format '{{.ID}} {{.Command}}' | awk '/connect-mirror-maker/ {print $1}')
-  [[ ${#files[@]} -gt 0 ]] || stop "no running MirrorMaker 2 container"
+  record MM2 containers -- docker ps --no-trunc --format '{{.ID}} {{.Names}}'
+  while read -r id _; do
+    record MM2 "$id-top" -- docker top "$id" -eo args
+    while read -r file; do
+      n=$((n + 1))
+      record MM2 "$id-properties-$n" -- docker cp "$id:$file" -
+      tar -xOf "$RAW/MM2-$id-properties-$n.txt" >"$dir/$id-$n.properties"
+      files+=("$dir/$id-$n.properties")
+    done < <(python3 -c 'import sys; sys.path.insert(0, sys.argv[1]); import config_checks
+print("\n".join(config_checks.mm2_properties(open(sys.argv[2]).read())))' "$I4_DIR" "$RAW/MM2-$id-top.txt")
+  done <"$RAW/MM2-containers.txt"
+  [[ ${#files[@]} -gt 0 ]] || stop "no running MirrorMaker 2 process"
   python3 "$I4_DIR/config_checks.py" --out "$PACKAGE/applied-mm2.json" static "${files[@]}" || true
 }
 

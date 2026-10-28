@@ -183,6 +183,7 @@ def write_manifest(
         "scoring": scoring,
         "citations": citations.check(plan, KEY, proof_b_recording, scoring),
         "handoff": verdict("handoff-after", entries=[]),
+        "proof_c": verdict("proof-c"),
         "applied_mm2": verdict("applied-mm2"),
         "applied_helm": verdict("applied-helm"),
         "functional_test": json.loads(FUNCTIONAL.read_text()),

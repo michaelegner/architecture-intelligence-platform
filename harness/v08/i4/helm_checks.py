@@ -6,8 +6,8 @@ json`) and every ConfigMap it references (`kubectl get configmap -o json`):
     <dir>/<phase>/<deployment>.deployment.json
     <dir>/<phase>/configmap-<name>.json
 
-The check passes when, for each deployment, the referenced ConfigMaps are the same before and after,
-exactly one of them changed, and that change is the I3 rule (`checker.check_configmap`): same name and
+The check passes when, for each deployment, the pod spec is unchanged (the replica count and the
+rollout annotation are outside it), the referenced ConfigMaps are the same, exactly one of them changed, and that change is the I3 rule (`checker.check_configmap`): same name and
 namespace, and the only changed line is kafka.brokers redpanda:29092 -> kafka:29092.
 """
 
@@ -38,10 +38,8 @@ def configmap_refs(deployment: dict) -> list[str]:
 def check_deployment(root: Path, deployment: str) -> dict:
     problems: list[str] = []
     try:
-        refs = {
-            phase: configmap_refs(
-                json.loads((root / phase / f"{deployment}.deployment.json").read_text())
-            )
+        specs = {
+            phase: json.loads((root / phase / f"{deployment}.deployment.json").read_text())
             for phase in ("before", "after")
         }
     except (OSError, json.JSONDecodeError) as exc:
@@ -49,6 +47,12 @@ def check_deployment(root: Path, deployment: str) -> dict:
             "deployment": deployment,
             "problems": [f"unreadable deployment: {type(exc).__name__}"],
         }
+    refs = {phase: configmap_refs(spec) for phase, spec in specs.items()}
+    # "Only the bootstrap address": the pod spec itself (image, env, args, volumes) is unchanged.
+    # The replica count and the restartedAt annotation of a rollout sit outside it.
+    pods = {p: s.get("spec", {}).get("template", {}).get("spec", {}) for p, s in specs.items()}
+    if pods["before"] != pods["after"]:
+        problems.append("the pod spec changed (image, env, args or volumes)")
     if refs["before"] != refs["after"]:
         problems.append(f"the referenced ConfigMaps changed: {refs['before']} -> {refs['after']}")
     changed = []

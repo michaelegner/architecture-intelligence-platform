@@ -97,3 +97,14 @@ def test_after_records_only_the_report_request():
         ["kafka:sokol111-kafka", "kafka:sokol111-local"]
     ]
     assert set(result) == {"phase", "report_request"}
+
+
+def test_an_unread_transcript_answer_stops():
+    unread = [{**AGENT[0], "transcript_answer": None}]
+    with pytest.raises(SystemExit, match="not read from the transcript"):
+        record_answers.record(client([]), "before", unread, perfect_plan())
+
+
+def test_citations_without_extracted_requests_stop():
+    with pytest.raises(SystemExit, match="no binding-picture request"):
+        record_answers.record(client([]), "before", [], perfect_plan())

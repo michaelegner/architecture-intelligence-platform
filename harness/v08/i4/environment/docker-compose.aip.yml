@@ -1,12 +1,13 @@
 # v0.8 I4 §5: the AIP instance the agent queries, started by the operator from the run home (outside
-# the AIP checkout). The image is built from the I4a merge commit and tagged `aip:v08-i4` (README).
+# the AIP checkout). AIP_IMAGE is the image ID that `docker build -q` prints for the I4a merge commit
+# (README, S1), so the run uses exactly that build.
 # The run home's `aip/config.yaml` is the before- or after-wave profile, and `aip/inputs/` holds only
 # the inputs of that phase (I4 §5: no after-wave input before S4).
 name: aip-v08-i4-aip
 
 services:
   app:
-    image: aip:v08-i4
+    image: ${AIP_IMAGE:?set AIP_IMAGE to the image ID of the I4a merge-commit build}
     ports:
       - "127.0.0.1:8000:8000"
     environment:

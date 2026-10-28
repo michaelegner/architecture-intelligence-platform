@@ -92,3 +92,15 @@ def test_no_live_attachment_here(tmp_path):
     assert (
         "ecommerce-catalog-service &times; <code>tenant.tenant.events</code> on Redpanda" in section
     )
+
+
+def test_every_plan_item_with_its_citations(tmp_path):
+    """Parent §6 part 3: the wave plan, each item linked to the AIP claims it cites."""
+    html = report.render(manifest(tmp_path))
+    section = html[
+        html.index("The plan, item by item") : html.index("The agent's plan, as written")
+    ]
+    for item in perfect_plan()["items"]:
+        assert f'<span class="agent">{item["id"]}: ' in section
+    assert section.count('class="SUPPORTS"') == 6  # the six citations of K1-K4's items
+    assert section.count('class="JUSTIFIED"') == len(perfect_plan()["items"])

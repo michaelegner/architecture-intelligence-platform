@@ -134,6 +134,32 @@ def test_helm_only_the_broker_changes(tmp_path):
     assert helm_checks.check(tmp_path)["result"] == "PASSED"
 
 
+def test_helm_extra_env_var_fails(tmp_path):
+    write_state(tmp_path, "before", "redpanda:29092")
+    write_state(tmp_path, "after", "kafka:29092")
+    path = tmp_path / "after" / f"{helm_checks.DEPLOYMENTS[0]}.deployment.json"
+    spec = json.loads(path.read_text())
+    spec["spec"]["template"]["spec"]["containers"] = [
+        {"name": "app", "env": [{"name": "X", "value": "1"}]}
+    ]
+    path.write_text(json.dumps(spec))
+    result = helm_checks.check(tmp_path)
+    assert result["result"] == "FAILED" and any("pod spec" in p for p in result["problems"])
+
+
+def test_helm_replicas_and_rollout_annotation_are_ignored(tmp_path):
+    write_state(tmp_path, "before", "redpanda:29092")
+    write_state(tmp_path, "after", "kafka:29092")
+    path = tmp_path / "after" / f"{helm_checks.DEPLOYMENTS[1]}.deployment.json"
+    spec = json.loads(path.read_text())
+    spec["spec"]["replicas"] = 0
+    spec["spec"]["template"]["metadata"] = {
+        "annotations": {"kubectl.kubernetes.io/restartedAt": "t"}
+    }
+    path.write_text(json.dumps(spec))
+    assert helm_checks.check(tmp_path)["result"] == "PASSED"
+
+
 @pytest.mark.parametrize(
     ("after_brokers", "extra", "refs"),
     [
@@ -190,3 +216,34 @@ def test_handoff_on_the_i3_run(tmp_path):
 
 def test_handoff_with_a_reported_offset_no_checkpoint_has(tmp_path):
     assert handoff(tmp_path, 0)["result"] == "FAILED"
+
+
+def test_mm2_processes_in_both_shapes():
+    """The flow as a container's command, through `docker exec`, and as the exec'd Java process."""
+    top = (
+        "COMMAND\n"
+        "/bin/bash /opt/kafka/bin/connect-mirror-maker.sh /etc/mm2/flow-a.properties\n"
+        "java -cp /opt/kafka/libs/* org.apache.kafka.connect.mirror.MirrorMaker /work/b.properties"
+        " --clusters kafka\n"
+        "/opt/kafka/bin/kafka-server-start.sh /opt/kafka/config/server.properties\n"
+    )
+    assert config_checks.mm2_properties(top) == ["/etc/mm2/flow-a.properties", "/work/b.properties"]
+    assert config_checks.mm2_properties("COMMAND\n/etc/kafka/docker/run\n") == []
+
+
+# --- Proof C ---------------------------------------------------------------------------------------
+
+
+def test_proof_c_on_the_reference_and_a_departure():
+    import proof_c
+
+    expected = json.loads(proof_c.EXPECTED_AFTER.read_text())
+    answer = {
+        "data": {"rows": [{**r, "group_ids": [], "topic_id": "t"} for r in expected["rows"]]},
+        "limitations": [{"code": c, "message": "m"} for c in expected["limitations"]],
+    }
+    recording = {"report_request": {"answer": answer}}
+    assert proof_c.check(recording, expected)["result"] == "PASSED"
+    answer["data"]["rows"][0]["status"] = "PROMISED_AND_OBSERVED"
+    result = proof_c.check(recording, expected)
+    assert result["result"] == "FAILED" and len(result["unexpected"]) == 1
