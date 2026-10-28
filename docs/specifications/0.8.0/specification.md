@@ -3,7 +3,7 @@
 **Status:** Released in [`v0.8.0`](../../release-validation/v0.8.0-release-record.md) (2026-10-28), from Draft 0.5  
 **Target:** `v0.8.0` (demonstration release)  
 **Baseline:** published and verified `v0.7.2`, plus the doctrine pivot [#635](https://github.com/michaelegner/architecture-intelligence-platform/pull/635).  
-**Scope authority:** [ROADMAP.md — v0.8](../../../ROADMAP.md#v08--binding-picture-showcase-planned-demonstration-release) and the [product doctrine](../../product-doctrine-and-strategic-direction.md)
+**Scope authority:** [ROADMAP.md — v0.8](../../../ROADMAP.md#v08--binding-picture-showcase-shipped-demonstration-release) and the [product doctrine](../../product-doctrine-and-strategic-direction.md)
 
 ## 1. Promise
 
