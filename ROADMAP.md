@@ -45,13 +45,9 @@ shipping. It is exempt from the product-value comparison of the
 [product validation gates](#product-validation-gates). Its roadmap section names it as a
 demonstration release.
 
-**v0.9 is an explicit, one-time validation-enablement exception** to the new-question rule:
-it prepares a contextual-tooling integration and repeatable customer evaluation of the *existing*
-binding-picture question class. It does not claim a new architecture question or product value.
-The integrated path must nevertheless be reproducible, evidence-traceable, qualified end to end and
-release-tested. Any semantic API change must be justified by a demonstrated interoperability gap
-and remain experimental pending customer evaluation. This exception is not a general route for
-future integration-only `0.x.0` releases.
+**v0.9 is a one-time exception** to the new-question rule: it prepares contextual-tooling
+integration and customer evaluation of the existing binding picture, without claiming a new
+semantic capability or product value. Integration must remain evidence-traceable and release-qualified.
 
 A patch release `0.x.y` preserves the `0.x.0` architecture-question space. It is normally for a
 **post-release correction or maintenance change** that preserves the intended semantic contract:
@@ -770,111 +766,40 @@ v0.8 also adds schema field descriptions for `destination_id` and `broker_id` on
 - **No Context Map patterns:** the showcase shows qualified cross-boundary bindings only. It does not
   classify Context Map patterns, because event bindings do not establish them.
 
-## v0.9 — Contextual Architecture Intelligence Integration (proposed; validation-enablement release)
+## v0.9 — Contextual Architecture Intelligence Integration (proposed)
 
-**Goal:** make the binding picture usable by an *independent contextual-tooling product*, and
-prepare a defensible target-customer evaluation of AIP's contribution to architectural situation
-awareness. v0.9 does not make AIP a visualization, knowledge-graph, conversational investigation,
-migration-planning or agent-orchestration product.
+**Goal:** Combine AIP's evidence-qualified binding picture with independent contextual tooling
+to support problem-specific architectural understanding ahead of customer evaluation.
+AIP owns architectural semantics and projections; contextual tools own exploration and visualization.
 
-**Integration question:**
+**Increments:**
 
-> **Can independent contextual tooling use AIP's existing evidence-qualified binding picture to help
-> an architect or coding agent understand a concrete cross-boundary change, trace the claims behind
-> that understanding, and distinguish evidence from contextual reasoning and decisions?**
+1. **I1 — Interoperability:** Validate AIP's existing REST/MCP binding-picture and evidence
+   interfaces with an independent client. Address only demonstrated integration gaps.
+2. **I2 — Reference integration:** Explore the same Sokol111 migration question through small
+   **Glamorous Toolkit** (moldable views) and **Unblocked** (cross-source, agent-centered) spikes.
+   Compare contextual understanding, evidence traceability and integration effort; select a
+   suitable candidate for customer evaluation.
+3. **I3 — Evaluation readiness:** Prepare reproducible tasks, expected findings and a comparison
+   of existing tools, contextual tooling alone, and contextual tooling with AIP. Assess
+   comprehension, decision quality and total engineering/owner effort.
 
-**Starting point:** reuse the v0.8 Sokol111 migration question and its frozen declared/observed
-binding evidence. Reuse the before/after captures as *separate qualified snapshots*, not as an
-AIP-owned temporal inference capability. Scope any extension of AIP to an integration gap shown
-by a working contextual-tooling client.
-
-### I1 — Contextual-tooling interoperability
-
-**Outcome:** a consumer-facing integration contract and executable checks against the existing
-`get_binding_picture` / `get_binding_picture_evidence` REST or MCP interfaces. Verify that a
-client can retrieve participant identifiers, broker/topic/consumer row keys, crossing direction,
-assessment, promise/attachment/mapping evidence references, capture scope, time, and unresolved
-limitations
-without deriving architectural meaning from names or raw source artifacts.
-
-**Acceptance:** reproduce a selected Sokol111 binding picture and resolve its cited evidence through
-an independent client; record any precise API or representation obstacle with a failing example.
-Change AIP semantics or APIs only if an actual integration gap cannot be handled safely by the
-client. Avoid new generic search, graph traversal or visualization endpoints.
-
-### I2 — Reference contextual-tooling integration
-
-**Outcome:** two *minimal, comparable integration spikes*, not two full applications, using the
-same frozen Sokol111 task and qualified AIP inputs:
-
-- **Glamorous Toolkit (GT):** test moldable, deterministic inspectors/views for boundary bindings,
-  per-binding assessments, evidence drill-down, and two-snapshot comparison. Views belong to the GT
-  integration, not AIP's semantic core.
-- **Unblocked:** test cross-source, agent-centered investigation that combines AIP's read-only MCP
-  tools with the Sokol111 repository and migration documentation. First verify connector
-  compatibility, endpoint/authentication requirements, and the ability to retain claim/evidence
-  attribution and limitations in synthesized answers.
-
-Both spikes must support the same four interaction questions: **why this binding matters for the
-stated change; which explicit plan assumption its evidence challenges; which promise or externally
-specified objective could require preserving the relationship; and what the independently qualified
-before/after evidence establishes for the current decision.** A binding's relevance must never be
-silently converted into a preservation obligation, and an explanation or recommendation is not an
-AIP-qualified architectural fact.
-
-**Acceptance:** runnable example for each *feasible* spike, with recorded integration effort,
-traceability, uncertainty handling, and ability to surface a coherent problem-specific view.
-If one integration is blocked or disproportionate, document the blocker rather than expanding
-scope. Select **one preferred customer-evaluation integration** from the evidence; do not require
-both products in the eventual pilot or create a three-product dependency.
-
-### I3 — Customer-evaluation readiness
-
-**Outcome:** a reproducible evaluation package covering the shared investigation, expected
-findings, evaluation prompts/tasks, source and evidence provenance, setup and permissions,
-instrumentation, and a pre-registered decision rubric.
-
-Compare three conditions on equivalent task context:
-
-1. The customer's current engineering workflow and tools.
-2. The selected contextual tool with the customer's available sources but without AIP.
-3. The same contextual tool and sources **with AIP**.
-
-Measure relevant-binding discovery, architectural comprehension (including why it matters),
-decision correctness and supported abstention, evidence traceability, investigation effort, and
-setup/ongoing owner cost. Use independently authored expected findings; separate AIP's incremental
-contribution from the contextual tool's contribution. Define success, failure, and
-**continue / narrow / integrate / defer / stop** criteria before a pilot.
-
-**Acceptance:** another evaluator can run the prepared tasks from documented inputs, resolve
-claims to evidence, distinguish fact from interpretation, and record the same measures across
-conditions. Customer-specific effort, upkeep and coordination value remain **unvalidated**
-until tested in a real multi-team organisation.
-
-**v0.9 exit:** (1) a qualified AIP-to-contextual-tooling integration path, (2) a documented choice
-of an evaluation tool supported by both spikes or their recorded blockers, (3) reproducible
-investigation examples and evidence navigation, and (4) a usable customer-evaluation protocol.
-No new architecture-question class, proof of product value, or stable contract admission is claimed.
-Detailed implementation and acceptance fixtures belong in the v0.9 specification.
+**Exit:** One usable integration path and a repeatable customer-evaluation protocol.
+No AIP-owned contextual UI or new architecture-question class; product value remains to be
+validated with a target customer.
 
 ## After v0.9 — Target-customer evaluation and scope decisions
 
-Run the target-customer evaluation against doctrine §8 (H1 comprehension/decision value and
-H2 sustainable owner effort) before assigning further capability releases or freezing binding-picture
-contracts. The roadmap does not pre-assign subsequent version numbers.
+Evaluate H1 (decision value and comprehension) and H2 (owner effort) with a real multi-team
+customer before assigning further scope or freezing contracts. Subsequent versions are not
+pre-assigned.
 
-The **earlier, superseded provisional v0.9/v0.10 scopes** concerned External Architecture Intent
-and Local Distributed Architecture Assessment. They are not the new integration v0.9: their
-semantics were folded into the binding picture and remain subject to product validation.
-
-These existing semantic rules stay in force:
-
-- with Current-State evidence and qualification inputs held constant, adding, removing or changing
-  promises must not change established Current State;
-- "not observed" never becomes "contradicted" without a supported closed-world rule;
-- the observation window of the evidence and the effective interval of a promise are independent;
-- repository-internal conformance, generic enterprise compliance, policy authoring or approval,
-  automatic remediation, and agent-generated authoritative Intent stay out of scope.
+The former provisional v0.9 (External Architecture Intent) and v0.10 (Local Distributed
+Architecture Assessment) scopes are historical; their semantics now belong to the binding picture.
+Their established constraints still apply: promises do not manufacture Current State; non-observation
+is not contradiction without a supported closed-world rule; promise intervals and observation
+windows remain independent; and internal conformance, policy approval, automatic remediation
+and agent-generated authoritative Intent remain outside the product boundary.
 
 ## v1.0 Release-Candidate Phase — Contract Freeze / Production Qualification (planned)
 
@@ -1045,10 +970,6 @@ qualification, context and limitations, the conclusion can be reproduced from th
 premises, and the workflow is compared with reconstruction from the same available source and
 direct-execution access. Internal semantic correctness alone is necessary but not sufficient
 evidence of product value.
-
-The v0.9 validation-enablement release prepares rather than substitutes for the target-customer
-comparison. Its integration and reproducibility exit checks do not waive H1/H2 product validation
-before stable-contract admission.
 
 Record a continue, narrow, defer, or stop decision when evaluating these gates. Failed gates require
 a documented scope decision and, where release assignment or product boundaries change materially,
