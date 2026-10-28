@@ -1,0 +1,158 @@
+{
+  "schema": "aip-kafka-consumer-state/1",
+  "broker_id": "kafka:sokol111-local",
+  "environment": "local",
+  "captured_at": "2026-10-27T17:49:03Z",
+  "tool_version": "aip-kafka-capture/1+confluent-kafka-2.16.0",
+  "kafka_version": "not-established",
+  "complete": true,
+  "group_scope": [
+    "ecommerce-catalog-service",
+    "ecommerce-category-query-service",
+    "ecommerce-image-service",
+    "ecommerce-product-query-service"
+  ],
+  "groups": [
+    {
+      "group_id": "ecommerce-catalog-service",
+      "state": "Stable",
+      "members": [
+        {
+          "member_id": "kgo-105e7b91-096f-42a9-b41c-bc3177b56f7b",
+          "client_id": "kgo",
+          "host": "172.20.0.4",
+          "assignments": [
+            {
+              "topic": "tenant.tenant.events",
+              "partitions": [
+                0
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "group_id": "ecommerce-category-query-service",
+      "state": "Stable",
+      "members": [
+        {
+          "member_id": "kgo-3564b61a-e1af-4592-b3b1-20120852d103",
+          "client_id": "kgo",
+          "host": "172.20.0.3",
+          "assignments": [
+            {
+              "topic": "tenant.tenant.events",
+              "partitions": [
+                0
+              ]
+            }
+          ]
+        },
+        {
+          "member_id": "kgo-814bd40c-84fd-47ab-b8e1-efcdfcd69f3f",
+          "client_id": "kgo",
+          "host": "172.20.0.3",
+          "assignments": [
+            {
+              "topic": "catalog.attribute.events",
+              "partitions": [
+                0
+              ]
+            }
+          ]
+        },
+        {
+          "member_id": "kgo-9c192cd0-b008-488d-8a8a-1c61baa044fa",
+          "client_id": "kgo",
+          "host": "172.20.0.3",
+          "assignments": [
+            {
+              "topic": "catalog.category.events",
+              "partitions": [
+                0
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "group_id": "ecommerce-image-service",
+      "state": "Stable",
+      "members": [
+        {
+          "member_id": "kgo-2a7a3fa3-03e6-4ea1-be6a-ae2f47ccee74",
+          "client_id": "kgo",
+          "host": "172.20.0.3",
+          "assignments": [
+            {
+              "topic": "catalog.product.events",
+              "partitions": [
+                0
+              ]
+            }
+          ]
+        },
+        {
+          "member_id": "kgo-970acea5-9daa-4065-aee5-711a6cd53b3b",
+          "client_id": "kgo",
+          "host": "172.20.0.3",
+          "assignments": [
+            {
+              "topic": "tenant.tenant.events",
+              "partitions": [
+                0
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "group_id": "ecommerce-product-query-service",
+      "state": "Stable",
+      "members": [
+        {
+          "member_id": "kgo-b5367c23-7081-43c2-b751-0a09b7a1362b",
+          "client_id": "kgo",
+          "host": "172.20.0.3",
+          "assignments": [
+            {
+              "topic": "catalog.attribute.events",
+              "partitions": [
+                0
+              ]
+            }
+          ]
+        },
+        {
+          "member_id": "kgo-d8d07b80-08d0-4d5c-9023-969eab4ea02a",
+          "client_id": "kgo",
+          "host": "172.20.0.3",
+          "assignments": [
+            {
+              "topic": "tenant.tenant.events",
+              "partitions": [
+                0
+              ]
+            }
+          ]
+        },
+        {
+          "member_id": "kgo-f5f6ef7f-2e95-47c2-9fa3-4b95a4e82e29",
+          "client_id": "kgo",
+          "host": "172.20.0.3",
+          "assignments": [
+            {
+              "topic": "catalog.product.events",
+              "partitions": [
+                0
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

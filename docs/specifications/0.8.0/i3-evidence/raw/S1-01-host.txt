@@ -1,0 +1,10 @@
+5.15.153.1-microsoft-standard-WSL2
+cgroup fs: tmpfs
+docker 29.9.2
+Docker Compose version v5.6.1
+k3d version v5.9.0
+k3s version v1.35.5-k3s1 (default)
+v0.37.8, built 2026-10-01
+v3.22.0+g144ca65
+Client Version: v1.36.1
+Kustomize Version: v5.8.1

@@ -1,0 +1,12 @@
+NAME                             PARTITIONS  REPLICAS
+catalog.attribute.events         1           1
+catalog.category.events          1           1
+catalog.product.events           1           1
+heartbeats                       1           1
+kafka.checkpoints.internal       1           1
+kafka.heartbeats                 1           1
+mm2-flow-b-configs               1           1
+mm2-flow-b-offsets               25          1
+mm2-flow-b-status                5           1
+mm2-offset-syncs.kafka.internal  1           1
+tenant.tenant.events             1           1

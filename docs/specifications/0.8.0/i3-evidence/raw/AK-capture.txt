@@ -1,0 +1,1 @@
+wrote <AIP checkout>/docs/specifications/0.8.0/i3-evidence/raw/../captures/a-k/kafka-consumer-state.json complete=True

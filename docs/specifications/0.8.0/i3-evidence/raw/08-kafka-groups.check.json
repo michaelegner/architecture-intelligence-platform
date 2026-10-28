@@ -1,0 +1,13 @@
+{
+  "kind": "state",
+  "not_allowed": [],
+  "result": "PASSED",
+  "rule": "each group's state is one of ['Stable']",
+  "sources": [
+    "<AIP checkout>/docs/specifications/0.8.0/i3-evidence/raw/08-kafka-groups.txt"
+  ],
+  "states": {
+    "ecommerce-catalog-service": "Stable",
+    "ecommerce-image-service": "Stable"
+  }
+}

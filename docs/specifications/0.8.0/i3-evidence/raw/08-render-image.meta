@@ -1,0 +1,3 @@
+utc: 2026-10-27T19:16:00Z
+command: helm template ecommerce-image-service <run home>/src/ecommerce-infrastructure/helm/ecommerce-image-service --namespace dev -f <run home>/src/ecommerce-infrastructure/environments/local/values/ecommerce-image-service.yaml -f <run home>/src/ecommerce-infrastructure/helm/ecommerce-image-service/values.debug.yaml -f <AIP checkout>/docs/specifications/0.8.0/i3-evidence/environment/values-i3-image.yaml --show-only templates/configmap.yaml
+exit: 0

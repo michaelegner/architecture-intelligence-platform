@@ -1,0 +1,6 @@
+NAME                             PARTITIONS  REPLICAS
+catalog.attribute.events         1           1
+catalog.category.events          1           1
+catalog.product.events           1           1
+mm2-offset-syncs.kafka.internal  1           1
+tenant.tenant.events             1           1

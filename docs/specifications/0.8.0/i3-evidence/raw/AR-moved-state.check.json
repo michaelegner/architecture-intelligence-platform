@@ -1,0 +1,13 @@
+{
+  "kind": "state",
+  "not_allowed": [],
+  "result": "PASSED",
+  "rule": "each group's state is one of ['Empty', 'Dead']",
+  "sources": [
+    "<AIP checkout>/docs/specifications/0.8.0/i3-evidence/raw/AR-g-moved.txt"
+  ],
+  "states": {
+    "ecommerce-catalog-service": "Empty",
+    "ecommerce-image-service": "Empty"
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "deadline": 40,
+  "elapsed": 0,
+  "group": "ecommerce-category-query-service",
+  "kind": "lag",
+  "missing_topics": [],
+  "partitions": [
+    {
+      "current": 20,
+      "lag": 0,
+      "partition": 0,
+      "topic": "catalog.attribute.events"
+    },
+    {
+      "current": 4,
+      "lag": 0,
+      "partition": 0,
+      "topic": "catalog.category.events"
+    }
+  ],
+  "result": "PASSED",
+  "rule": "lag 0 for the group on every partition of each topic",
+  "sources": [
+    "<AIP checkout>/docs/specifications/0.8.0/i3-evidence/raw/05-category-query-describe.txt"
+  ]
+}

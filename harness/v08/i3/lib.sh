@@ -23,6 +23,8 @@ POLL_SECONDS=5
 GROUP_STATE_DEADLINE_SECONDS=$((45 + 30))
 POD_STOP_DEADLINE_SECONDS=$((30 + 30))
 APP_START_DEADLINE_SECONDS=120
+# P4 waits for the freshly started broker to answer (KRaft start, no image pull: the image is local).
+KAFKA_START_DEADLINE_SECONDS=60
 
 # The single entry point for Compose (memory rule: compose run identity).
 frozen_compose() {

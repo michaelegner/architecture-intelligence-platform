@@ -1,0 +1,587 @@
+{
+  "checks": [
+    {
+      "flow": "mm2-flow-a",
+      "id": "02-mm2-flow-a-p1b",
+      "kind": "p1b",
+      "problems": [],
+      "result": "PASSED",
+      "rule": "every internal topic of the flow exists with replication factor 1",
+      "sources": [
+        "<AIP checkout>/docs/specifications/0.8.0/i3-evidence/raw/02-mm2-flow-a-kafka-topics.txt",
+        "<AIP checkout>/docs/specifications/0.8.0/i3-evidence/raw/02-mm2-flow-a-redpanda-topics.txt"
+      ]
+    },
+    {
+      "deadline": 40,
+      "elapsed": 17,
+      "id": "02-replication",
+      "kind": "replication",
+      "missing_topics": [],
+      "partitions": [
+        {
+          "caught_up": true,
+          "end": 1,
+          "last_replicated": 0,
+          "partition": 0,
+          "topic": "tenant.tenant.events"
+        }
+      ],
+      "result": "PASSED",
+      "rule": "last replicated source offset + 1 = source end offset, per source partition",
+      "sources": [
+        "<AIP checkout>/docs/specifications/0.8.0/i3-evidence/raw/02-flow-a-offsets.txt",
+        "<AIP checkout>/docs/specifications/0.8.0/i3-evidence/raw/02-redpanda-end.txt"
+      ]
+    },
+    {
+      "deadline": 40,
+      "elapsed": 1,
+      "group": "ecommerce-image-service",
+      "id": "03-image-lag",
+      "kind": "lag",
+      "missing_topics": [],
+      "partitions": [
+        {
+          "current": 120,
+          "lag": 0,
+          "partition": 0,
+          "topic": "catalog.product.events"
+        }
+      ],
+      "result": "PASSED",
+      "rule": "lag 0 for the group on every partition of each topic",
+      "sources": [
+        "<AIP checkout>/docs/specifications/0.8.0/i3-evidence/raw/03-image-describe.txt"
+      ]
+    },
+    {
+      "id": "04-groups-state",
+      "kind": "state",
+      "not_allowed": [],
+      "result": "PASSED",
+      "rule": "each group's state is one of ['Empty', 'Dead']",
+      "sources": [
+        "<AIP checkout>/docs/specifications/0.8.0/i3-evidence/raw/04-groups-describe.txt"
+      ],
+      "states": {
+        "ecommerce-catalog-service": "Empty",
+        "ecommerce-image-service": "Empty"
+      }
+    },
+    {
+      "deadline": 40,
+      "elapsed": 0,
+      "group": "ecommerce-category-query-service",
+      "id": "05-category-query-lag",
+      "kind": "lag",
+      "missing_topics": [],
+      "partitions": [
+        {
+          "current": 20,
+          "lag": 0,
+          "partition": 0,
+          "topic": "catalog.attribute.events"
+        },
+        {
+          "current": 4,
+          "lag": 0,
+          "partition": 0,
+          "topic": "catalog.category.events"
+        }
+      ],
+      "result": "PASSED",
+      "rule": "lag 0 for the group on every partition of each topic",
+      "sources": [
+        "<AIP checkout>/docs/specifications/0.8.0/i3-evidence/raw/05-category-query-describe.txt"
+      ]
+    },
+    {
+      "deadline": 40,
+      "elapsed": 0,
+      "group": "ecommerce-product-query-service",
+      "id": "05-product-query-lag",
+      "kind": "lag",
+      "missing_topics": [],
+      "partitions": [
+        {
+          "current": 20,
+          "lag": 0,
+          "partition": 0,
+          "topic": "catalog.attribute.events"
+        },
+        {
+          "current": 120,
+          "lag": 0,
+          "partition": 0,
+          "topic": "catalog.product.events"
+        }
+      ],
+      "result": "PASSED",
+      "rule": "lag 0 for the group on every partition of each topic",
+      "sources": [
+        "<AIP checkout>/docs/specifications/0.8.0/i3-evidence/raw/05-product-query-describe.txt"
+      ]
+    },
+    {
+      "deadline": 40,
+      "elapsed": 27,
+      "entries": [
+        {
+          "a": 1,
+          "c": 1,
+          "checkpoint": {
+            "downstream": 1,
+            "upstream": 1
+          },
+          "group": "ecommerce-catalog-service",
+          "partition": 0,
+          "passed": true,
+          "replay": {
+            "kind": "NO_BOUND",
+            "reason": "no offset sync at or above the final upstream offset"
+          },
+          "topic": "tenant.tenant.events"
+        },
+        {
+          "a": 1,
+          "c": 1,
+          "checkpoint": {
+            "downstream": 1,
+            "upstream": 1
+          },
+          "group": "ecommerce-image-service",
+          "partition": 0,
+          "passed": true,
+          "replay": {
+            "kind": "NO_BOUND",
+            "reason": "no offset sync at or above the final upstream offset"
+          },
+          "topic": "tenant.tenant.events"
+        }
+      ],
+      "id": "06-handoff",
+      "kind": "handoff",
+      "result": "PASSED",
+      "rule": "checkpoint upstream = (a) and (c) = checkpoint downstream, per group and partition",
+      "sources": [
+        "<AIP checkout>/docs/specifications/0.8.0/i3-evidence/raw/06-checkpoints.txt",
+        "<AIP checkout>/docs/specifications/0.8.0/i3-evidence/raw/06-offset-syncs.txt",
+        "<AIP checkout>/docs/specifications/0.8.0/i3-evidence/raw/06-source-groups.txt",
+        "<AIP checkout>/docs/specifications/0.8.0/i3-evidence/raw/06-target-groups.txt"
+      ],
+      "topic": "tenant.tenant.events"
+    },
+    {
+      "flow": "mm2-flow-b",
+      "id": "07-mm2-flow-b-p1b",
+      "kind": "p1b",
+      "problems": [],
+      "result": "PASSED",
+      "rule": "every internal topic of the flow exists with replication factor 1",
+      "sources": [
+        "<AIP checkout>/docs/specifications/0.8.0/i3-evidence/raw/07-mm2-flow-b-kafka-topics.txt",
+        "<AIP checkout>/docs/specifications/0.8.0/i3-evidence/raw/07-mm2-flow-b-redpanda-topics.txt"
+      ]
+    },
+    {
+      "id": "08-configmap-catalog",
+      "kind": "configmap",
+      "problems": [],
+      "result": "PASSED",
+      "rule": "same ConfigMap identity; the only changed line is kafka.brokers -> kafka:29092",
+      "sources": [
+        "<AIP checkout>/docs/specifications/0.8.0/i3-evidence/raw/08-live-catalog.txt",
+        "<AIP checkout>/docs/specifications/0.8.0/i3-evidence/raw/08-rendered-catalog.txt"
+      ]
+    },
+    {
+      "id": "08-configmap-image",
+      "kind": "configmap",
+      "problems": [],
+      "result": "PASSED",
+      "rule": "same ConfigMap identity; the only changed line is kafka.brokers -> kafka:29092",
+      "sources": [
+        "<AIP checkout>/docs/specifications/0.8.0/i3-evidence/raw/08-live-image.txt",
+        "<AIP checkout>/docs/specifications/0.8.0/i3-evidence/raw/08-rendered-image.txt"
+      ]
+    },
+    {
+      "id": "08-kafka-groups",
+      "kind": "state",
+      "not_allowed": [],
+      "result": "PASSED",
+      "rule": "each group's state is one of ['Stable']",
+      "sources": [
+        "<AIP checkout>/docs/specifications/0.8.0/i3-evidence/raw/08-kafka-groups.txt"
+      ],
+      "states": {
+        "ecommerce-catalog-service": "Stable",
+        "ecommerce-image-service": "Stable"
+      }
+    },
+    {
+      "deadline": 40,
+      "elapsed": 2,
+      "group": "ecommerce-catalog-service",
+      "id": "09-catalog-service-lag",
+      "kind": "lag",
+      "missing_topics": [],
+      "partitions": [
+        {
+          "current": 2,
+          "lag": 0,
+          "partition": 0,
+          "topic": "tenant.tenant.events"
+        }
+      ],
+      "result": "PASSED",
+      "rule": "lag 0 for the group on every partition of each topic",
+      "sources": [
+        "<AIP checkout>/docs/specifications/0.8.0/i3-evidence/raw/09-catalog-service-describe.txt"
+      ]
+    },
+    {
+      "deadline": 40,
+      "elapsed": 0,
+      "group": "ecommerce-category-query-service",
+      "id": "09-category-query-service-lag",
+      "kind": "lag",
+      "missing_topics": [],
+      "partitions": [
+        {
+          "current": 42,
+          "lag": 0,
+          "partition": 0,
+          "topic": "catalog.attribute.events"
+        },
+        {
+          "current": 10,
+          "lag": 0,
+          "partition": 0,
+          "topic": "catalog.category.events"
+        }
+      ],
+      "result": "PASSED",
+      "rule": "lag 0 for the group on every partition of each topic",
+      "sources": [
+        "<AIP checkout>/docs/specifications/0.8.0/i3-evidence/raw/09-category-query-service-describe.txt"
+      ]
+    },
+    {
+      "deadline": 40,
+      "elapsed": 2,
+      "group": "ecommerce-image-service",
+      "id": "09-image-service-lag",
+      "kind": "lag",
+      "missing_topics": [],
+      "partitions": [
+        {
+          "current": 122,
+          "lag": 0,
+          "partition": 0,
+          "topic": "catalog.product.events"
+        },
+        {
+          "current": 2,
+          "lag": 0,
+          "partition": 0,
+          "topic": "tenant.tenant.events"
+        }
+      ],
+      "result": "PASSED",
+      "rule": "lag 0 for the group on every partition of each topic",
+      "sources": [
+        "<AIP checkout>/docs/specifications/0.8.0/i3-evidence/raw/09-image-service-describe.txt"
+      ]
+    },
+    {
+      "deadline": 40,
+      "elapsed": 0,
+      "group": "ecommerce-product-query-service",
+      "id": "09-product-query-service-lag",
+      "kind": "lag",
+      "missing_topics": [],
+      "partitions": [
+        {
+          "current": 42,
+          "lag": 0,
+          "partition": 0,
+          "topic": "catalog.attribute.events"
+        },
+        {
+          "current": 242,
+          "lag": 0,
+          "partition": 0,
+          "topic": "catalog.product.events"
+        }
+      ],
+      "result": "PASSED",
+      "rule": "lag 0 for the group on every partition of each topic",
+      "sources": [
+        "<AIP checkout>/docs/specifications/0.8.0/i3-evidence/raw/09-product-query-service-describe.txt"
+      ]
+    },
+    {
+      "deadline": 40,
+      "elapsed": 15,
+      "id": "09-replication-b",
+      "kind": "replication",
+      "missing_topics": [],
+      "partitions": [
+        {
+          "caught_up": true,
+          "end": 22,
+          "last_replicated": 21,
+          "partition": 0,
+          "topic": "catalog.attribute.events"
+        },
+        {
+          "caught_up": true,
+          "end": 6,
+          "last_replicated": 5,
+          "partition": 0,
+          "topic": "catalog.category.events"
+        },
+        {
+          "caught_up": true,
+          "end": 122,
+          "last_replicated": 121,
+          "partition": 0,
+          "topic": "catalog.product.events"
+        }
+      ],
+      "result": "PASSED",
+      "rule": "last replicated source offset + 1 = source end offset, per source partition",
+      "sources": [
+        "<AIP checkout>/docs/specifications/0.8.0/i3-evidence/raw/09-flow-b-offsets.txt",
+        "<AIP checkout>/docs/specifications/0.8.0/i3-evidence/raw/09-kafka-end.txt"
+      ]
+    },
+    {
+      "id": "AR-moved-state",
+      "kind": "state",
+      "not_allowed": [],
+      "result": "PASSED",
+      "rule": "each group's state is one of ['Empty', 'Dead']",
+      "sources": [
+        "<AIP checkout>/docs/specifications/0.8.0/i3-evidence/raw/AR-g-moved.txt"
+      ],
+      "states": {
+        "ecommerce-catalog-service": "Empty",
+        "ecommerce-image-service": "Empty"
+      }
+    },
+    {
+      "id": "FT-functional",
+      "kind": "functional",
+      "result": "PASSED",
+      "rule": "the three I3 \u00a76 steps pass through the services' Connect-RPC endpoints",
+      "run_id": "s3r1",
+      "sources": [],
+      "steps": [
+        {
+          "calls": [
+            {
+              "elapsed_ms": 322,
+              "method": "tenant.v1.TenantRegistrationService/RegisterTenant",
+              "response_sha256": "76daedf08e4d81cd667f438e79b6b6b9bb517a5f276cbf913f0f33276fc79c39",
+              "result": "PASSED"
+            },
+            {
+              "elapsed_ms": 11,
+              "method": "tenant.v1.TenantRegistrationService/GetRegistrationStatus",
+              "response_sha256": "76daedf08e4d81cd667f438e79b6b6b9bb517a5f276cbf913f0f33276fc79c39",
+              "result": "PASSED"
+            },
+            {
+              "elapsed_ms": 89,
+              "method": "catalog.v1.AttributeService/CreateAttribute",
+              "response_sha256": "f896ccc00cd31c62e7f32ddddcfaca7689711cd9c1c144402f1fe0770cbc647f",
+              "result": "PASSED"
+            },
+            {
+              "elapsed_ms": 36,
+              "method": "catalog.v1.CategoryService/CreateCategory",
+              "response_sha256": "c9455295581d06bd0bdd237813dce89dba55603655c43d83995cc906de1d5e43",
+              "result": "PASSED"
+            },
+            {
+              "elapsed_ms": 96,
+              "method": "image.v1.ImageService/CreatePresign",
+              "response_sha256": "d7b9860a00ca8128b8986d1a756adbe7264db0c686c8cb80e5d3a357adb7fe35",
+              "result": "PASSED"
+            },
+            {
+              "elapsed_ms": 12,
+              "method": "PUT presigned upload_url",
+              "result": "PASSED"
+            },
+            {
+              "elapsed_ms": 45,
+              "method": "image.v1.ImageService/ConfirmUpload",
+              "response_sha256": "952389ba26e97ef291d4270f9364106a07b8d54c67fabe2bdbe2e9d9ce677be3",
+              "result": "PASSED"
+            },
+            {
+              "elapsed_ms": 58,
+              "method": "catalog.v1.ProductService/CreateProduct",
+              "response_sha256": "fd63c5b4c858df775be3b3225457d9abfeee77fbe9920aa72df70cdf03ca6e48",
+              "result": "PASSED"
+            },
+            {
+              "elapsed_ms": 55,
+              "method": "product_query.v1.ProductQueryService/GetProductById",
+              "response_sha256": "713084ff8dcd353bfed1743a160776973c781d51797a75e68ee0aabced6e552e",
+              "result": "PASSED"
+            },
+            {
+              "elapsed_ms": 5,
+              "method": "product_query.v1.ProductQueryService/GetProductById",
+              "response_sha256": "33a174856a682a2c5f8f670147ec02b759c0708ab848e8af47b4f30914bfb668",
+              "result": "PASSED"
+            }
+          ],
+          "reason": null,
+          "result": "PASSED",
+          "step": "1-shop-product-image"
+        },
+        {
+          "calls": [
+            {
+              "elapsed_ms": 24,
+              "method": "catalog.v1.CategoryService/UpdateCategory",
+              "response_sha256": "beb83832a0ca6db28d2f9032325c1fd7e5bf709cf307c87ead6d2e688b0a60fb",
+              "result": "PASSED"
+            },
+            {
+              "elapsed_ms": 27,
+              "method": "category_query.v1.CategoryQueryService/GetCategoryById",
+              "response_sha256": "32c458cd693df289c18bcf7b98e4de56175386a70498235c2085a2d42533185c",
+              "result": "PASSED"
+            }
+          ],
+          "reason": null,
+          "result": "PASSED",
+          "step": "2-category-update"
+        },
+        {
+          "calls": [
+            {
+              "elapsed_ms": 11,
+              "method": "catalog.v1.AttributeService/GetAttributeById",
+              "response_sha256": "ee2b8d9352170f15ccf08a10bcc79e7a99bae78e8988239a059d861ba852970f",
+              "result": "PASSED"
+            },
+            {
+              "elapsed_ms": 22,
+              "method": "catalog.v1.AttributeService/UpdateAttribute",
+              "response_sha256": "51bedc66f65b30d79c895fb6af1bbd0d1cf68b2dadcc6240caee8465b1daef83",
+              "result": "PASSED"
+            },
+            {
+              "elapsed_ms": 6,
+              "method": "product_query.v1.ProductQueryService/GetProductById",
+              "response_sha256": "33a174856a682a2c5f8f670147ec02b759c0708ab848e8af47b4f30914bfb668",
+              "result": "PASSED"
+            },
+            {
+              "elapsed_ms": 8,
+              "method": "product_query.v1.ProductQueryService/GetProductById",
+              "response_sha256": "3b87884719ace95ffc1862f41b3e522c00c7e6de39fa2d123feae108b0509e7d",
+              "result": "PASSED"
+            },
+            {
+              "elapsed_ms": 6,
+              "method": "category_query.v1.CategoryQueryService/GetCategoryById",
+              "response_sha256": "0b94371e2cc012f2fe1f25fdca6481a4059916e5a86976d0a96e6af5a779564d",
+              "result": "PASSED"
+            }
+          ],
+          "reason": null,
+          "result": "PASSED",
+          "step": "3-attribute-update"
+        }
+      ],
+      "timeout_seconds": 60,
+      "utc": "2026-10-27T19:16:33Z"
+    },
+    {
+      "id": "P1a-p1a",
+      "kind": "p1a",
+      "problems": [],
+      "result": "PASSED",
+      "rule": "worker state, replication factor 1, identity policy, flags and intervals per \u00a73",
+      "sources": [
+        "<AIP checkout>/docs/specifications/0.8.0/i3-evidence/environment/mm2-flow-a.properties",
+        "<AIP checkout>/docs/specifications/0.8.0/i3-evidence/environment/mm2-flow-b.properties",
+        "<AIP checkout>/docs/specifications/0.8.0/i3-evidence/environment/mm2-probe.properties"
+      ]
+    },
+    {
+      "flow_a_topics": [
+        "tenant.tenant.events"
+      ],
+      "flow_b_topics": [
+        "catalog.attribute.events",
+        "catalog.category.events",
+        "catalog.product.events"
+      ],
+      "id": "P3-p3",
+      "kind": "p3",
+      "overlap": [],
+      "result": "PASSED",
+      "rule": "flow A and flow B topic allow-lists are disjoint",
+      "sources": [
+        "<AIP checkout>/docs/specifications/0.8.0/i3-evidence/environment/mm2-flow-a.properties",
+        "<AIP checkout>/docs/specifications/0.8.0/i3-evidence/environment/mm2-flow-b.properties"
+      ]
+    },
+    {
+      "flow": "mm2-probe",
+      "id": "P5-mm2-probe-p1b",
+      "kind": "p1b",
+      "problems": [],
+      "result": "PASSED",
+      "rule": "every internal topic of the flow exists with replication factor 1",
+      "sources": [
+        "<AIP checkout>/docs/specifications/0.8.0/i3-evidence/raw/P5-mm2-probe-kafka-topics.txt",
+        "<AIP checkout>/docs/specifications/0.8.0/i3-evidence/raw/P5-mm2-probe-redpanda-topics.txt"
+      ]
+    },
+    {
+      "deadline": 40,
+      "elapsed": 64,
+      "entries": [
+        {
+          "a": 3,
+          "c": 3,
+          "checkpoint": {
+            "downstream": 3,
+            "upstream": 3
+          },
+          "group": "aip-probe-group",
+          "partition": 0,
+          "passed": true,
+          "replay": {
+            "kind": "NO_BOUND",
+            "reason": "no offset sync at or above the final upstream offset"
+          },
+          "topic": "aip-probe.events"
+        }
+      ],
+      "id": "P5-sync",
+      "kind": "handoff",
+      "result": "PASSED",
+      "rule": "checkpoint upstream = (a) and (c) = checkpoint downstream, per group and partition",
+      "sources": [
+        "<AIP checkout>/docs/specifications/0.8.0/i3-evidence/raw/P5-checkpoints.txt",
+        "<AIP checkout>/docs/specifications/0.8.0/i3-evidence/raw/P5-offset-syncs.txt",
+        "<AIP checkout>/docs/specifications/0.8.0/i3-evidence/raw/P5-source-group.txt",
+        "<AIP checkout>/docs/specifications/0.8.0/i3-evidence/raw/P5-target-group.txt"
+      ],
+      "topic": "aip-probe.events"
+    }
+  ],
+  "schema": "aip-v08-i3-checks/1"
+}

@@ -1,0 +1,4 @@
+
+GROUP                   TOPIC                  PARTITION  CURRENT-OFFSET  LOG-END-OFFSET  LAG             CONSUMER-ID                              HOST            CLIENT-ID
+ecommerce-image-service tenant.tenant.events   0          2               2               0               kgo-f2cf9a80-7895-45e0-bc26-22ba1a4177d5 /172.20.0.3     kgo
+ecommerce-image-service catalog.product.events 0          122             122             0               kgo-25def80b-81c9-4688-8765-3614a4b5a324 /172.20.0.3     kgo

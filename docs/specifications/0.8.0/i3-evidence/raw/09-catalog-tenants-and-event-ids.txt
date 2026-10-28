@@ -1,0 +1,12 @@
+== catalog.product.events on Redpanda: records=242
+    122 x-tenant-slug=i3-s3r1
+    120 x-tenant-slug=i3shop
+unique event_ids: 242
+== catalog.attribute.events on Redpanda: records=42
+     22 x-tenant-slug=i3-s3r1
+     20 x-tenant-slug=i3shop
+unique event_ids: 42
+== catalog.category.events on Redpanda: records=10
+      6 x-tenant-slug=i3-s3r1
+      4 x-tenant-slug=i3shop
+unique event_ids: 10

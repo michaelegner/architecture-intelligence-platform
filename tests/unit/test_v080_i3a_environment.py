@@ -4,6 +4,7 @@ the functional-test driver (I3 spec §3, §6, §8; memory rule "compose run iden
 Nothing here runs Docker, Kafka or a Sokol111 service.
 """
 
+import base64
 import hashlib
 import importlib.util
 import json
@@ -92,6 +93,17 @@ def test_each_step_checks_its_precondition_before_acting() -> None:
         first_require = body.index("require ")
         acting = [body.find(word) for word in ("record ", "check ", "frozen_compose ", "scale ")]
         assert first_require < min(i for i in acting if i >= 0), number
+
+
+def test_p4_waits_for_the_broker_before_probing_it() -> None:
+    text = (HARNESS / "preflight/p4.sh").read_text()
+    up, wait = text.index("frozen_compose up -d kafka"), text.index("until ktool")
+    probe = text.index("record P4 from-compose")
+    assert up < wait < probe
+    assert "KAFKA_START_DEADLINE_SECONDS" in text[wait:probe]
+    assert re.search(
+        r"^KAFKA_START_DEADLINE_SECONDS=\d+$", (HARNESS / "lib.sh").read_text(), re.MULTILINE
+    )
 
 
 # --- MirrorMaker 2 workers (I3 §3; plan corrections 1 and 2) -------------------------------------------
@@ -191,6 +203,9 @@ def test_p5_proves_absence_of_every_name_it_may_delete_before_arming_the_teardow
     )
     assert "aip-probe" not in deletes and "mm2-" not in deletes
     assert text.index("record P5 create-topic") > trap
+    # The apache/kafka image declares VOLUMEs: removing the container must remove its anonymous
+    # volumes too (I3b teardown found three left behind by `rm -sf`).
+    assert "rm -sfv mm2-probe" in teardown
     # The teardown removes the probe container, so none may exist before, not even a stopped one.
     assert (
         'require "no probe container exists, running or stopped" -- absent container mm2-probe'
@@ -440,27 +455,41 @@ class _Response:
         return None
 
 
-def _live_driver(monkeypatch, fake: _FakeServices):
+def _live_driver(monkeypatch, fake: _FakeServices, connect_to: str | None = None):
     monkeypatch.setattr(functional.urllib.request, "urlopen", fake)
-    endpoints = dict.fromkeys(set(functional.ENDPOINT_OF.values()), "http://svc")
+    endpoints = {
+        name: f"http://{name}.example.test" for name in set(functional.ENDPOINT_OF.values())
+    }
     token_commands = {
         "s2s": "echo SECRET-S2S",
-        "user": 'printf "SECRET-USER-%s-%s" "$AIP_I3_TENANT_SLUG" "${#AIP_I3_PASSWORD}"',
+        "user": "echo SECRET-USER",
     }
-    return functional.Driver("r1", endpoints, token_commands, False)
+    return functional.Driver("r1", endpoints, token_commands, False, connect_to)
 
 
-def test_a_live_run_logs_in_after_registration_and_records_no_secret(monkeypatch) -> None:
+def test_a_live_run_enters_the_shop_after_registration_and_records_no_secret(monkeypatch) -> None:
     fake = _FakeServices()
     driver = _live_driver(monkeypatch, fake)
     steps = functional.run(driver, timeout=5)
     assert [step["result"] for step in steps] == ["PASSED"] * 3
-    headers = {
-        req.full_url.rsplit("/", 1)[-1]: req.get_header("Authorization") for req in fake.sent
-    }
-    assert headers["RegisterTenant"] == "Bearer SECRET-S2S"
-    # The user token is resolved after COMPLETED, from the new shop's slug and password.
-    assert headers["CreateAttribute"] == "Bearer SECRET-USER-i3-r1-24"
+    rpc = [req for req in fake.sent if req.get_method() == "POST"]
+    tenant = [req for req in rpc if "/tenant.v1." in req.full_url]
+    others = [req for req in rpc if "/tenant.v1." not in req.full_url]
+    # The tenant calls come first and carry no shop header: RegisterTenant needs tenants:write (the
+    # platform token), GetRegistrationStatus tenants:read (the service token).
+    assert rpc[: len(tenant)] == tenant
+    assert tenant[0].full_url.endswith("/RegisterTenant")
+    assert tenant[0].get_header("Authorization") == "Bearer SECRET-S2S"
+    for req in tenant[1:]:
+        assert req.full_url.endswith("/GetRegistrationStatus")
+        assert req.get_header("Authorization") == "Bearer SECRET-USER"
+    for req in tenant:
+        assert req.get_header("X-tenant-slug") is None
+    # Every catalog, image and query call carries the service token and the new shop's slug,
+    # as the environment's own seeder does.
+    for req in others:
+        assert req.get_header("Authorization") == "Bearer SECRET-USER", req.full_url
+        assert req.get_header("X-tenant-slug") == "i3-r1", req.full_url
     password = fake.bodies["RegisterTenant"]["password"]
     record = json.dumps(steps)
     for secret in ("SECRET", password, "Bearer", "X-Sig", "upload_token", "uploadToken"):
@@ -471,9 +500,108 @@ def test_a_live_run_logs_in_after_registration_and_records_no_secret(monkeypatch
     assert "<" not in json.dumps(fake.bodies)
 
 
+def test_connect_to_sends_the_ingress_host_in_host(monkeypatch) -> None:
+    fake = _FakeServices()
+    steps = functional.run(_live_driver(monkeypatch, fake, connect_to="127.0.0.1"), timeout=5)
+    assert [step["result"] for step in steps] == ["PASSED"] * 3
+    rpc = [req for req in fake.sent if req.get_method() == "POST"]
+    for req in rpc:
+        assert req.full_url.startswith("http://127.0.0.1/"), req.full_url
+        assert req.get_header("Host", "").endswith(".example.test"), req.full_url
+    hosts = {req.full_url.rsplit("/", 1)[-1]: req.get_header("Host") for req in rpc}
+    assert hosts["RegisterTenant"] == "tenant.example.test"
+    assert hosts["CreateProduct"] == "catalog.example.test"
+    # The presigned upload URL is used as signed: its host is not rewritten.
+    upload = next(r.full_url for r in fake.sent if r.get_method() == "PUT")
+    assert upload.startswith("http://minio/")
+
+
 def test_a_missing_id_fails_the_step_with_a_clear_reason(monkeypatch) -> None:
     fake = _FakeServices(drop=("CreateAttribute", "id"))
     steps = functional.run(_live_driver(monkeypatch, fake), timeout=5)
     assert len(steps) == 1 and steps[0]["result"] == "FAILED"
     assert steps[0]["reason"] == "the response carries no attribute.id"
     assert "CreateCategory" not in fake.bodies
+
+
+# --- Token command (I3b) -------------------------------------------------------------------------------
+
+token_cmd = _load("i3_token", HARNESS / "tokens/token.py")
+_SECRET_JSON = json.dumps(
+    {
+        "data": {
+            "platform-client-id": base64.b64encode(b"pid").decode(),
+            "platform-client-secret": base64.b64encode(b"TOP-SECRET-P").decode(),
+            "ecommerce-m2m-client-id": base64.b64encode(b"eid").decode(),
+            "ecommerce-m2m-client-secret": base64.b64encode(b"TOP-SECRET-E").decode(),
+        }
+    }
+)
+
+
+def _token_run(
+    monkeypatch, capsys, *, kubectl_ok=True, response=b'{"access_token": "TKN"}', hang=False
+):
+    posted = []
+
+    def fake_run(cmd, **kwargs):
+        assert kwargs.get("timeout") and any(a.startswith("--request-timeout=") for a in cmd)
+        if hang:
+            raise subprocess.TimeoutExpired(cmd, kwargs["timeout"])
+        if not kubectl_ok:
+            raise subprocess.CalledProcessError(1, cmd)
+        return subprocess.CompletedProcess(cmd, 0, stdout=_SECRET_JSON, stderr="")
+
+    def fake_urlopen(req, timeout):
+        posted.append(req)
+        if response is None:
+            raise OSError("connection refused, request was client_secret=TOP-SECRET-E")
+        return _Response(response)
+
+    monkeypatch.setattr(token_cmd.subprocess, "run", fake_run)
+    monkeypatch.setattr(token_cmd.urllib.request, "urlopen", fake_urlopen)
+    rc = token_cmd.main(["ecommerce"])
+    out = capsys.readouterr()
+    return rc, out.out, out.err, posted
+
+
+def test_the_token_command_prints_only_the_token(monkeypatch, capsys) -> None:
+    rc, out, err, posted = _token_run(monkeypatch, capsys)
+    assert rc == 0 and out == "TKN\n" and err == ""
+    form = dict(item.split("=", 1) for item in posted[0].data.decode().split("&"))
+    assert form["grant_type"] == "client_credentials" and form["client_id"] == "eid"
+    scope = form["scope"].replace("+", " ").replace("%3A", ":").split()
+    # tenants:read is needed by GetRegistrationStatus (run record S1).
+    assert {"cross-tenant", "tenants:read", "products:write", "images:write"} <= set(scope)
+    assert posted[0].full_url == "http://localhost:3001/oidc/token"
+
+
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        {"kubectl_ok": False},
+        {"hang": True},
+        {"response": None},
+        {"response": b"{}"},
+        {"response": b"not json"},
+    ],
+)
+def test_the_token_command_fails_closed_and_never_prints_the_secret(
+    monkeypatch, capsys, kwargs
+) -> None:
+    rc, out, err, _ = _token_run(monkeypatch, capsys, **kwargs)
+    assert rc == 1 and out == ""
+    assert "TOP-SECRET" not in err and "client_secret" not in err
+
+
+def test_a_token_command_that_hangs_is_a_recorded_failure(monkeypatch) -> None:
+    seen = {}
+
+    def fake_run(command, **kwargs):
+        seen.update(kwargs)
+        raise subprocess.TimeoutExpired(command, kwargs["timeout"])
+
+    monkeypatch.setattr(functional.subprocess, "run", fake_run)
+    with pytest.raises(functional.StepFailed, match="TimeoutExpired"):
+        functional.token_from("sleep 1000")
+    assert seen["timeout"] == functional.TOKEN_COMMAND_TIMEOUT_SECONDS

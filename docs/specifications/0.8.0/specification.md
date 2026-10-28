@@ -1,6 +1,6 @@
 # AIP v0.8 — Binding Picture Showcase
 
-**Status:** Draft 0.4 (2026-10-27; D13–D15 and the replay-amount wording from the I3 specification)  
+**Status:** Draft 0.5 (2026-10-28; D16–D19 and the plan answer key from the I4 specification)  
 **Target:** `v0.8.0` (demonstration release)  
 **Baseline:** published and verified `v0.7.2`, plus the doctrine pivot [#635](https://github.com/michaelegner/architecture-intelligence-platform/pull/635).  
 **Scope authority:** [ROADMAP.md — v0.8](../../../ROADMAP.md#v08--binding-picture-showcase-planned-demonstration-release) and the [product doctrine](../../product-doctrine-and-strategic-direction.md)
@@ -252,10 +252,13 @@ Three kinds of check are never conflated:
 | offsets, lag, replication progress | broker tools (`rpk`, `kafka-consumer-groups`), stored as ground truth |
 | migrated behaviour works | functional test after the cut-over: (1) create a shop, then a product with an image in it; Product Query returns the product with its current image URL (tenant, product and image-promotion flows); (2) update a category; Category Query returns the change (category flow); (3) update an attribute definition; Product Query and Category Query return the change (attribute flow) |
 
-- **Proof A, answer key:** before the agent run, the expected wave plan is written down: the mirrored
-  topics and their directions, the changed Helm values, the cut-over checks.
+- **Proof A, plan answer key:** before the agent run, the expected wave plan is written down: the
+  mirrored topics and their directions, the changed Helm values, the cut-over checks. It is a different
+  key from the after-wave capture reference `expected-after.json`, which scores Proof C (D16).
 - **Proof B, citations:** the agent's plan cites the AIP claims it relies on. The report checks that
-  each cited claim exists and supports the plan item.
+  each cited claim exists and supports the binding behind the plan item. AIP evidence supports the
+  binding, never the correctness of the migration mechanism; the mechanism needs its own
+  implementation justification (D16).
 - **Proof C, live run:** the wave is carried out and AIP captures both brokers again.
 
 ## 5. AIP capabilities (experimental)
@@ -329,11 +332,12 @@ The report is not a visualisation product.
 
 ### I4 — Agent run, report and release
 
-- **Outcome:** answer key, agent run (proofs A–C), generated report, frozen replay package,
+- **Outcome:** plan answer key, agent run (proofs A–C), generated report, frozen replay package,
   lightweight demonstration release.
-- **Acceptance:** the agent's plan matches the answer key or the difference is recorded; every
+- **Acceptance:** the agent's plan matches the plan answer key or the difference is recorded; every
   citation resolves; the report shows all four parts with disclosures; the replay reproduces the
   report from the frozen inputs.
+- **Increment specification:** [`i4-agent-run-report-and-release.md`](i4-agent-run-report-and-release.md).
 
 **Stop rule for all increments:** if a step cannot be done as specified, record the failed attempt
 and ask. Never fake a result.
@@ -365,3 +369,7 @@ and ask. Never fake a result.
 | D13 | Kafka (KRaft) and one MM2 container per flow run in the local Compose stack on Redpanda's network; only the bootstrap address changes for Catalog and Image | owner, 2026-10-27 ([I3](i3-two-broker-environment-and-live-captures.md)) |
 | D14 | I3's scripted run freezes the expected after-wave reference; the I4 agent run carries out the wave and its captures feed the report | owner, 2026-10-27 |
 | D15 | The functional test runs through the services' Connect-RPC endpoints, with MinIO and imgproxy; no UIs | owner, 2026-10-27 |
+| D16 | Two keys: the plan answer key scores Proof A, `expected-after.json` scores Proof C. AIP evidence supports the binding behind a plan item; the mechanism needs an implementation justification that never comes from AIP | owner plan review, 2026-10-28 ([I4](i4-agent-run-report-and-release.md)) |
+| D17 | The agent works outside the AIP checkout, with a new Claude Code configuration, no web access and a task card with the goal and the safety constraints only; the plan is frozen before execution and both transcripts are audited; an audit hit invalidates the run (fail closed) | owner, 2026-10-28 |
+| D18 | The operator frames the run (bring-up, Kafka up and empty, captures, functional test, scoring); the agent plans and carries out the wave | owner, 2026-10-28 |
+| D19 | The hosted redeploy with the experimental tool on is not part of I4 | owner, 2026-10-28 |

@@ -1,0 +1,3 @@
+Produced to partition 0 at offset 0 with timestamp 1793127566653.
+Produced to partition 0 at offset 1 with timestamp 1793127566653.
+Produced to partition 0 at offset 2 with timestamp 1793127566653.

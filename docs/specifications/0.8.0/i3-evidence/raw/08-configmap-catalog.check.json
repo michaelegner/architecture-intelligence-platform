@@ -1,0 +1,10 @@
+{
+  "kind": "configmap",
+  "problems": [],
+  "result": "PASSED",
+  "rule": "same ConfigMap identity; the only changed line is kafka.brokers -> kafka:29092",
+  "sources": [
+    "<AIP checkout>/docs/specifications/0.8.0/i3-evidence/raw/08-live-catalog.txt",
+    "<AIP checkout>/docs/specifications/0.8.0/i3-evidence/raw/08-rendered-catalog.txt"
+  ]
+}

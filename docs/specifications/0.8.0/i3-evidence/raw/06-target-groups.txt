@@ -1,0 +1,6 @@
+
+GROUP                     TOPIC                PARTITION  CURRENT-OFFSET  LOG-END-OFFSET  LAG             CONSUMER-ID     HOST            CLIENT-ID
+ecommerce-catalog-service tenant.tenant.events 0          1               1               0               -               -               -
+
+GROUP                   TOPIC                PARTITION  CURRENT-OFFSET  LOG-END-OFFSET  LAG             CONSUMER-ID     HOST            CLIENT-ID
+ecommerce-image-service tenant.tenant.events 0          1               1               0               -               -               -

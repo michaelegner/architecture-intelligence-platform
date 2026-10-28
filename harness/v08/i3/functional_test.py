@@ -17,11 +17,12 @@ recorded failure. Each call records the method, the SHA-256 of the response, the
 pass or fail - never a token, a password or a request header. `--dry-run` prints the planned calls
 and sends nothing; it needs no endpoint and no token.
 
-Tokens come from operator commands whose stdout is the bearer token: `--s2s-token-command` for
-RegisterTenant, and `--token-command` for the catalog, image and query services. The second runs
-after the registration is COMPLETED, with AIP_I3_TENANT_SLUG, AIP_I3_EMAIL and AIP_I3_PASSWORD of
-the new shop in its environment, so it can log in as the shop's merchant. Which token each call
-needs is settled in I3b (I3a README).
+Tokens come from operator commands whose stdout is the bearer token, as the environment's own
+seeder gets them (Logto client credentials; `harness/v08/i3/tokens/`): `--s2s-token-command` (the
+`platform-service` app, `tenants:write`) for RegisterTenant, and `--token-command` (the
+`ecommerce-service` app, `cross-tenant`, `tenants:read`) for every other call, GetRegistrationStatus
+included. Once the registration is COMPLETED, every catalog, image and query call carries
+`X-Tenant-Slug: <the new shop>`, which selects the shop for a cross-tenant token.
 
 Exit code: 0 PASSED, 2 FAILED. The verdict file uses the checker.py shape, so `checker.py collect`
 merges it into checks.json.
@@ -30,17 +31,20 @@ merges it into checks.json.
 import argparse
 import hashlib
 import json
-import os
 import re
 import secrets
 import subprocess
 import sys
 import time
+import urllib.parse
 import urllib.request
 from datetime import UTC, datetime
 from pathlib import Path
 
 PASSED, FAILED = "PASSED", "FAILED"
+# A token command that does not return is a recorded failure, never a hang (token.py bounds its own
+# kubectl and HTTP calls well inside this).
+TOKEN_COMMAND_TIMEOUT_SECONDS = 90
 SERVICES = {
     "tenant": "tenant.v1.TenantRegistrationService",
     "attribute": "catalog.v1.AttributeService",
@@ -87,22 +91,20 @@ class Driver:
         endpoints: dict[str, str],
         token_commands: dict[str, str],
         dry_run: bool,
+        connect_to: str | None = None,
     ):
         self.run_id = run_id
         self.endpoints = endpoints
+        self.connect_to = connect_to
         self.token_commands = token_commands
         self.tokens: dict[str, str] = {}
+        self.tenant_slug: str | None = None
         self.dry_run = dry_run
         self.calls: list[dict] = []
 
-    def login(self, slug: str, email: str, password: str) -> None:
-        """Resolve the user token once the shop exists: the token command gets the new shop's
-        slug, email and password in its environment (never on its command line, never recorded)."""
-        if not self.dry_run:
-            self.tokens["user"] = token_from(
-                self.token_commands["user"],
-                {"AIP_I3_TENANT_SLUG": slug, "AIP_I3_EMAIL": email, "AIP_I3_PASSWORD": password},
-            )
+    def enter_shop(self, slug: str) -> None:
+        """Once the shop exists: send `X-Tenant-Slug: <slug>` on every later non-tenant call."""
+        self.tenant_slug = slug
 
     def need(self, value, what: str):
         """A value an earlier response must carry: a placeholder in a dry run, else a failure."""
@@ -125,19 +127,32 @@ class Driver:
             self.calls.append({"method": full, "request": request})
             return {}
         url = f"{self.endpoints[ENDPOINT_OF[service]].rstrip('/')}/{full}"
-        role = "s2s" if service == "tenant" else "user"
+        # RegisterTenant needs tenants:write (the platform app); every other call, including
+        # GetRegistrationStatus (tenants:read), uses the cross-tenant service app.
+        role = "s2s" if method == "RegisterTenant" else "user"
         if role not in self.tokens:
-            if role == "user":
-                raise StepFailed(f"{full}: no user token (the shop is not registered yet)")
-            self.tokens[role] = token_from(self.token_commands[role], {})
-        token = self.tokens[role]
+            self.tokens[role] = token_from(self.token_commands[role])
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {self.tokens[role]}",
+        }
+        if service != "tenant":
+            if not self.tenant_slug:
+                raise StepFailed(f"{full}: no shop yet (the registration is not COMPLETED)")
+            headers["X-Tenant-Slug"] = self.tenant_slug
+        if self.connect_to:
+            # Connect to this address and name the ingress host in Host (a host whose DNS does not
+            # resolve the ingress names, I3b run record).
+            parts = urllib.parse.urlsplit(url)
+            headers["Host"] = parts.netloc
+            url = urllib.parse.urlunsplit(parts._replace(netloc=self.connect_to))
         start = time.monotonic()
         record: dict = {"method": full}
         try:
             req = urllib.request.Request(
                 url,
                 data=json.dumps(request).encode(),
-                headers={"Content-Type": "application/json", "Authorization": f"Bearer {token}"},
+                headers=headers,
                 method="POST",
             )
             with urllib.request.urlopen(req, timeout=30) as resp:
@@ -247,7 +262,7 @@ def run(driver: Driver, timeout: int) -> list[dict]:
             lambda r: field(r, "status") == "REGISTRATION_STATUS_COMPLETED",
             timeout,
         )
-        driver.login(slug, email, password)
+        driver.enter_shop(slug)
         attribute = field(
             driver.call(
                 "attribute",
@@ -408,7 +423,7 @@ def run(driver: Driver, timeout: int) -> list[dict]:
     return steps
 
 
-def token_from(command: str, extra_env: dict[str, str]) -> str:
+def token_from(command: str) -> str:
     """Run an operator token command; its stdout is the bearer token. Failures are recorded by
     kind only: neither the token nor the command's output ever reaches the record."""
     try:
@@ -418,9 +433,9 @@ def token_from(command: str, extra_env: dict[str, str]) -> str:
             check=True,
             capture_output=True,
             text=True,
-            env={**os.environ, **extra_env},
+            timeout=TOKEN_COMMAND_TIMEOUT_SECONDS,
         ).stdout
-    except (OSError, subprocess.CalledProcessError) as exc:
+    except (OSError, subprocess.CalledProcessError, subprocess.TimeoutExpired) as exc:
         raise StepFailed(f"a token command failed ({type(exc).__name__})") from None
     token = out.strip()
     if not token:
@@ -440,6 +455,11 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument("--s2s-token-command")
     parser.add_argument("--token-command")
+    parser.add_argument(
+        "--connect-to",
+        metavar="ADDRESS",
+        help="connect to ADDRESS and send each endpoint's host as Host (the ingress routes by it)",
+    )
     parser.add_argument("--timeout", type=int, default=60, help="seconds per read-model poll")
     parser.add_argument("--out", type=Path)
     parser.add_argument("--dry-run", action="store_true")
@@ -456,7 +476,7 @@ def main(argv: list[str] | None = None) -> int:
                 f"(missing: {', '.join(missing) or 'none'})"
             )
     token_commands = {"s2s": args.s2s_token_command or "", "user": args.token_command or ""}
-    driver = Driver(args.run_id, endpoints, token_commands, args.dry_run)
+    driver = Driver(args.run_id, endpoints, token_commands, args.dry_run, args.connect_to)
     steps = run(driver, args.timeout)
     if args.dry_run:
         sys.stdout.write(

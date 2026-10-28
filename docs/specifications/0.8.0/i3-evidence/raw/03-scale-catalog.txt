@@ -1,0 +1,1 @@
+deployment.apps/ecommerce-catalog-service scaled

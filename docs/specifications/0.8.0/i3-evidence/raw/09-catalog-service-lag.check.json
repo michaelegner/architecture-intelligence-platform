@@ -1,0 +1,20 @@
+{
+  "deadline": 40,
+  "elapsed": 2,
+  "group": "ecommerce-catalog-service",
+  "kind": "lag",
+  "missing_topics": [],
+  "partitions": [
+    {
+      "current": 2,
+      "lag": 0,
+      "partition": 0,
+      "topic": "tenant.tenant.events"
+    }
+  ],
+  "result": "PASSED",
+  "rule": "lag 0 for the group on every partition of each topic",
+  "sources": [
+    "<AIP checkout>/docs/specifications/0.8.0/i3-evidence/raw/09-catalog-service-describe.txt"
+  ]
+}

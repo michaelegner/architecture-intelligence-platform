@@ -1,0 +1,39 @@
+diff --git a/environments/local/compose/logto.yml b/environments/local/compose/logto.yml
+index 024b744..847d157 100644
+--- a/environments/local/compose/logto.yml
++++ b/environments/local/compose/logto.yml
+@@ -50,7 +50,6 @@ services:
+     build:
+       context: ../../..
+       dockerfile: environments/local/docker/Dockerfile.logto-seed
+-      network: host
+     container_name: logto-seed
+     environment:
+       DB_URL: postgres://postgres:postgres@logto-db:5432/logto
+diff --git a/environments/local/k3d-cluster.yaml b/environments/local/k3d-cluster.yaml
+index 7a45290..06ab8cb 100644
+--- a/environments/local/k3d-cluster.yaml
++++ b/environments/local/k3d-cluster.yaml
+@@ -30,7 +30,7 @@ volumes:
+   - volume: /usr/local/share/ca-certificates:/usr/local/share/ca-certificates
+     nodeFilters:
+       - all
+-  - volume: /home/ihsokolo/projects/ecommerce/ecommerce-infrastructure/environments/local/certs/ca-certificates.crt:/etc/ssl/certs/corp-ca-bundle.crt
++  - volume: <run home>/src/ecommerce-infrastructure/environments/local/certs/ca-certificates.crt:/etc/ssl/certs/corp-ca-bundle.crt
+     nodeFilters:
+       - all
+ 
+@@ -48,6 +48,12 @@ options:
+       - arg: "--disable=traefik"
+         nodeFilters:
+           - server:*
++      # Host compatibility for AIP v0.8 I3b (WSL2 host on cgroup v1; k3s v1.35's kubelet refuses
++      # cgroup v1 by default). Disclosed in the evidence README, as in v0.7.2.
++      - arg: "--kubelet-arg=fail-cgroupv1=false"
++        nodeFilters:
++          - server:*
++          - agent:*
+   kubeconfig:
+     updateDefaultKubeconfig: true
+     switchCurrentContext: true
+\ No newline at end of file

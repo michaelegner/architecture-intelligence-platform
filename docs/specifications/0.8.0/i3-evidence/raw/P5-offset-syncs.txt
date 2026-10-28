@@ -1,0 +1,2 @@
+OffsetSync{topicPartition=aip-probe.events-0, upstreamOffset=0, downstreamOffset=0}
+OffsetSync{topicPartition=aip-probe.events-0, upstreamOffset=2, downstreamOffset=2}

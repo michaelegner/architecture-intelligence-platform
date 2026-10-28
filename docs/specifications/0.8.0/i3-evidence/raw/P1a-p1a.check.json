@@ -1,0 +1,11 @@
+{
+  "kind": "p1a",
+  "problems": [],
+  "result": "PASSED",
+  "rule": "worker state, replication factor 1, identity policy, flags and intervals per \u00a73",
+  "sources": [
+    "<AIP checkout>/docs/specifications/0.8.0/i3-evidence/environment/mm2-flow-a.properties",
+    "<AIP checkout>/docs/specifications/0.8.0/i3-evidence/environment/mm2-flow-b.properties",
+    "<AIP checkout>/docs/specifications/0.8.0/i3-evidence/environment/mm2-probe.properties"
+  ]
+}

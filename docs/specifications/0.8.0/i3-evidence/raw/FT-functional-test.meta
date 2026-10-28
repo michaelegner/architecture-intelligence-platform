@@ -1,0 +1,3 @@
+utc: 2026-10-27T19:16:33Z
+command: python3 harness/v08/i3/functional_test.py --run-id s3r1 --endpoint tenant=http://ecommerce-tenant-service.127.0.0.1.nip.io --endpoint catalog=http://ecommerce-catalog-service.127.0.0.1.nip.io --endpoint image=http://ecommerce-image-service.127.0.0.1.nip.io --endpoint product-query=http://ecommerce-product-query-service.127.0.0.1.nip.io --endpoint category-query=http://ecommerce-category-query-service.127.0.0.1.nip.io --connect-to 127.0.0.1 --s2s-token-command python3 <AIP checkout>/harness/v08/i3/tokens/token.py platform --token-command python3 <AIP checkout>/harness/v08/i3/tokens/token.py ecommerce --timeout 60 --out <AIP checkout>/docs/specifications/0.8.0/i3-evidence/raw/FT-functional.check.json
+exit: 0
