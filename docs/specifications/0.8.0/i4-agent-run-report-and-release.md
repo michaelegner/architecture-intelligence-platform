@@ -1,6 +1,6 @@
 # AIP v0.8 I4: Agent Run, Report and Release
 
-**Status:** Draft 0.3 (2026-10-28; review on #650: Proof B coverage rule, pinned capture digest, applied MM2 configuration and its checks, fail-closed audit)  
+**Status:** Released in [`v0.8.0`](../../release-validation/v0.8.0-release-record.md) (2026-10-28), from Draft 0.3; E9 met; E4 and E6 not met, E8 qualified ([completion record](i4-completion-record.md))  
 **Governs:** [v0.8 specification](specification.md) §4.4, §6, §7 I4 and §8, as amended by D16–D19 (§14).  
 **Baseline:** `main` at `459d863` (I3 complete: [completion record](i3-completion-record.md), [handoff](i3-i4-handoff.md)).  
 **Hands off to:** the v0.8.0 release closure.

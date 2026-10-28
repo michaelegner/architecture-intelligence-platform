@@ -15,7 +15,8 @@ environment, and recording what happened. That's what these files are.
 
 | File | Covers |
 |---|---|
-| [`v0.8.0-release-notes.md`](v0.8.0-release-notes.md) | v0.8.0 release notes (candidate): the Binding Picture Showcase on Sokol111, the experimental `get_binding_picture` tool, the showcase outcome as recorded (E4 and E6 not met, E8 qualified), the report as a release asset, disclosures, known limitations. |
+| [`v0.8.0-release-record.md`](v0.8.0-release-record.md) | v0.8.0's one-page record for the lightweight release path: identities, readiness on the exact candidate, post-release verification by digest, the report asset, the showcase outcome (E4 and E6 not met, E8 qualified), security dispositions, owner steps; SHIPPED_VERIFIED. |
+| [`v0.8.0-release-notes.md`](v0.8.0-release-notes.md) | v0.8.0 release notes (published): the Binding Picture Showcase on Sokol111, the experimental `get_binding_picture` tool, the showcase outcome as recorded (E4 and E6 not met, E8 qualified), the report as a release asset, disclosures, known limitations. |
 | [`v0.7.2-release-record.md`](v0.7.2-release-record.md) | v0.7.2's one-page record for the lightweight release path: identities, readiness on the exact candidate, post-release verification by digest, the hosted deployment check, the owner's DEFER disposition, owner steps; SHIPPED_VERIFIED. |
 | [`v0.7.2-release-notes.md`](v0.7.2-release-notes.md) | v0.7.2 release notes (published): hosted six-tool endpoint, hosted Sokol111 dataset, clearer `get_destination_consumers` wording, image hardening, the DEFER product disposition, known limitations. |
 | [`v0.7.1-release-record.md`](v0.7.1-release-record.md) | v0.7.1's one-page record for the lightweight release path: identities, readiness on the exact candidate, post-release verification by digest, security dispositions, owner steps; SHIPPED_VERIFIED. |

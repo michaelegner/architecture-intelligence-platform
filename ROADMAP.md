@@ -701,7 +701,11 @@ context-engine/agent layer, introduces no AIP-owned composition or discovery too
 sets its scope when it starts. The record is
 [`i3-comparison-record.md`](docs/specifications/0.7.2/i3-comparison-record.md#owner-checkpoint-i4-defer).
 
-## v0.8 — Binding Picture Showcase (planned; demonstration release)
+## v0.8 — Binding Picture Showcase (shipped; demonstration release)
+
+Published **v0.8.0 on 2026-10-28**; terminal outcome **SHIPPED_VERIFIED**. The showcase run did not meet
+every acceptance check (E4 and E6 not met, E8 qualified); the owner authorized publication with them.
+See the [release record](docs/release-validation/v0.8.0-release-record.md).
 
 **Goal:** demonstrate the binding picture, as potential v1.0 functionality, end to end on a realistic
 distributed system. The showcase serves to convince promoters (programme leads of AI-assisted
