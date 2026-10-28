@@ -11,6 +11,8 @@ import re
 import sys
 from pathlib import Path
 
+import pytest
+
 REPO = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO / "harness/v08/i4"))
 
@@ -104,3 +106,55 @@ def test_every_plan_item_with_its_citations(tmp_path):
         assert f'<span class="agent">{item["id"]}: ' in section
     assert section.count('class="SUPPORTS"') == 6  # the six citations of K1-K4's items
     assert section.count('class="JUSTIFIED"') == len(perfect_plan()["items"])
+
+
+def _rewrite(tmp_path: Path, name: str, change) -> None:
+    path = tmp_path / f"{name}.json"
+    content = json.loads(path.read_text())
+    change(content)
+    path.write_text(json.dumps(content))
+
+
+def test_a_refused_report_answer_stops(tmp_path):
+    path = manifest(tmp_path)
+    _rewrite(
+        tmp_path,
+        "after",
+        lambda c: c["report_request"].update(
+            answer={"outcome": "NOT_ANSWERED", "data": None, "limitations": []}
+        ),
+    )
+    with pytest.raises(SystemExit, match="refused"):
+        report.render(path)
+
+
+def test_audit_hits_are_unresolved_without_an_evidenced_waiver(tmp_path):
+    path = manifest(tmp_path)
+    hit = {
+        "kind": "WITHHELD_PATH",
+        "session": "execution",
+        "line": 7,
+        "tool": "Bash",
+        "detail": "x",
+        "denied": True,
+    }
+    _rewrite(tmp_path, "audit", lambda c: c.update(hits=[hit], clean=False))
+    assert "1 unresolved hit(s): the run is not valid" in report.render(path)
+    waiver = {
+        "session": "execution",
+        "line": 7,
+        "kind": "WITHHELD_PATH",
+        "evidence": "the denied tool_result",
+    }
+    _rewrite(tmp_path, "agent", lambda c: c.update(waivers=[waiver]))
+    html = report.render(path)
+    assert "waived by the owner" in html and "not valid" not in html
+
+
+def test_a_row_without_a_live_attachment_after_counts(tmp_path):
+    """Image x catalog.product.events stays on Redpanda as PROMISED_NOT_OBSERVED, with no group."""
+    html = report.render(manifest(tmp_path))
+    section = html[html.index("No live attachment here") :]
+    assert (
+        "ecommerce-image-service &times; <code>catalog.product.events</code> on Redpanda" in section
+    )

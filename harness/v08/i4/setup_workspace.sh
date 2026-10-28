@@ -49,14 +49,25 @@ mkdir -p "$CONFIG"
 if [[ -f "$HOME/.claude/.credentials.json" ]]; then
   install -m 600 "$HOME/.claude/.credentials.json" "$CONFIG/.credentials.json"
 fi
-python3 - "$I4_DIR/agent/settings.$SESSION.json" "$CONFIG/settings.json" "$RUN_HOME" "${WITHHELD[@]}" <<'EOF'
+# The operator's own Claude state holds the plan key's content (session transcripts, memory, plans,
+# scratchpads): ~/.claude, ~/.claude.json and the operator's per-project temp dirs, whose names are
+# the worktree paths with / replaced by -.
+OPERATOR_STATE=("$HOME/.claude/**" "$HOME/.claude.json")
+for tree in "${WITHHELD[@]}"; do
+  OPERATOR_STATE+=("/tmp/claude-$(id -u)/${tree//\//-}/**")
+done
+python3 - "$I4_DIR/agent/settings.$SESSION.json" "$CONFIG/settings.json" "$RUN_HOME" \
+  "${#WITHHELD[@]}" "${WITHHELD[@]}" "${OPERATOR_STATE[@]}" <<'EOF'
 import json, sys
-template, out, run_home, *withheld = sys.argv[1:]
+template, out, run_home, count, *rest = sys.argv[1:]
+withheld, operator_state = rest[: int(count)], rest[int(count) :]
 settings = json.load(open(template))
 rules = []
 for rule in settings["permissions"]["deny"]:
     if "__AIP_CHECKOUT__" in rule:
         rules += [rule.replace("/__AIP_CHECKOUT__", "/" + tree) for tree in withheld]
+    elif "__OPERATOR_STATE__" in rule:
+        rules += [rule.replace("/__OPERATOR_STATE__", "/" + path) for path in operator_state]
     else:
         rules.append(rule.replace("/__RUN_HOME__", "/" + run_home))
 settings["permissions"]["deny"] = rules
@@ -64,5 +75,5 @@ open(out, "w").write(json.dumps(settings, indent=2) + "\n")
 EOF
 
 echo "session $SESSION ready:"
-echo "  cd $WORKSPACE && CLAUDE_CONFIG_DIR=$CONFIG claude --model <the recorded model id>"
+echo "  cd $WORKSPACE && CLAUDE_CODE_DISABLE_AUTO_MEMORY=1 CLAUDE_CONFIG_DIR=$CONFIG claude --model <the recorded model id>"
 echo "  first message: see TASK.md, section Sessions"

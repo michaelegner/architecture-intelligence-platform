@@ -5,6 +5,7 @@
 #   capture.sh helm before|after   the Catalog and Image deployments and their ConfigMaps (K7)
 #   capture.sh mm2-config          the MirrorMaker 2 properties of every running MM2 container, and
 #                                  config_checks.py static on them (§5)
+#   capture.sh images before|after the host's image inventory (audit.py IMAGE_ADDED)
 #   capture.sh ground-truth        replication per applied pair, lag per consumer, the hand-off reads,
 #                                  and ground_truth.py (needs package/agent-reported-handoff.json)
 source "$(dirname "$0")/lib.sh"
@@ -138,6 +139,11 @@ case "$WHAT" in
   a-r) capture a-r AR kafka:sokol111-local localhost:9092 "${REDPANDA_GROUPS[@]}" ;;
   a-k) capture a-k AK kafka:sokol111-kafka localhost:19092 "${MOVED_GROUPS[@]}" ;;
   helm) helm_state "${2:?before or after}" ;;
+  images)
+    mkdir -p "$PACKAGE/images"
+    record "IMAGES" "${2:?before or after}" -- docker image ls --no-trunc --format '{{.ID}} {{.Repository}}:{{.Tag}}'
+    cp "$RAW/IMAGES-$2.txt" "$PACKAGE/images/$2.txt"
+    ;;
   mm2-config) mm2_config ;;
   ground-truth) ground_truth_reads ;;
   *) stop "unknown: $WHAT" ;;

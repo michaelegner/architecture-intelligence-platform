@@ -7,6 +7,7 @@ or differs from the plan, an applied ConfigMap check that failed, and plan items
 """
 
 import copy
+import hashlib
 import sys
 from pathlib import Path
 
@@ -256,3 +257,18 @@ def test_a_shared_ref_is_narrowed_by_the_other_refs():
     assert {c["id"]: c["verdict"] for c in citations.check(plan, KEY, rec, scoring)["coverage"]}[
         "K3"
     ] == "DOES_NOT_SUPPORT"
+
+
+def test_the_scored_plan_must_be_the_frozen_one(tmp_path):
+    plan, plan_md = tmp_path / "plan.json", tmp_path / "plan.md"
+    plan.write_text("{}")
+    plan_md.write_text("rationale")
+    freeze = tmp_path / "plan-freeze.txt"
+    digests = [hashlib.sha256(p.read_bytes()).hexdigest() for p in (plan, plan_md)]
+    freeze.write_text(
+        f"{digests[0]}  workspace/plan.json\n{digests[1]}  workspace/plan.md\n2026-10-29T10:00:00Z\n"
+    )
+    score.check_plan_freeze(freeze, plan, plan_md)
+    plan_md.write_text("rationale, edited after the freeze")
+    with pytest.raises(SystemExit, match="not the frozen plan"):
+        score.check_plan_freeze(freeze, plan, plan_md)

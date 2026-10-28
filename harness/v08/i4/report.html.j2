@@ -203,7 +203,7 @@ the instrument that establishes it.</p>
 <li>Agent: {{ agent.model }} in Claude Code {{ agent.claude_code_version }}.</li>
 <li>The agent saw a task card with the goal and the safety constraints only (SHA-256 <code>{{ agent.task_card_sha256 }}</code>). It did not see the answer key, the reference runbook, the specifications or the web.</li>
 <li>The plan was frozen at {{ agent.plan_frozen_at }} (SHA-256 <code>{{ agent.plan_sha256 }}</code>), before the first command that changed the environment.</li>
-<li>Transcript audit: {% if audit.clean %}no hit{% else %}{{ audit.hits | length }} hit(s), each a waived environment fault that exposed nothing withheld, with its evidence in the run record{% endif %}.</li>
+<li>Transcript audit: {% if audit_status.hits == 0 %}no hit{% elif audit_status.unresolved == 0 %}{{ audit_status.hits }} hit(s), each waived by the owner as an environment fault that exposed nothing withheld, with its evidence in the run record{% else %}<span class="FAILED">{{ audit_status.unresolved }} unresolved hit(s): the run is not valid</span>{% if audit_status.waived %} ({{ audit_status.waived }} waived with evidence){% endif %}{% endif %}.</li>
 <li>Operator interventions for environment faults: {% if agent.interventions %}{{ agent.interventions | length }}, listed in the run record{% else %}none{% endif %}.</li>
 </ul>
 

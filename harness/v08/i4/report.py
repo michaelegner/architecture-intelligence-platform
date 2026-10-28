@@ -48,8 +48,12 @@ def _load(base: Path, value: str | None):
 
 
 def _rows(recording: dict) -> list[dict]:
+    """The rows of a recorded report answer. A refused answer stops the report: its fixed narrative
+    describes bindings, and a page with empty tables must never stand for one."""
     answer = recording["report_request"]["answer"]
-    return answer["data"]["rows"] if answer.get("data") else []
+    if answer.get("outcome") == "NOT_ANSWERED" or not answer.get("data"):
+        raise SystemExit(f"STOP: the {recording.get('phase', '?')}-wave report answer was refused")
+    return answer["data"]["rows"]
 
 
 def _limitations(recording: dict) -> list[str]:
@@ -109,11 +113,13 @@ def chains(inputs: dict, key: dict, plan: dict) -> list[dict]:
 
 
 def no_live_attachment(inputs: dict) -> list[dict]:
-    """Report-level comparison (parent §3.6): a Redpanda row with a live attachment before that has
-    no row after. It is not a detachment claim beyond the captures."""
+    """Report-level comparison (parent §3.6): a row with a live attachment before that has no live
+    attachment after (no row, or a row without a group, such as PROMISED_NOT_OBSERVED). It is not a
+    detachment claim beyond the captures."""
     after = {
         (r["broker_id"], r["topic_name"], r.get("consumer_service_id"))
         for r in _rows(inputs["after"])
+        if r["group_ids"]
     }
     return [
         r
@@ -121,6 +127,17 @@ def no_live_attachment(inputs: dict) -> list[dict]:
         if r["group_ids"]
         and (r["broker_id"], r["topic_name"], r.get("consumer_service_id")) not in after
     ]
+
+
+def audit_status(audit: dict, agent: dict) -> dict:
+    """Audit hits stay unresolved, and the run invalid, unless an explicit waiver with evidence
+    covers each one (I4 §4.4: only an environment fault that exposed nothing withheld)."""
+    waived = {
+        (w["session"], w["line"], w["kind"]) for w in agent.get("waivers", []) if w.get("evidence")
+    }
+    hits = audit["hits"]
+    unresolved = [h for h in hits if (h["session"], h["line"], h["kind"]) not in waived]
+    return {"hits": len(hits), "waived": len(hits) - len(unresolved), "unresolved": len(unresolved)}
 
 
 def render(manifest: Path) -> str:
@@ -166,6 +183,7 @@ def render(manifest: Path) -> str:
         gone=no_live_attachment(inputs),
         plan=plan,
         plan_items_by_id={item["id"]: item for item in plan["items"]},
+        audit_status=audit_status(inputs["audit"], inputs["agent"]),
         plan_md=(base / paths["plan_md"]).read_text(),
         amendments=amendments,
         key=key,

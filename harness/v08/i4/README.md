@@ -25,6 +25,12 @@ Checked on Claude Code 2.1.312 with a scratch config dir (I4a):
   - the REST replay equals that answer after canonicalisation, and cited refs resolve;
   - `docker-compose.aip.yml`, `config.before.yaml` and `setup_run_home.sh before` give the nine C1
     rows.
+- The session settings also deny reading the operator's own Claude state (`~/.claude`,
+  `~/.claude.json`, the operator's `/tmp/claude-<uid>/<worktree slug>/` dirs: they hold this work's
+  transcripts, memory and plans) and the run package. Auto-memory is off (`autoMemoryEnabled: false`
+  and `CLAUDE_CODE_DISABLE_AUTO_MEMORY=1`), so no session writes into its config dir.
+- `audit.py` also scans every tool result for canaries, strings that exist only in withheld material,
+  because a search such as `grep -rl tenant ~` names no withheld path.
 - **The Bash sandbox is not available on this host** (`bubblewrap` and `socat` are missing), and
   `curl` to the internet goes through an allowed Bash. Network access is therefore not blocked:
   `audit.py` is the control, and it fails closed (§4.4).
@@ -43,14 +49,16 @@ Checked on Claude Code 2.1.312 with a scratch config dir (I4a):
    - `$I4/setup_run_home.sh $I4_RUN_HOME kafka`;
    - `docker compose -p aip-v08-i4 --project-directory $I4_RUN_HOME/kafka -f $I4_RUN_HOME/kafka/docker-compose.kafka.yml --env-file /dev/null up -d`;
    - check that no topic exists on it.
-5. Record the configuration of the moved services: `$I4/capture.sh helm before`.
+5. Record the configuration of the moved services and the image inventory:
+   `$I4/capture.sh helm before` and `$I4/capture.sh images before` (after every pull of step 2).
 6. Capture B-R: `$I4/capture.sh b-r`.
 7. Start AIP with the before-wave profile:
    - build the image from the I4a merge commit: `export AIP_IMAGE=$(docker build -q <AIP checkout>)`,
      and record the ID in `observed-metadata.json`;
    - `$I4/setup_run_home.sh $I4_RUN_HOME before`;
-   - `cd $I4_RUN_HOME && AIP_NEO4J_PASSWORD=… docker compose -f docker-compose.aip.yml up -d`
-     (with `AIP_IMAGE` set);
+   - `export AIP_NEO4J_PASSWORD=…` (it stays exported for S4: Compose needs it for every command
+     on this file), then `cd $I4_RUN_HOME && docker compose -f docker-compose.aip.yml up -d` (with
+     `AIP_IMAGE` set);
    - `curl -X POST localhost:8000/api/import`.
 
    Check that the binding picture for `catalog-management` on `kafka:sokol111-local` gives the nine
@@ -82,10 +90,13 @@ Checked on Claude Code 2.1.312 with a scratch config dir (I4a):
 
 Run the steps in this order. AIP answers only for the current snapshot.
 
-1. **Audit:**
-   `python3 $I4/audit.py --planning $(find package/transcripts/planning -name '*.jsonl') --execution $(find package/transcripts/execution -name '*.jsonl') --withheld <each AIP worktree> --config-dir $I4_RUN_HOME/claude-planning --config-dir $I4_RUN_HOME/claude-execution --out package/audit.json --requests-out package/agent-requests.json`.
-   A hit invalidates the run (§4.4). Zero extracted requests while the plan cites AIP stops the
-   next step.
+1. **Audit:** first `$I4/capture.sh images after`, then
+   `python3 $I4/audit.py --images-before package/images/before.txt --images-after package/images/after.txt --planning $(find package/transcripts/planning -name '*.jsonl') --execution $(find package/transcripts/execution -name '*.jsonl') --withheld <each AIP worktree> --config-dir $I4_RUN_HOME/claude-planning --config-dir $I4_RUN_HOME/claude-execution --out package/audit.json --requests-out package/agent-requests.json`.
+   Withheld means: every AIP worktree, `~/.claude`, the operator's `/tmp/claude-<uid>/` project dirs,
+   and `$I4_RUN_HOME/package`. A hit invalidates the run (§4.4). A denied attempt is still a hit; the
+   §4.4 waiver applies when its `tool_result` shows that it failed before it returned any content, so
+   the owner can waive it with that result as the evidence. Zero extracted requests while the plan
+   cites AIP stops the next step.
 2. **Before-wave answers**, with B-R still current:
    `python3 $I4/record_answers.py before --requests package/agent-requests.json --plan workspace/plan.json --out package/answers-before.json`.
 3. **Configuration and ground truth:**
@@ -96,13 +107,14 @@ Run the steps in this order. AIP answers only for the current snapshot.
    - `$I4/capture.sh ground-truth`.
 4. **After-wave captures:** `$I4/capture.sh a-r` and `$I4/capture.sh a-k`.
 5. **After-wave answers:**
-   - `docker compose -f docker-compose.aip.yml down -v` (a clean graph);
+   - with `AIP_NEO4J_PASSWORD` and `AIP_IMAGE` still exported:
+     `docker compose -f docker-compose.aip.yml down -v` (a clean graph);
    - `$I4/setup_run_home.sh $I4_RUN_HOME after`;
    - `up -d`, then the import;
    - `python3 $I4/record_answers.py after --out package/answers-after.json`;
    - Proof C: `python3 $I4/proof_c.py --recording package/answers-after.json --out package/proof-c.json`.
 6. **Scoring:**
-   - `python3 $I4/score.py --plan workspace/plan.json --amendments workspace/amendments.json --applied package/applied-mm2.json --helm-check package/applied-helm.json --verdicts package/owner-verdicts.json --out package/scoring.json`;
+   - `python3 $I4/score.py --plan workspace/plan.json --plan-md workspace/plan.md --freeze plan-freeze.txt --amendments workspace/amendments.json --applied package/applied-mm2.json --helm-check package/applied-helm.json --verdicts package/owner-verdicts.json --out package/scoring.json`;
    - `python3 $I4/citations.py --plan workspace/plan.json --recording package/answers-before.json --scoring package/scoring.json --out package/citations.json`.
 
    The owner writes `owner-verdicts.json`: the K6/K8 sub-check verdicts, and a reason for each

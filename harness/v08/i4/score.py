@@ -41,6 +41,20 @@ def check_reference_digest(path: Path = EXPECTED_AFTER) -> None:
         raise SystemExit(f"STOP: {path.name} hashes to {digest}, not the pinned digest (I4 §3)")
 
 
+def check_plan_freeze(freeze: Path, *files: Path) -> None:
+    """The scored plan is the frozen one: each file hashes to its line in the S2 freeze record
+    (`sha256sum` output plus the UTC time)."""
+    recorded = {}
+    for line in freeze.read_text().splitlines():
+        parts = line.split()
+        if len(parts) == 2 and len(parts[0]) == 64:
+            recorded[Path(parts[1]).name] = parts[0]
+    for path in files:
+        digest = hashlib.sha256(path.read_bytes()).hexdigest()
+        if recorded.get(path.name) != digest:
+            raise SystemExit(f"STOP: {path.name} is not the frozen plan (I4 §4.4)")
+
+
 def effective_allow_lists(plan: dict, amendments: list[dict]) -> list[dict]:
     """The plan's allow-lists, replaced by the latest amendment that carries allow-lists."""
     allow_lists = plan["allow_lists"]
@@ -193,6 +207,8 @@ def score(
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--plan", type=Path, required=True)
+    parser.add_argument("--plan-md", type=Path, required=True)
+    parser.add_argument("--freeze", type=Path, required=True, help="the S2 plan-freeze record")
     parser.add_argument("--amendments", type=Path)
     parser.add_argument("--applied", type=Path, required=True, help="config_checks.py output")
     parser.add_argument("--helm-check", type=Path, required=True, help="helm_checks.py output")
@@ -200,6 +216,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--out", type=Path, required=True)
     args = parser.parse_args(argv)
     check_reference_digest()
+    check_plan_freeze(args.freeze, args.plan, args.plan_md)
     applied = json.loads(args.applied.read_text())
     result = score(
         load_plan(args.plan),

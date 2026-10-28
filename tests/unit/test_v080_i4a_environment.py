@@ -55,6 +55,15 @@ def test_session_settings_deny_the_withheld(session):
     )  # Edit covers it
 
 
+@pytest.mark.parametrize("session", ["planning", "execution"])
+def test_session_settings_deny_operator_state_and_the_package(session):
+    settings = json.loads((I4 / f"agent/settings.{session}.json").read_text())
+    assert settings["autoMemoryEnabled"] is False
+    assert {"Read(/__OPERATOR_STATE__)", "Read(/__RUN_HOME__/package/**)"} <= set(
+        settings["permissions"]["deny"]
+    )
+
+
 def test_planning_writes_only_the_plan():
     allow = json.loads((I4 / "agent/settings.planning.json").read_text())["permissions"]["allow"]
     assert [r for r in allow if r.startswith("Edit")] == ["Edit(./plan.json)", "Edit(./plan.md)"]
@@ -109,6 +118,11 @@ def test_setup_planning_then_execution(tmp_path):
     deny = json.loads((config / "settings.json").read_text())["permissions"]["deny"]
     assert f"Read(/{REPO})" in {rule.removesuffix("/**)") + ")" for rule in deny}
     assert not any("__" in rule for rule in deny)
+    assert f"Read(/{home}/.claude/**)" in deny and f"Read(/{home}/.claude.json)" in deny
+    slug = str(REPO).replace("/", "-")
+    assert any(rule.startswith("Read(//tmp/claude-") and slug in rule for rule in deny)
+    assert f"Read(/{run_home.resolve()}/package/**)" in deny
+    assert "CLAUDE_CODE_DISABLE_AUTO_MEMORY=1" in result.stdout
 
     again = setup(run_home, "planning", home)
     assert again.returncode == 2 and "already exists" in again.stderr
