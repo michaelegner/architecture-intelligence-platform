@@ -1,0 +1,53 @@
+# v0.8 I4 §5, S4: the after-wave profile, imported into a clean graph (I4a plan decision 1, as the I3
+# replay). `setup_run_home.sh after` fills /app/sokol111-v08/ with: the after-wave declarations of the
+# I3 package, A-R, A-K, both I1 mappings, the catalog with its lookup.
+architecture_intelligence:
+  sources:
+    directories:
+      - id: sokol111-declarations-sokol111-local
+        root: /app/sokol111-v08/declarations/sokol111-local
+      - id: sokol111-declarations-sokol111-kafka
+        root: /app/sokol111-v08/declarations/sokol111-kafka
+    kafka_consumer_state:
+      - id: sokol111-kafka
+        root: /app/sokol111-v08/a-r
+        broker_id: kafka:sokol111-local
+        environment: local
+        consumer_groups:
+          - ecommerce-catalog-service
+          - ecommerce-category-query-service
+          - ecommerce-image-service
+          - ecommerce-product-query-service
+      - id: sokol111-kafka-target
+        root: /app/sokol111-v08/a-k
+        broker_id: kafka:sokol111-kafka
+        environment: local
+        consumer_groups:
+          - ecommerce-catalog-service
+          - ecommerce-image-service
+    kafka_service_mappings:
+      - id: sokol111-mapping
+        root: /app/sokol111-v08/mapping/sokol111-local
+        broker_id: kafka:sokol111-local
+        environment: local
+      - id: sokol111-mapping-kafka
+        root: /app/sokol111-v08/mapping/sokol111-kafka
+        broker_id: kafka:sokol111-kafka
+        environment: local
+    event_catalogs:
+      - id: sokol111-catalog
+        root: /app/sokol111-v08
+        environment: local
+  graph:
+    uri: bolt://localhost:7687
+    database: neo4j
+  import:
+    openapi: true
+    asyncapi: true
+    architecture_manifest: true
+  llm:
+    enabled: false
+  mcp:
+    allowed-hosts: ["127.0.0.1:8000", "localhost:8000"]
+  experimental:
+    binding-picture: true

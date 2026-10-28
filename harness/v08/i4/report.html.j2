@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Binding Picture Showcase</title>
+<style>
+:root { --bg: #ffffff; --fg: #1b1f24; --muted: #57606a; --line: #d0d7de; --accent: #0b5cad;
+  --warn: #9a6700; --ok: #1a7f37; --bad: #cf222e; --quote: #f6f8fa; }
+@media (prefers-color-scheme: dark) {
+  :root { --bg: #0d1117; --fg: #e6edf3; --muted: #8d96a0; --line: #30363d; --accent: #58a6ff;
+    --warn: #d29922; --ok: #3fb950; --bad: #f85149; --quote: #161b22; }
+}
+body { background: var(--bg); color: var(--fg); font: 16px/1.55 system-ui, sans-serif;
+  margin: 0 auto; max-width: 72rem; padding: 0 16px 4rem; }
+h1 { font-size: 1.9rem; margin-top: 2.5rem; } h2 { margin-top: 3rem; border-bottom: 1px solid var(--line); }
+.question { color: var(--accent); font-weight: 600; }
+.muted { color: var(--muted); }
+table { border-collapse: collapse; width: 100%; margin: 1rem 0; font-size: 0.92rem; display: block; overflow-x: auto; }
+th, td { border: 1px solid var(--line); padding: 0.35rem 0.5rem; text-align: left; vertical-align: top; }
+.undeclared { color: var(--warn); font-weight: 600; }
+.PASSED, .MATCHED, .COVERED { color: var(--ok); font-weight: 600; }
+.FAILED, .DIFFERENT, .MISSING, .INCOMPLETE, .NOT_CITED, .DOES_NOT_SUPPORT { color: var(--bad); font-weight: 600; }
+.agent { background: var(--quote); border-left: 3px solid var(--line); margin: 0.3rem 0; padding: 0.3rem 0.6rem; display: block; white-space: pre-wrap; }
+code { font-size: 0.88em; }
+</style>
+</head>
+<body>
+<h1>Before an AI agent changes a distributed system, do we understand the bindings that change relies on?</h1>
+<p>Sokol111 is a multi-tenant e-commerce system. Its services exchange events through a Redpanda
+broker. The modernization step shown here moves one bounded context, Catalog Management (the Catalog
+and Image services), to Apache Kafka, with MirrorMaker 2 bridging the two brokers. A move like this is
+safe only if every binding that crosses the boundary of the moving context is known before the move
+and still holds after it.</p>
+<p>The flow of this page follows that question. First the bindings, then what is declared and what
+the evidence establishes, then the plan that a coding agent built on that picture, then what the
+evidence establishes after the move. AIP is read-only: it gives understanding of the bindings, not
+power over the system.</p>
+
+<h2>1. Before: the boundary and the bindings that cross it</h2>
+<p class="question">(1) What boundary changes?</p>
+<p>Catalog Management moves from Redpanda (<code>kafka:sokol111-local</code>) to Apache Kafka
+(<code>kafka:sokol111-kafka</code>). Store Provisioning (Tenant) and Storefront (Product Query,
+Category Query) stay on Redpanda. Before the move, only Redpanda has a capture.</p>
+<p class="question">(2) Which relationships cross it?</p>
+<table>
+<tr><th>Consumer</th><th>Topic</th><th>Crossing</th><th>Status</th><th>Consumer groups</th></tr>
+{% for row in before_rows %}
+<tr><td>{{ row.get("consumer_service_id") | service }}</td><td><code>{{ row.topic_name }}</code></td>
+<td>{{ row.crossing }}</td>
+<td{% if row.get("reason") == "PROMISE_COVERAGE_MISSING" %} class="undeclared"{% endif %}>{{ row.status }}{% if row.get("reason") %} / {{ row.get("reason") }}{% endif %}</td>
+<td>{{ row.group_ids | join(", ") }}</td></tr>
+{% endfor %}
+</table>
+<p class="muted">Each row is one consumer Service, Topic and broker at the capture time. Limitations
+of this answer: {{ before_limitations | join(", ") }}.</p>
+
+<h2>2. Insight: what is declared, and what the evidence establishes</h2>
+<p class="question">(3) Which bindings are declared, which are observed, and which are unresolved?</p>
+<p>The documented architecture says that Catalog Management publishes product and category events to
+the storefront. The broker evidence shows more. The rows marked <span class="undeclared">observed,
+undeclared</span> are bindings that no document names: the moving services consume tenant events
+from Store Provisioning, and the storefront consumes attribute events from Catalog Management. A
+move planned from the documents alone would not bridge them.</p>
+<table>
+<tr><th>Binding</th><th>Declared (catalog)</th><th>Resolved Topic</th><th>Observed attachment</th><th>Evidence refs</th></tr>
+{% for row in before_rows if row.crossing in ("INBOUND", "OUTBOUND") %}
+<tr><td>{{ row.get("consumer_service_id") | service }} &times; <code>{{ row.topic_name }}</code></td>
+<td>{% if row.get("reason") == "PROMISE_COVERAGE_MISSING" %}<span class="undeclared">none: observed, undeclared</span>{% else %}promised: {{ row.declared_event_types | join(", ") or "-" }}{% endif %}</td>
+<td><code>{{ row.get("topic_id") or "-" }}</code></td>
+<td>{{ row.group_ids | join(", ") or "none" }}{% if row.get("captured_at") %} at {{ row.get("captured_at") }}{% endif %}</td>
+<td>{{ (row.promise_evidence_refs | length) }} promise, {{ (row.attachment_evidence_refs | length) }} attachment, {{ (row.mapping_evidence_refs | length) }} mapping</td></tr>
+{% endfor %}
+</table>
+<p class="muted">An attachment establishes that a consumer group was attached to the topic at the
+capture time. It does not establish which event types the consumer handles, or an end-to-end event
+flow.</p>
+
+<h2>3. Agent: why the bindings matter for this move</h2>
+<p class="question">(4) Why do they matter for the migration?</p>
+<p>A coding agent planned and carried out the move. It read the binding picture through AIP's MCP
+interface. AIP establishes the bindings. The agent derives the migration requirements, then chooses
+and carries out the plan. Independent evidence establishes what the migration achieved.</p>
+<p>Each chain below starts from a binding that crosses the boundary after the move and ends with the
+check that is independent of AIP. The agent's own words are quoted.</p>
+<table>
+<tr><th>Observed binding (AIP)</th><th>Migration requirement</th><th>Agent decision</th><th>Independent verification</th></tr>
+{% for chain in chains %}
+<tr>
+<td>{{ chain.consumer }} &times; <code>{{ chain.row.topic_name }}</code> on {{ chain.broker }}: {{ chain.row.crossing }}, {{ chain.row.status }}{% if chain.continues %}<br><span class="muted">before: {{ chain.continues.status }} on Redpanda</span>{% endif %}</td>
+<td>{% if chain.key %}{{ chain.key.requirement }} <span class="muted">({{ chain.key.id }})</span>{% else %}-{% endif %}</td>
+<td>Proof A <span class="{{ chain.proof_a }}">{{ chain.proof_a }}</span>, Proof B <span class="{{ chain.proof_b }}">{{ chain.proof_b }}</span>
+{% for item in chain.plan_items %}
+<span class="agent">{{ item.id }}: {{ item.action }}{% for j in item.implementation_justification %} · [{{ j.kind }}] {{ j.reference }}{% endfor %}</span>
+{% endfor %}</td>
+<td>replication: {{ chain.verification.replication | join(", ") }}<br>lag: {{ chain.verification.lag | join(", ") }}<br>functional test: {{ chain.verification.functional }}</td>
+</tr>
+{% endfor %}
+</table>
+
+<h3>Proof A: the plan against the answer key</h3>
+<p>The answer key was frozen before the agent run. The agent did not see it.</p>
+<table>
+<tr><th>Key item</th><th>Verdict</th><th>Plan items</th><th>Recorded reason</th></tr>
+{% for result in scoring.key_items %}
+<tr><td>{{ result.id }}</td><td class="{{ result.verdict }}">{{ result.verdict }}</td><td>{{ result.plan_items | join(", ") }}</td><td>{{ result.reason or "" }}</td></tr>
+{% endfor %}
+{% for entry in scoring.owner_judged %}
+<tr><td>{{ entry.id }}: {{ entry.check }}</td><td class="{{ entry.verdict }}">{{ entry.verdict }}</td><td>{{ entry.plan_items | join(", ") }}</td><td>{{ entry.reason or "" }}</td></tr>
+{% endfor %}
+</table>
+<p>Plan items that no key item claims: {{ scoring.extra | join(", ") or "none" }}.</p>
+
+<h3>Proof B: the AIP claims the plan cites</h3>
+<p>A pass means that the binding behind a plan item is evidenced. It never means that the action is
+correct; the mechanism is checked by the broker tools and the functional test.</p>
+<table>
+<tr><th>Key item</th><th>Coverage</th><th>Missing rows</th></tr>
+{% for c in citations.coverage %}
+<tr><td>{{ c.id }}</td><td class="{{ c.verdict }}">{{ c.verdict }}</td><td>{% for r in c.missing_rows %}{{ r[2] | service }} &times; {{ r[1] }}<br>{% endfor %}</td></tr>
+{% endfor %}
+</table>
+<p>Mechanism items without an implementation justification: {{ citations.unjustified | join(", ") or "none" }}.
+Citations that did not resolve: {{ citations.unresolved | join(", ") or "none" }}.</p>
+
+<h3>The agent's plan, as written</h3>
+<blockquote class="agent">{{ plan_md }}</blockquote>
+{% if amendments %}
+<h3>Amendments made while carrying out the plan</h3>
+{% for a in amendments %}
+<blockquote class="agent">{{ a.utc }} {{ a.change }} {{ a.item_id }}: {{ a.reason }}</blockquote>
+{% endfor %}
+{% endif %}
+
+<h2>4. After: the binding picture on both brokers</h2>
+<p class="question">(5) What does the evidence after the move establish?</p>
+<table>
+<tr><th>Broker</th><th>Consumer</th><th>Topic</th><th>Crossing</th><th>Status</th><th>Consumer groups</th></tr>
+{% for row in after_rows %}
+<tr><td>{{ row.broker_id | broker }}</td><td>{{ row.get("consumer_service_id") | service }}</td><td><code>{{ row.topic_name }}</code></td><td>{{ row.crossing }}</td>
+<td{% if row.get("reason") == "PROMISE_COVERAGE_MISSING" %} class="undeclared"{% endif %}>{{ row.status }}{% if row.get("reason") %} / {{ row.get("reason") }}{% endif %}</td>
+<td>{{ row.group_ids | join(", ") }}</td></tr>
+{% endfor %}
+</table>
+<p class="muted">Limitations of this answer: {{ after_limitations | join(", ") }}. Each broker keeps its own
+Topic ids; AIP does not merge them and does not establish delivery across the brokers.</p>
+{% if gone %}
+<p>No live attachment here after the move (a comparison of the two captures, not a detachment claim
+beyond them):</p>
+<ul>
+{% for row in gone %}<li>{{ row.get("consumer_service_id") | service }} &times; <code>{{ row.topic_name }}</code> on {{ row.broker_id | broker }}</li>
+{% endfor %}
+</ul>
+{% endif %}
+
+<h3>External checks, apart from AIP's claims</h3>
+<table>
+<tr><th>Check</th><th>Established by</th><th>Result</th></tr>
+{% for v in replication %}<tr><td>replication caught up: {{ v.partitions | map(attribute="topic") | unique | join(", ") }}</td><td>broker tools</td><td class="{{ v.result }}">{{ v.result }}</td></tr>
+{% endfor %}
+{% for v in lag %}<tr><td>consumer lag 0: {{ v.group }}</td><td>broker tools</td><td class="{{ v.result }}">{{ v.result }}</td></tr>
+{% endfor %}
+<tr><td>offset hand-off (installed offset as reported by the agent; the operator's later reads beside it)</td><td>broker tools and the agent's transcript</td><td class="{{ handoff.result }}">{{ handoff.result }}</td></tr>
+<tr><td>applied MirrorMaker 2 configuration</td><td>the operator's reading of the running containers</td><td class="{{ applied_mm2.result }}">{{ applied_mm2.result }}</td></tr>
+<tr><td>applied Catalog and Image configuration</td><td>the operator's reading of the ConfigMaps</td><td class="{{ applied_helm.result }}">{{ applied_helm.result }}</td></tr>
+{% for s in functional_test.steps %}<tr><td>functional test {{ s.step }}</td><td>the services' Connect-RPC endpoints</td><td class="{{ s.result }}">{{ s.result }}</td></tr>
+{% endfor %}
+</table>
+<table>
+<tr><th>Hand-off entry</th><th>(a) final offset on Redpanda</th><th>(c) installed on Kafka</th><th>Checkpoint matches</th><th>Kafka position now</th><th>Replay amount</th></tr>
+{% for e in handoff.entries %}
+<tr><td>{{ e.group }} {{ e.topic }}-{{ e.partition }}</td><td>{{ e.a.value }}</td><td>{{ e.c.value }} <span class="muted">({{ e.c.source }})</span></td>
+<td>{{ e.checkpoint_matches }}</td><td>{{ e.kafka_position_now.value }}</td><td>{{ e.replay.kind }}{% if e.replay.records is defined %}: {{ e.replay.records }}{% endif %}</td></tr>
+{% endfor %}
+</table>
+
+<h2>Proof boundaries</h2>
+<table>
+<tr><th>Claim</th><th>Established by</th></tr>
+<tr><td>group state and topic assignments per broker, before and after, attributed to Services</td><td>AIP</td></tr>
+<tr><td>offsets, lag, replication progress</td><td>broker tools (<code>rpk</code>, <code>kafka-consumer-groups</code>), stored as ground truth</td></tr>
+<tr><td>the migrated behaviour works</td><td>the functional test after the cut-over</td></tr>
+</table>
+<p>What an instrument measures is not what people conclude from it. Each claim on this page names
+the instrument that establishes it.</p>
+
+<h2>How the agent run was kept independent</h2>
+<ul>
+<li>Agent: {{ agent.model }} in Claude Code {{ agent.claude_code_version }}.</li>
+<li>The agent saw a task card with the goal and the safety constraints only (SHA-256 <code>{{ agent.task_card_sha256 }}</code>). It did not see the answer key, the reference runbook, the specifications or the web.</li>
+<li>The plan was frozen at {{ agent.plan_frozen_at }} (SHA-256 <code>{{ agent.plan_sha256 }}</code>), before the first command that changed the environment.</li>
+<li>Transcript audit: {% if audit.clean %}no hit{% else %}{{ audit.hits | length }} hit(s), each recorded with the owner's decision{% endif %}.</li>
+<li>Operator interventions for environment faults: {% if agent.interventions %}{{ agent.interventions | length }}, listed in the run record{% else %}none{% endif %}.</li>
+</ul>
+
+<h2>Disclosures</h2>
+<ul>
+<li>The EventCatalog and its owners are generated for the showcase from Sokol111's two architecture documents by a fixed rule. Its entries count as confirmed promises by assumption; they are not promises that the service teams made.</li>
+<li>The topic inventory, the producer and Service declarations and the consumer group to Service mapping are authored from source and configuration.</li>
+<li>The second broker and the bridge are authored for the showcase: a local Apache Kafka stands in for a managed platform, and Sokol111 itself runs one Redpanda broker.</li>
+<li>Local adaptations, none committed to a Sokol111 repository: MinIO from frozen Bitnami images, Logto pinned by digest, the k3d host adaptations, a host DNS workaround, and the Logto seed run a second time.</li>
+<li>The agent, its task card and its sessions are described above. The answer key is the authors' expected plan, written before the run.</li>
+</ul>
+
+<h2>Evaluate it on your own architecture</h2>
+<p>This page shows one move in one system. The question it asks applies to any change that crosses a
+boundary: which bindings cross it, which are declared, and what the evidence establishes before and
+after. We invite you to ask that question of your own architecture with AIP.</p>
+</body>
+</html>

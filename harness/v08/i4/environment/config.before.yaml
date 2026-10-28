@@ -1,0 +1,40 @@
+# v0.8 I4 §5, S1-S4: the before-wave profile (the i2-evidence/config.yaml pattern, with B-R in place
+# of C1). `setup_run_home.sh before` fills /app/sokol111-v08/ with exactly these inputs: the I1
+# Redpanda declarations, the I1 Redpanda mapping, the catalog with its lookup, and B-R.
+architecture_intelligence:
+  sources:
+    directories:
+      - id: sokol111-declarations-sokol111-local
+        root: /app/sokol111-v08/declarations/sokol111-local
+    kafka_consumer_state:
+      - id: sokol111-kafka
+        root: /app/sokol111-v08/b-r
+        broker_id: kafka:sokol111-local
+        environment: local
+        consumer_groups:
+          - ecommerce-catalog-service
+          - ecommerce-category-query-service
+          - ecommerce-image-service
+          - ecommerce-product-query-service
+    kafka_service_mappings:
+      - id: sokol111-mapping
+        root: /app/sokol111-v08/mapping/sokol111-local
+        broker_id: kafka:sokol111-local
+        environment: local
+    event_catalogs:
+      - id: sokol111-catalog
+        root: /app/sokol111-v08
+        environment: local
+  graph:
+    uri: bolt://localhost:7687
+    database: neo4j
+  import:
+    openapi: true
+    asyncapi: true
+    architecture_manifest: true
+  llm:
+    enabled: false
+  mcp:
+    allowed-hosts: ["127.0.0.1:8000", "localhost:8000"]
+  experimental:
+    binding-picture: true

@@ -1,0 +1,108 @@
+{
+  "authored": "2026-10-28, from the v0.8 specification §4.1-§4.2 and the I4 specification §3.1 (Draft 0.3), committed in I4a before any agent run and never edited (I4 E1).",
+  "governs": "Proof A (I4 §7) and the Proof B coverage rule (I4 §6). Proof C uses i3-evidence/expected-after.json, not this file (D16).",
+  "brokers": {
+    "redpanda": "kafka:sokol111-local",
+    "kafka": "kafka:sokol111-kafka"
+  },
+  "items": [
+    {
+      "id": "K1",
+      "kind": "binding",
+      "item": "mirror tenant.tenant.events from Redpanda to Kafka",
+      "topic": "tenant.tenant.events",
+      "direction": {"source": "redpanda", "target": "kafka"},
+      "requirement": "Keep tenant-event delivery to Catalog and Image after they move to Kafka; the producer (Tenant) stays on Redpanda.",
+      "expected_rows": [
+        {"broker_id": "kafka:sokol111-local", "topic_name": "tenant.tenant.events", "consumer_service_id": "service:ecommerce-catalog-service", "crossing": "INBOUND"},
+        {"broker_id": "kafka:sokol111-local", "topic_name": "tenant.tenant.events", "consumer_service_id": "service:ecommerce-image-service", "crossing": "INBOUND"}
+      ],
+      "implementation_justification": "The tenant producer stays on Redpanda (Tenant's topics.go); each moving service wires a tenant-event consumer."
+    },
+    {
+      "id": "K2",
+      "kind": "binding",
+      "item": "mirror catalog.product.events from Kafka to Redpanda",
+      "topic": "catalog.product.events",
+      "direction": {"source": "kafka", "target": "redpanda"},
+      "requirement": "Keep product-event delivery to Product Query on Redpanda after Catalog and Image produce on Kafka.",
+      "expected_rows": [
+        {"broker_id": "kafka:sokol111-local", "topic_name": "catalog.product.events", "consumer_service_id": "service:ecommerce-product-query-service", "crossing": "OUTBOUND"}
+      ],
+      "implementation_justification": "Catalog and Image produce the topic (their topics.go) and move."
+    },
+    {
+      "id": "K3",
+      "kind": "binding",
+      "item": "mirror catalog.category.events from Kafka to Redpanda",
+      "topic": "catalog.category.events",
+      "direction": {"source": "kafka", "target": "redpanda"},
+      "requirement": "Keep category-event delivery to Category Query on Redpanda after Catalog produces on Kafka.",
+      "expected_rows": [
+        {"broker_id": "kafka:sokol111-local", "topic_name": "catalog.category.events", "consumer_service_id": "service:ecommerce-category-query-service", "crossing": "OUTBOUND"}
+      ],
+      "implementation_justification": "Catalog produces the topic (its topics.go) and moves."
+    },
+    {
+      "id": "K4",
+      "kind": "binding",
+      "item": "mirror catalog.attribute.events from Kafka to Redpanda",
+      "topic": "catalog.attribute.events",
+      "direction": {"source": "kafka", "target": "redpanda"},
+      "requirement": "Keep attribute-event delivery to Product Query and Category Query on Redpanda after Catalog produces on Kafka.",
+      "expected_rows": [
+        {"broker_id": "kafka:sokol111-local", "topic_name": "catalog.attribute.events", "consumer_service_id": "service:ecommerce-category-query-service", "crossing": "OUTBOUND"},
+        {"broker_id": "kafka:sokol111-local", "topic_name": "catalog.attribute.events", "consumer_service_id": "service:ecommerce-product-query-service", "crossing": "OUTBOUND"}
+      ],
+      "implementation_justification": "Catalog produces the topic (its topics.go) and moves."
+    },
+    {
+      "id": "K5",
+      "kind": "mechanism",
+      "item": "no topic is mirrored in both directions: the allow-lists of the mirror flows are disjoint",
+      "reason_rows": ["K1", "K2", "K3", "K4"],
+      "implementation_justification": "The allow-lists in the agent's MirrorMaker 2 configuration, planned and applied."
+    },
+    {
+      "id": "K6",
+      "kind": "mechanism",
+      "item": "hand off the committed offsets of the Catalog and Image groups on tenant.tenant.events to Kafka, and verify them before the moved services start",
+      "groups": ["ecommerce-catalog-service", "ecommerce-image-service"],
+      "topic": "tenant.tenant.events",
+      "reason_rows": ["K1"],
+      "sub_checks": [
+        {"id": "K6.1", "check": "group-offset translation is configured for the two groups (MirrorMaker 2 checkpoints and group-offset sync)"},
+        {"id": "K6.2", "check": "per group and partition: the final committed offset on Redpanda equals a checkpoint's upstream offset, and the offset installed on Kafka equals that checkpoint's downstream offset, before the moved services start"}
+      ],
+      "implementation_justification": "MM2 checkpoints and group-offset sync; the final Redpanda offset, the checkpoint and the installed Kafka offset."
+    },
+    {
+      "id": "K7",
+      "kind": "mechanism",
+      "item": "change only the Kafka bootstrap address of Catalog and Image",
+      "services": ["ecommerce-catalog-service", "ecommerce-image-service"],
+      "setting": "kafka.brokers",
+      "change": {"from": "redpanda:29092", "to": "kafka:29092"},
+      "reason_rows": ["K1", "K2", "K3", "K4"],
+      "implementation_justification": "The Helm values in ecommerce-infrastructure; the applied ConfigMaps (helm_checks.py)."
+    },
+    {
+      "id": "K8",
+      "kind": "mechanism",
+      "item": "the cut-over checks, in the order of the v0.8 specification §4.2",
+      "reason_rows": ["K1", "K2", "K3", "K4"],
+      "sub_checks": [
+        {"id": "K8.1", "check": "before any mirror starts: the catalog topics exist empty on Kafka, and the allow-lists are disjoint"},
+        {"id": "K8.2", "check": "the Redpanda to Kafka mirror for the tenant topic is started, with group-offset sync for Catalog and Image, and replication is caught up before Catalog stops"},
+        {"id": "K8.3", "check": "Catalog stops only after Image has lag 0 on catalog.product.events"},
+        {"id": "K8.4", "check": "Image stops; both moved groups show zero live attachment on Redpanda"},
+        {"id": "K8.5", "check": "the remaining Redpanda consumers (Product Query, Category Query) are drained to lag 0 on the catalog topics"},
+        {"id": "K8.6", "check": "the offset hand-off of K6 is verified"},
+        {"id": "K8.7", "check": "the Kafka to Redpanda mirror for the catalog topics starts only after the producers have stopped and the drain is done"},
+        {"id": "K8.8", "check": "Catalog and Image start on Kafka, and both groups are Stable there"},
+        {"id": "K8.9", "check": "restart checks: replication caught up on the catalog mirror after new traffic; lag 0 for the consumers on both brokers; the functional test passes"}
+      ],
+      "implementation_justification": "Broker-tool output and the functional test."
+    }
+  ]
+}

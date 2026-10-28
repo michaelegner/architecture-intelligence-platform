@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "defaultMode": "dontAsk",
+    "allow": [
+      "Read",
+      "Glob",
+      "Grep",
+      "Edit",
+      "Bash",
+      "mcp__aip"
+    ],
+    "deny": [
+      "Read(/__AIP_CHECKOUT__/**)",
+      "Edit(/__AIP_CHECKOUT__/**)",
+      "Read(/__RUN_HOME__/claude-planning/**)",
+      "Edit(//**/.claude/**)",
+      "Edit(/__RUN_HOME__/claude-*/**)",
+      "Edit(./plan.json)",
+      "Edit(./plan.md)",
+      "WebFetch",
+      "WebSearch"
+    ]
+  },
+  "enableAllProjectMcpServers": true
+}

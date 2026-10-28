@@ -1,0 +1,52 @@
+{
+  "permissions": {
+    "defaultMode": "dontAsk",
+    "allow": [
+      "Read",
+      "Glob",
+      "Grep",
+      "mcp__aip",
+      "Edit(./plan.json)",
+      "Edit(./plan.md)",
+      "Bash(ls:*)",
+      "Bash(cat:*)",
+      "Bash(head:*)",
+      "Bash(tail:*)",
+      "Bash(grep:*)",
+      "Bash(find:*)",
+      "Bash(wc:*)",
+      "Bash(git log:*)",
+      "Bash(git show:*)",
+      "Bash(git status:*)",
+      "Bash(docker ps:*)",
+      "Bash(docker inspect:*)",
+      "Bash(docker logs:*)",
+      "Bash(docker image ls:*)",
+      "Bash(docker images:*)",
+      "Bash(docker network ls:*)",
+      "Bash(docker exec redpanda rpk topic list:*)",
+      "Bash(docker exec redpanda rpk topic describe:*)",
+      "Bash(docker exec redpanda rpk group list:*)",
+      "Bash(docker exec redpanda rpk group describe:*)",
+      "Bash(docker exec redpanda rpk cluster info:*)",
+      "Bash(docker exec kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:29092 --list:*)",
+      "Bash(docker exec kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:29092 --describe:*)",
+      "Bash(docker exec kafka /opt/kafka/bin/kafka-consumer-groups.sh --bootstrap-server kafka:29092 --list:*)",
+      "Bash(docker exec kafka /opt/kafka/bin/kafka-consumer-groups.sh --bootstrap-server kafka:29092 --describe:*)",
+      "Bash(kubectl get:*)",
+      "Bash(kubectl describe:*)",
+      "Bash(kubectl logs:*)",
+      "Bash(helm template:*)",
+      "Bash(helm show:*)"
+    ],
+    "deny": [
+      "Read(/__AIP_CHECKOUT__/**)",
+      "Edit(/__AIP_CHECKOUT__/**)",
+      "Edit(//**/.claude/**)",
+      "Edit(/__RUN_HOME__/claude-*/**)",
+      "WebFetch",
+      "WebSearch"
+    ]
+  },
+  "enableAllProjectMcpServers": true
+}

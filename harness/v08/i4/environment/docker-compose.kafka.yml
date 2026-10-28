@@ -1,0 +1,35 @@
+# v0.8 I4 §4.2, §5: the target broker only, empty, with no MirrorMaker 2 service: the agent writes
+# and starts its own bridge. The operator copies this file to the run home (outside the AIP checkout)
+# and starts it there, so that no Compose label points into the checkout. Same image and listeners as
+# the I3 `kafka` service (i3-evidence/environment/docker-compose.i3.yml); the container is named
+# `kafka`, as the task card says.
+name: aip-v08-i4
+
+services:
+  kafka:
+    image: apache/kafka:4.1.2@sha256:5cc2a2fd93fa2687b44015eee04fb2c3edd9e526bd64bf8bec5ff1e268772e0e
+    container_name: kafka
+    environment:
+      CLUSTER_ID: aipv08i4kafkaclusterA1
+      KAFKA_NODE_ID: "1"
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://:29092,HOST://:19092,CONTROLLER://:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,HOST://localhost:19092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,HOST:PLAINTEXT,CONTROLLER:PLAINTEXT
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@localhost:9093
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: "1"
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: "1"
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: "1"
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: "0"
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
+    ports:
+      - "19092:19092"
+    networks:
+      - shared-network
+
+networks:
+  shared-network:
+    name: shared-network
+    external: true
