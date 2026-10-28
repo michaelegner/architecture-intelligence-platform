@@ -1,6 +1,6 @@
 # AIP v0.8 I4: Agent Run, Report and Release
 
-**Status:** Draft 0.2 (2026-10-28; review on #650: Proof B coverage rule for K1–K4)  
+**Status:** Draft 0.3 (2026-10-28; review on #650: Proof B coverage rule, pinned capture digest, applied MM2 configuration and its checks, fail-closed audit)  
 **Governs:** [v0.8 specification](specification.md) §4.4, §6, §7 I4 and §8, as amended by D16–D19 (§14).  
 **Baseline:** `main` at `459d863` (I3 complete: [completion record](i3-completion-record.md), [handoff](i3-i4-handoff.md)).  
 **Hands off to:** the v0.8.0 release closure.
@@ -46,7 +46,7 @@ I4 uses two frozen references. They measure different things, and they are never
 | Key | Measures | File | Frozen |
 |---|---|---|---|
 | **Plan answer key** | Proof A: does the agent's plan contain the expected wave plan? | `i4-evidence/plan-key.json` + `plan-key.sha256` | in I4a, before any run; never edited |
-| **Capture reference** | Proof C: do the after-wave captures give the expected binding picture? | [`i3-evidence/expected-after.json`](i3-evidence/expected-after.json) | in I3a; unchanged |
+| **Capture reference** | Proof C: do the after-wave captures give the expected binding picture? | [`i3-evidence/expected-after.json`](i3-evidence/expected-after.json), SHA-256 `969cf66e6bae4ad7a67d28d7b723d190328ecb3e11afc248d92312dece50364f` (as `expected-after.sha256`) | in I3a; unchanged; the digest is checked before scoring |
 
 The I3 handoff calls `expected-after.json` "the scoring key". In I4 it scores Proof C only.
 
@@ -126,6 +126,7 @@ The task card is committed in I4a with its digest and is never edited. It contai
   - a structured item list, `plan.json`: per item an id, the action, the topics, the direction
     (source broker → target broker), the services, the files it changes,
     `architecture_citations[]` and `implementation_justification[]`;
+  - per mirror flow that the plan creates, its topic allow-list (`allow_lists`);
   - a prose rationale, `plan.md`.
 
 The task card does not contain a topic list, a mirror direction, a step list or the kinds of check.
@@ -150,7 +151,11 @@ The task card does not contain a topic list, a mirror direction, a step list or 
     `gh`, package managers and so on;
   - in the planning transcript, any command that changes the environment.
 
-  A hit is recorded. The owner decides if the run stays valid.
+  The audit fails closed. A read of a withheld path or a fetch from outside the environment makes
+  the run **invalid**: it is recorded, and the wave is run again from a reset with a new agent
+  session. The only waiver is a documented environment fault that exposed nothing withheld (for
+  example, a command that failed before it returned any content). The owner records each waiver
+  with its evidence.
 
 ## 5. Roles (D18)
 
@@ -173,7 +178,15 @@ The task card does not contain a topic list, a mirror direction, a step list or 
 - **Interventions.** The operator intervenes only for an environment fault, never in the agent's
   plan or decisions. Each intervention goes into the intervention log, with its UTC time, cause and
   action.
-- The I3 P4 per-probe timeout stays deferred: I4 does not run the I3 preflight.
+- **Configuration checks instead of the I3 preflight.** The agent's MirrorMaker 2 configuration is
+  new, so I4 does not inherit the I3 P1a–P3 verdicts. In S4 the operator reads the applied
+  configuration of each flow (§9) and records a verdict for each static check: every internal topic
+  the flow creates has replication factor 1 (P1a, and P1b on the live cluster); offset-syncs and
+  checkpoints are on, and the policy keeps topic names (P2); the flows' allow-lists are disjoint (P3).
+  The agent is not told about these checks. P4 (listener) and P5 (the offset-sync mechanism with
+  Redpanda as the source) are not repeated: I3 qualified them on the same environment and pins, and
+  I4 checks their outcome directly (the offset hand-off positions, consumer lag, the functional
+  test, Proof C). The I3 P4 per-probe timeout therefore stays deferred.
 
 ## 6. Proof B: citations
 
@@ -218,7 +231,7 @@ The task card does not contain a topic list, a mirror direction, a step list or 
 | Key items | Verdict | How |
 |---|---|---|
 | K1–K4 | `MATCHED`, `DIFFERENT` or `MISSING` | by topic and direction |
-| K5 | `MATCHED` or `DIFFERENT` | computed from the plan's allow-lists |
+| K5 | `MATCHED` or `DIFFERENT` | computed from the plan's per-flow `allow_lists`, and again from the applied MirrorMaker 2 configuration; both must be disjoint, and the applied allow-lists must equal the plan's or a recorded amendment |
 | K7 | `MATCHED`, `DIFFERENT` or `MISSING` | by the services and the changed setting |
 | K6, K8 (each sub-check) | `MATCHED`, `DIFFERENT` or `MISSING` | the owner judges against the key's wording; the scorer lists the candidate plan items |
 
@@ -306,6 +319,7 @@ The report and the release notes show:
 - the agent record: model and settings, `plan.json`, `plan.md` and their digests with the freeze
   time, the amendments, both transcripts, the audit result, the intervention log;
 - B-R, A-R and A-K with G/G′ in `raw/`;
+- the applied MirrorMaker 2 configuration of each flow, as the operator read it from the running containers in S4, with its digests;
 - the broker-tool ground truth, the functional test result, the scoring and citation results;
 - the agent's `get_binding_picture` requests, and the recorded before-wave and after-wave AIP
   answers (§8);
@@ -334,7 +348,7 @@ passed, and where the next stage starts.
 | S1 | operator | reset and bring-up, the before-state checks, the `rpk` absence check, Kafka up and empty, B-R with G/G′, the AIP start |
 | S2 | agent | the planning session; the plan freeze |
 | S3 | agent | the execution session, with the functional test on request |
-| S4 | operator | first, while B-R is still current: the audit, the citation check and the recorded before-wave answers. Then A-R and A-K with G/G′, their import, the recorded after-wave answers, the ground truth and the scoring |
+| S4 | operator | first, while B-R is still current: the audit, the citation check and the recorded before-wave answers. Then the applied MirrorMaker 2 configuration and its checks (§5), A-R and A-K with G/G′, their import, the recorded after-wave answers, the ground truth and the scoring |
 | S5 | operator | the report, the package freeze, the replay test |
 
 **Stop rule** (parent §7): if a step cannot be done as specified, record the attempt and ask. Never
@@ -356,12 +370,12 @@ The hosted redeploy is not part of I4 (D19).
 
 | # | Check |
 |---|---|
-| E1 | `plan-key.json` and `task-card.md` hash to the digests committed in I4a, and git shows them unchanged |
-| E2 | The plan was frozen before the first mutating command; both transcripts are kept; the audit is recorded and the owner accepted any hit |
+| E1 | `plan-key.json` and `task-card.md` hash to the digests committed in I4a, `expected-after.json` hashes to the §3 digest, and git shows all three unchanged |
+| E2 | The plan was frozen before the first mutating command; both transcripts are kept; the audit has no hit, or only waived environment faults with their evidence |
 | E3 | Proof A: every key item has a verdict; every `DIFFERENT`, `MISSING` and owner-judged verdict has a recorded reason |
 | E4 | Proof B: every citation resolves; the support rule is applied to every item; each of K1–K4 is `COVERED` (every expected row of the plan key cited), and any other verdict is recorded as a Proof B failure; no mechanism item counts as supported without an implementation justification |
 | E5 | Proof C: A-R and A-K reproduce `expected-after.json`; B-R reproduces the nine I2 §8.1 rows |
-| E6 | The functional test passes, and it and the broker-tool ground truth are recorded apart from AIP's claims |
+| E6 | The functional test passes; the configuration checks (§5) pass; these and the broker-tool ground truth are recorded apart from AIP's claims |
 | E7 | The report has the four parts, the five questions, a requirement chain for each `INBOUND`/`OUTBOUND` row after the wave, and the disclosures; it keeps the §8.4 wording rules |
 | E8 | The replay test passes all three phases, and the report is byte-identical |
 | E9 | v0.8.0 is published and verified through the release-publication skill |
@@ -379,6 +393,6 @@ The hosted redeploy is not part of I4 (D19).
 | # | Decision | Source |
 |---|---|---|
 | D16 | Two keys: the plan answer key (frozen in I4a) scores Proof A; `expected-after.json` scores Proof C. A plan item has two kinds of support: architecture evidence (AIP) for the binding behind it, and an implementation justification (never AIP) for the mechanism | owner plan review, 2026-10-28 |
-| D17 | The agent works in a workspace outside the AIP checkout, with a new Claude Code configuration, no web access and a task card that gives the goal and the safety constraints only. The plan is frozen before execution, and both transcripts are audited | owner, 2026-10-28 |
+| D17 | The agent works in a workspace outside the AIP checkout, with a new Claude Code configuration, no web access and a task card that gives the goal and the safety constraints only. The plan is frozen before execution, and both transcripts are audited; an audit hit invalidates the run (fail closed) | owner, 2026-10-28; fail closed: owner, review on #650 |
 | D18 | The operator frames the run (bring-up, Kafka up and empty, captures, functional test, scoring); the agent plans and carries out the wave | owner, 2026-10-28 |
 | D19 | The hosted redeploy with the experimental tool on is not part of I4 | owner, 2026-10-28 |

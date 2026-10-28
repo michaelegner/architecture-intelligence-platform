@@ -370,6 +370,6 @@ and ask. Never fake a result.
 | D14 | I3's scripted run freezes the expected after-wave reference; the I4 agent run carries out the wave and its captures feed the report | owner, 2026-10-27 |
 | D15 | The functional test runs through the services' Connect-RPC endpoints, with MinIO and imgproxy; no UIs | owner, 2026-10-27 |
 | D16 | Two keys: the plan answer key scores Proof A, `expected-after.json` scores Proof C. AIP evidence supports the binding behind a plan item; the mechanism needs an implementation justification that never comes from AIP | owner plan review, 2026-10-28 ([I4](i4-agent-run-report-and-release.md)) |
-| D17 | The agent works outside the AIP checkout, with a new Claude Code configuration, no web access and a task card with the goal and the safety constraints only; the plan is frozen before execution and both transcripts are audited | owner, 2026-10-28 |
+| D17 | The agent works outside the AIP checkout, with a new Claude Code configuration, no web access and a task card with the goal and the safety constraints only; the plan is frozen before execution and both transcripts are audited; an audit hit invalidates the run (fail closed) | owner, 2026-10-28 |
 | D18 | The operator frames the run (bring-up, Kafka up and empty, captures, functional test, scoring); the agent plans and carries out the wave | owner, 2026-10-28 |
 | D19 | The hosted redeploy with the experimental tool on is not part of I4 | owner, 2026-10-28 |
