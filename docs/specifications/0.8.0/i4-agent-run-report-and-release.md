@@ -1,6 +1,6 @@
 # AIP v0.8 I4: Agent Run, Report and Release
 
-**Status:** Draft 0.1 (2026-10-28)  
+**Status:** Draft 0.2 (2026-10-28; review on #650: Proof B coverage rule for K1–K4)  
 **Governs:** [v0.8 specification](specification.md) §4.4, §6, §7 I4 and §8, as amended by D16–D19 (§14).  
 **Baseline:** `main` at `459d863` (I3 complete: [completion record](i3-completion-record.md), [handoff](i3-i4-handoff.md)).  
 **Hands off to:** the v0.8.0 release closure.
@@ -196,6 +196,17 @@ The task card does not contain a topic list, a mirror direction, a step list or 
     even when it cites AIP rows.
 
   A pass means "the binding behind this item is evidenced". It never means "this action is correct".
+- **The coverage rule** (K1–K4 only): `plan-key.json` names each expected row of §3.1 by
+  `consumer_service_id`, `topic_name` and `broker_id`. The plan item that Proof A matches to a
+  binding key item must cite **every** expected row of that key item. A plan with no AIP citations,
+  or with only part of the rows (for example K1 with Catalog but not Image, or K4 with Product Query
+  but not Category Query), does not pass. The verdict per binding key item is:
+  - `COVERED`: every expected row is cited, and every cited row resolves and supports;
+  - `INCOMPLETE`: at least one expected row is not cited; the verdict names the missing rows;
+  - `NOT_CITED`: the matched plan item cites no AIP row, or no plan item matches the key item.
+
+  Only `COVERED` passes. A cited row that does not resolve or support makes the item
+  `DOES_NOT_SUPPORT`, whatever its coverage.
 - **The mechanism is verified independently** in S4: replication progress per source partition,
   consumer lag, the offset hand-off positions and the functional test. AIP establishes none of these
   (parent §4.4).
@@ -214,8 +225,9 @@ The task card does not contain a topic list, a mirror direction, a step list or 
 - Plan items that no key item matches are listed as `EXTRA`.
 - The owner records a reason for each `DIFFERENT`, `MISSING` and owner-judged verdict (parent:
   "matches or the difference is recorded").
-- The citation check (§6) gives each item `RESOLVED`/`UNRESOLVED`, `SUPPORTS`/`DOES_NOT_SUPPORT` and,
-  for mechanism items, `JUSTIFIED`/`UNJUSTIFIED`.
+- The citation check (§6) gives each item `RESOLVED`/`UNRESOLVED` and `SUPPORTS`/`DOES_NOT_SUPPORT`.
+  It also gives each binding key item (K1–K4) `COVERED`, `INCOMPLETE` or `NOT_CITED`, and each
+  mechanism item `JUSTIFIED`/`UNJUSTIFIED`.
 
 **Proof C.** A-R and A-K, with the after-wave declarations from the I3 package, give exactly the
 `expected-after.json` rows and limitations. The broker-tool ground truth and the functional test are
@@ -347,7 +359,7 @@ The hosted redeploy is not part of I4 (D19).
 | E1 | `plan-key.json` and `task-card.md` hash to the digests committed in I4a, and git shows them unchanged |
 | E2 | The plan was frozen before the first mutating command; both transcripts are kept; the audit is recorded and the owner accepted any hit |
 | E3 | Proof A: every key item has a verdict; every `DIFFERENT`, `MISSING` and owner-judged verdict has a recorded reason |
-| E4 | Proof B: every citation resolves; the support rule is applied to every item; no mechanism item counts as supported without an implementation justification |
+| E4 | Proof B: every citation resolves; the support rule is applied to every item; each of K1–K4 is `COVERED` (every expected row of the plan key cited), and any other verdict is recorded as a Proof B failure; no mechanism item counts as supported without an implementation justification |
 | E5 | Proof C: A-R and A-K reproduce `expected-after.json`; B-R reproduces the nine I2 §8.1 rows |
 | E6 | The functional test passes, and it and the broker-tool ground truth are recorded apart from AIP's claims |
 | E7 | The report has the four parts, the five questions, a requirement chain for each `INBOUND`/`OUTBOUND` row after the wave, and the disclosures; it keeps the §8.4 wording rules |
