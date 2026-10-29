@@ -1,6 +1,6 @@
 # Experiment: v0.8 showcase value qualification
 
-**Status:** Draft 0.1 (2026-10-29)
+**Status:** Draft 0.2 (2026-10-29; #657 review corrections)
 **Inputs:** [doctrine §8](../../product-doctrine-and-strategic-direction.md#8-product-validation) (H1),
 the [v0.8 I4 spec](../0.8.0/i4-agent-run-report-and-release.md) and its
 [evidence package](../0.8.0/i4-evidence/README.md), the
@@ -12,7 +12,10 @@ the [v0.8 I4 spec](../0.8.0/i4-agent-run-report-and-release.md) and its
 v0.8 qualified two things:
 
 - AIP produces the correct binding picture (I4 Proof C, the nine I2 §8.1 rows);
-- an agent with AIP and the source made a correct plan (I4 Proof A).
+- an agent with AIP and the source identified the key cross-boundary requirements: K1–K5 and K7
+  `MATCHED` (I4 Proof A). The plan also had recorded deviations: 6 `DIFFERENT` and 1 `MISSING`
+  K6/K8 sub-checks, and E4 and E6 were not met
+  ([completion record](../0.8.0/i4-completion-record.md)).
 
 v0.8 did not qualify what AIP **adds**. Every H1 part of doctrine §8 is comparative ("than with
 their current means"), and v0.8 had no arm without AIP. It is also open whether the v0.8 agent would
@@ -40,7 +43,7 @@ system can measure.
 |---|---|---|
 | Plan key items K1–K8 matched | decision quality | the existing plan key (§5.1) |
 | K1–K4 missing from the plan | surprises | the plan key |
-| Comprehension items matched | comprehension | the comprehension key (§5.2) |
+| Comprehension items matched, with Q3 split into information coverage and calibration | comprehension | the comprehension key (§5.2) |
 | Unsupported claims | unsupported claims | the claim rules (§5.3) |
 | Tool calls, active agent time, output tokens | investigation effort | the transcript (§6.4) |
 | Requests and what each one revealed | avoidable coordination | the request record (§4.3), team-scoped only |
@@ -124,18 +127,27 @@ setting. Whether customers have it is a question for the customer evaluation.
 
 ### 4.3 Request channel (T+ and T−)
 
-- The agent writes `requests.json` (per request: an id, the team it asks, what it asks, why) and ends
-  its turn with `OPERATOR: please answer requests.json`.
-- The operator answers only from the **answer catalogue**, frozen with the keys (§5.4). Each answer is
-  the verbatim catalogue entry. The operator adds nothing.
-- The operator matches a request to an entry by what it asks. When the match is unclear, the owner
-  decides. The record lists every request, its entry and the key items the answer revealed.
+- The agent writes `requests.json` and ends its turn with `OPERATOR: please answer requests.json`.
+  Each request has an id, a `kind`, the `repository` for kind `repository_access`, and a free-text
+  reason.
+- The card names the three kinds and lists the repositories that `repository_access` can name. An
+  engineer in a multi-team organisation sees the organisation's repository list. The list names the
+  other services, and this is disclosed.
+- **Matching is mechanical, by `kind` only.** The free text is recorded and never read for matching.
+  The operator returns the verbatim catalogue entry and adds nothing.
 
-| Entry | Content |
-|---|---|
-| R1 | the broker consumer groups with their topics and members: the frozen v0.8 capture `S1-13-groups-describe.txt`, verbatim |
-| R2 | read access to one named Sokol111 repository, added to `src/` at its freeze commit |
-| R3 | `not available`: for anything else |
+| `kind` | Entry | Answer |
+|---|---|---|
+| `broker_consumer_groups` | R1 | the frozen v0.8 capture `S1-13-groups-describe.txt`, verbatim |
+| `repository_access` | R2 | the named repository, added to `src/` at its freeze commit, if it is on the R2 list; otherwise R3 |
+| any other value, or an invalid request | R3 | `not available` |
+
+**R2 list:** the Sokol111 repositories that are not in the team-scoped workspace, except
+`ecommerce-infrastructure`. Only checkpoint 1 decides on that repository; a request cannot add it.
+
+**Expansion policy:** there is no request budget, because the number of requests is the measure. Each
+request gets one answer, and each repository is one grant. The record lists every request, its
+entry, every grant and the key items each answer revealed.
 
 The card already states the Kafka cluster state, so the catalogue does not repeat it.
 
@@ -160,7 +172,12 @@ array, `evidence[]`. Each entry has a `kind` and a `reference`:
 - `kind` is one of `aip`, `documentation`, `source`, `configuration`, `broker_tool`, `request` or
   `reasoning`;
 - an `aip` entry also has the `snapshot_id` and either a row (broker, topic, consumer Service) or
-  evidence refs.
+  evidence refs;
+- a **factual claim** (a binding, its direction, its status, a producer) needs at least one entry of
+  a kind other than `reasoning`, and that entry must **resolve**: the file exists and the line shows
+  the claim; the command output (in the transcript) shows it; the AIP row or ref is in the recorded
+  answer of that snapshot; the request id was answered with an entry that shows it;
+- `reasoning` supports rationale only, never a factual claim.
 
 The binding and mechanism scoring of the plan key reads topics, direction, services and files, not
 the evidence. So the schema change does not favour one arm.
@@ -203,8 +220,16 @@ The existing [`plan-key.json`](../0.8.0/i4-evidence/plan-key.json), unchanged. P
 | Q4 | per row: the delivery that the move must preserve (the K1–K4 requirement) |
 | Q5 | statements from the Step 1 matrix and the four I2 §8.1 limitations, in source-neutral words: attachment does not establish event handling; a capture is one point in time and one broker scope; a producer is known from the source or a declaration, not observed; a missing document does not mean a missing binding |
 
-**Q3 is scored against what each type's sources establish**, not against AIP's status. The
-difference between those statuses is AIP's information contribution, read from the Step 1 matrix.
+**Q3 has two scores, reported separately:**
+
+- **Calibration:** the status matches what **the sources of that session** establish. An agent
+  without AIP that says "cannot tell" where its sources cannot tell is calibrated.
+- **Information coverage:** against one **common reference** for all sessions, the union of all
+  sources in the Step 1 matrix: per crossing row, whether the session established that the binding
+  is observed, and whether it established its documented status.
+
+Equal calibration does not mean equal comprehension. The result does not conclude "equal
+comprehension" from calibration alone. The difference in coverage is AIP's information contribution.
 AIP's declared side includes the EventCatalog and the producer declarations generated for the
 showcase. The result discloses this, and it does not count that part as evidence a team would have.
 
@@ -217,10 +242,15 @@ counted.
 |---|---|
 | U1 | states that the bindings found are all the bindings, with no basis for the closed world |
 | U2 | states which events a consumer handles, or how, with no source reference |
-| U3 | states a consumer × topic binding with no evidence entry |
+| U3 | states a factual claim with no resolving evidence entry other than `reasoning` (§4.4) |
 | U4 | states that a binding is documented when no document names it, or the reverse |
 | U5 | concludes from a missing declaration that a binding is not promised or not used |
 | U6 | states a result of the move as established, in place of a check to run |
+
+**Counting:** the scorer reads `plan.json`, `plan.md` and `answers.json` of a session. A claim is
+identified by its rule subject: the consumer × topic pair for U2–U5, the statement for U1 and U6.
+The same claim stated more than once in a session counts once. A claim that breaks several rules
+counts once and records every rule id it breaks.
 
 ### 5.4 Criteria
 
@@ -236,6 +266,11 @@ Between the arms of one setting (F+ vs. F−, T+ vs. T−):
 - a count differs only when the two ranges do not overlap;
 - otherwise the result is `NOT DISTINGUISHABLE`.
 
+For every count, **lower is better**: unsupported claims, tool calls, active time, output tokens,
+requests. The result shows effort and requests next to the K1–K4 and coverage results of the same
+type, because a lower count with fewer bindings found is not a better result. Q3 calibration and
+coverage are compared as key items.
+
 Per setting and measure, the result says: with AIP better, equal, worse, or not distinguishable. A
 result of no difference is valid.
 
@@ -246,14 +281,18 @@ result of no difference is valid.
 - Bring-up as in v0.8 I4 S1, with the same pins.
 - AIP is built from `main` at the run commit, with `experimental.binding-picture` on. The before-wave
   capture B-R is imported, and the answer must give the nine I2 §8.1 rows.
-- **Bring-up check:** the live consumer groups, their topics and their member counts equal
-  `S1-13-groups-describe.txt`. Offsets can differ. So what the F sessions see live is what the T
-  sessions get through R1.
+- **Broker state check:** the live consumer groups, their topics and their member counts equal
+  `S1-13-groups-describe.txt`. Offsets are not compared. The check runs after the bring-up and again
+  before **each F session**, so what the F sessions see live is what the T sessions get through R1.
+  An F session with a failed check before it is invalid (§6.5).
 - The snapshot id is recorded.
 
 **AIP is removed during F− and T− sessions**, with its datastore container. A stopped container is
 not enough: `docker ps -a` lists it, and `docker inspect` shows its mounts, which include AIP's
 inputs. After each new start, the snapshot id must be unchanged.
+
+**F− and T− do not register AIP:** their workspace has no `.mcp.json` entry for AIP, and their
+settings allow no `mcp__aip` tool. The operator checks both before each session.
 
 **AIP's inputs are withheld in all four types:** the input and capture directories (the generated
 EventCatalog, the producer declarations, the mappings, the captures) are withheld paths of the audit
@@ -291,23 +330,29 @@ A session is invalid when:
 
 - it is cut off by a usage limit;
 - the audit shows an isolation breach that the owner does not waive;
-- the operator answers a request outside the catalogue.
+- the operator answers a request outside the catalogue;
+- the broker state check before an F session fails;
+- an F− or T− session has AIP registered.
 
 An invalid session is kept in the record and replaced by a new session of the same type in a new
 workspace. The count stays at 3 valid sessions per type. No other rule adds or removes sessions.
 
 ## 7. Scoring and record
 
-- The scorer decides each mechanical item: K1–K5, K7, Q1, Q2, and the U3 and U4 checks against the
-  Step 1 matrix.
+- The scorer decides each mechanical item: K1–K5, K7, Q1, Q2, Q3 coverage, and the U3 and U4 checks
+  against the Step 1 matrix and the transcript.
 - The owner gives a verdict with a one-line reason only on the other items. The scorer lists the
   candidate answers for each.
 - The result record contains:
   - the Step 1 matrix;
-  - per session: the plan, the answers, the audit, the requests, the scores and the effort;
+  - per session: the plan, the answers, the audit, the requests and grants, the scores, the effort,
+    and the sanitized transcript with its digest, so that the audit, the effort and the claim counts
+    can be reproduced;
+  - for the session set: the digests of the card variants, the keys, the rules, the catalogue and the
+    settings; the AIP commit, image id and snapshot id; the model and Claude Code version;
   - per setting: the criteria results (§5.4);
-  - the disclosures: the generated declared side; no code search in T; the key author has read the
-    v0.8 plan; one model; one scenario; a public system.
+  - the disclosures: the generated declared side; no code search in T; the R2 list names the other
+    services; the key author has read the v0.8 plan; one model; one scenario; a public system.
 
 ## 8. Delivery
 
@@ -323,7 +368,7 @@ The run needs one bring-up. It fits one or two usage windows, with a checkpoint 
 | # | Decision | Source |
 |---|---|---|
 | D1 | The goal is AIP's added value in the showcase, over all H1 parts that a public system can measure | owner, 2026-10-29 |
-| D2 | Two settings: full access, and team-scoped with counted requests | recommendation, accepted for drafting 2026-10-29; confirm in spec review |
+| D2 | Two settings: full access, and team-scoped with counted requests | owner, confirmed in the #657 review |
 | D3 | 3 runs per session type, fixed before the start | owner, 2026-10-29 |
-| D4 | The criteria are frozen before the run; the v0.9 consequences are not set here | recommendation, accepted for drafting 2026-10-29; confirm in spec review |
+| D4 | The criteria are frozen before the run; the v0.9 consequences are not set here | owner, confirmed in the #657 review |
 | D5 | `ecommerce-infrastructure` in the team-scoped workspace | open: owner checkpoint 1 |
