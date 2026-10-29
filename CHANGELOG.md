@@ -9,6 +9,13 @@ aren't yet guaranteed stable pre-1.0.
 
 ## [Unreleased]
 
+### Security
+
+- The locality-capture harness lock (`harness/locality-capture/app/requirements.txt`) now pins
+  `opentelemetry-api` 1.45.1, which fixes GHSA-xcq7-p3pf-p88h (unbounded `tracestate` parsing).
+  The other OpenTelemetry packages move with it to 1.45.1 / 0.66b1. The harness is not part of the
+  AIP image. The frozen copy in `tests/fixtures/locality/two-workload-capture/` is not changed.
+
 ## [0.8.0] - 2026-10-28
 
 ### v0.8.0 — Binding Picture Showcase (demonstration release)
