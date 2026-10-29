@@ -61,10 +61,6 @@ def _pair(consumer: str, topic: str) -> tuple[str, str]:
     return short_service(consumer.strip()), topic.strip()
 
 
-def _norm(text: str) -> str:
-    return re.sub(r"[\s_]+", "-", text.strip().lower())
-
-
 # --- plan key ---------------------------------------------------------------------------------
 
 
@@ -497,13 +493,24 @@ def unsupported(
 # --- comprehension ------------------------------------------------------------------------------
 
 
+def names_boundary(text: str, boundary: str) -> bool:
+    """The free-text answer names the boundary in an equivalent spelling: case, spaces, `_` and
+    `-` are one separator (`Catalog Management`, `catalog_management`, `catalog-management`)."""
+    words = re.sub(r"[^a-z0-9]+", "-", text.lower()).strip("-")
+    return re.search(rf"(^|-){re.escape(boundary)}(-|$)", words) is not None
+
+
 def score_q1(answers: dict, key: dict) -> dict:
     services = {short_service(s.strip()) for s in answers["q1"]["services"]}
-    ok = (
-        services == set(key["q1"]["services"])
-        and _norm(answers["q1"]["boundary"]) == key["q1"]["boundary"]
-    )
-    return {"id": "Q1", "verdict": MATCHED if ok else DIFFERENT, "services": sorted(services)}
+    boundary = names_boundary(answers["q1"]["boundary"], key["q1"]["boundary"])
+    ok = services == set(key["q1"]["services"]) and boundary
+    return {
+        "id": "Q1",
+        "verdict": MATCHED if ok else DIFFERENT,
+        "services": sorted(services),
+        "boundary_named": boundary,
+        "boundary": answers["q1"]["boundary"],
+    }
 
 
 def _crossing(matrix: dict, key: dict) -> dict[tuple[str, str], dict]:

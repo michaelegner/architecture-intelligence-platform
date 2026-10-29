@@ -58,6 +58,38 @@ def test_a_perfect_session_matches_every_mechanical_item():
     assert all(c["status"] == "SUPPORTED" for c in result["claims"]["claims"])
 
 
+def q1_of(services: list[str], boundary: str) -> dict:
+    answers = fx.perfect_answers()
+    answers["q1"].update(services=services, boundary=boundary)
+    return next(q for q in score(answers=answers)["questions"] if q["id"] == "Q1")
+
+
+@pytest.mark.parametrize(
+    "boundary",
+    [
+        "The broker boundary: Catalog Management moves to Kafka.",
+        "The catalog_management context",
+        "catalog-management",
+        "The CATALOG-MANAGEMENT bounded context (catalog-management)",
+    ],
+)
+def test_q1_accepts_equivalent_spellings_of_the_boundary(boundary):
+    q1 = q1_of([fx.CAT, fx.IMG], boundary)
+    assert (q1["verdict"], q1["boundary_named"], q1["boundary"]) == ("MATCHED", True, boundary)
+
+
+@pytest.mark.parametrize(
+    "boundary",
+    ["The broker boundary", "The catalog boundary", "catalog-managementx", "Image Management"],
+)
+def test_q1_needs_the_boundary_named(boundary):
+    assert q1_of([fx.CAT, fx.IMG], boundary)["verdict"] == "DIFFERENT"
+
+
+def test_q1_needs_both_moving_services():
+    assert q1_of([fx.CAT], "Catalog Management")["verdict"] == "DIFFERENT"
+
+
 # --- plan-only K5 and K7 -------------------------------------------------------------------------
 
 

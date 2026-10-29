@@ -23,7 +23,9 @@ the v0.8 environment (`../i4/README.md`, S1), and `sessions/`.
 
 1. Remove `/tmp/pytest-of-*` (unit-test trees that the host scan finds), then bring up as in v0.8
    S1, with the same pins. `vq_aip.sh RUN_HOME up` records the snapshot id.
-   `vq_broker_check.py --out RUN_HOME/broker-check.json` must pass.
+   `vq_broker_check.py --out RUN_HOME/package/broker-check.json` must pass (inside `package/`, which
+   every session is denied). Copy the recorded adaptation diff (`git diff` of the clone after S1) to
+   `RUN_HOME/package/adaptations.diff`: the preflight accepts those changes and no other.
 2. Each round runs T−, T+, F−, F+. Per session:
    - `-`: `vq_aip.sh RUN_HOME down`; `+`: `vq_aip.sh RUN_HOME up`;
    - `vq_setup_session.sh RUN_HOME TYPE ROUND`, then `vq_preflight.py RUN_HOME SESSION`;

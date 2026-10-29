@@ -50,7 +50,7 @@ EXTRA_CANARIES = (
 EXTRA_WITHHELD = ("v08-value-qualification-evidence",)
 # Any MCP tool of AIP: `mcp__aip__...`, and plugin forms such as `mcp__plugin_aip_aip__...`.
 AIP_TOOL = re.compile(r"^mcp__(?:.*_)?aip(?:_|$)", re.IGNORECASE)
-AIP_PORTS = re.compile(r"(\b(8000|7474|7687)\b|\bneo4j\b|aip-v08)", re.IGNORECASE)
+AIP_PORTS = re.compile(r"(\b(8000|7474|7687)\b|\bneo4j\b|aip-v08-i4-aip)", re.IGNORECASE)
 TEAM_PROGRAMS = {"docker", "kubectl", "helm", "rpk", "k3d", "kcat", "kafkacat"}
 BROKER_PORTS = re.compile(r"\b(9092|19092|29092)\b")
 NETWORK_PROGRAMS = audit.URL_CLIENTS | audit.REMOTE_TOOLS

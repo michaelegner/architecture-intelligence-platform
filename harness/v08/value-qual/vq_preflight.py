@@ -2,7 +2,9 @@
 closed: any problem stops the session.
 
 - the workspace holds only the setup output, and the config dir only the settings and the login;
-- every clone in the workspace is at its freeze commit and clean;
+- every clone in the workspace is at its freeze commit and clean, or its only changes are the recorded
+  bring-up adaptations (`RUN_HOME/package/adaptations.diff`, the `git diff` of v0.8 S1, which the
+  v0.8 agent also saw);
 - `-`: no AIP entry in `.mcp.json`, no AIP MCP allow rule, and no AIP or Neo4j container
   (`docker ps -a`); `+`: AIP answers with the recorded snapshot id (`vq_aip.sh check`);
 - F: the broker state check (`vq_broker_check.py`);
@@ -72,7 +74,7 @@ def host_scan(roots: list[Path], denied: list[str], team: bool) -> list[str]:
     return sorted(found)
 
 
-def workspace_problems(session_dir: Path, card_type: str) -> list[str]:
+def workspace_problems(session_dir: Path, card_type: str, adaptations: str = "") -> list[str]:
     problems = []
     workspace, config = session_dir / "workspace", session_dir / "claude"
     extra = sorted(set(os.listdir(workspace)) - SETUP_FILES)
@@ -96,7 +98,13 @@ def workspace_problems(session_dir: Path, card_type: str) -> list[str]:
         head = _git(clone, "rev-parse", "HEAD")
         if head != commits.get(repository):
             problems.append(f"{repository} is at {head}, not at its freeze commit")
-        if _git(clone, "status", "--porcelain"):
+        status = _git(clone, "status", "--porcelain")
+        adapted = (
+            adaptations
+            and all(line.split()[0] == "M" for line in status.splitlines())
+            and _git(clone, "diff") == adaptations.strip()
+        )
+        if status and not adapted:
             problems.append(f"{repository} has local changes")
     return problems
 
@@ -125,7 +133,10 @@ def main(argv: list[str] | None = None) -> int:
     session_dir = run_home / "sessions" / args[1]
     record = json.loads((session_dir / "session.json").read_text())
     card_type = record["type"]
-    problems = workspace_problems(session_dir, card_type)
+    adaptations = run_home / "package/adaptations.diff"
+    problems = workspace_problems(
+        session_dir, card_type, adaptations.read_text() if adaptations.exists() else ""
+    )
 
     def run(*command: str) -> subprocess.CompletedProcess:
         return subprocess.run(command, capture_output=True, text=True, check=False)

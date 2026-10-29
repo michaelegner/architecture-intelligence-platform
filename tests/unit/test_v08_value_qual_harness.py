@@ -2,6 +2,7 @@
 the audit (spec §4.3, §6.1, §6.4-§6.5). Each guard is also shown to fail when its check is removed."""
 
 import json
+import subprocess
 import sys
 from pathlib import Path
 
@@ -231,6 +232,15 @@ def test_aip_in_a_negative_session_is_a_hit(tmp_path, event):
     assert "AIP_IN_NEGATIVE" not in kinds(run_audit(tmp_path, "T+", [event]))
 
 
+def test_the_run_home_name_is_not_aip_access_but_the_aip_container_is(tmp_path):
+    run_home_path = bash(
+        "python3 -I -c \"open('/home/x/aip-v08-vq-run/sessions/F-_r1/workspace/plan.json')\""
+    )
+    assert "AIP_IN_NEGATIVE" not in kinds(run_audit(tmp_path, "F-", [run_home_path]))
+    container = bash("docker exec aip-v08-i4-aip-app-1 sh")
+    assert "AIP_IN_NEGATIVE" in kinds(run_audit(tmp_path, "F-", [container]))
+
+
 def test_reading_a_port_in_the_source_is_not_aip_access(tmp_path):
     assert run_audit(tmp_path, "F-", [bash('grep -rn "localhost:8000" src/')]) == []
 
@@ -382,3 +392,32 @@ def test_a_subagent_message_is_not_an_operator_message(tmp_path):
     (session / "replies").mkdir(parents=True)
     events = [("sidechain", "Search the source for consumers."), bash("ls", "a")]
     assert run_audit(tmp_path, "T-", events, session) == []
+
+
+def test_only_the_recorded_adaptations_are_accepted_as_local_changes(tmp_path, monkeypatch):
+    session = tmp_path / "s"
+    clone = session / "workspace/src/ecommerce-infrastructure"
+    clone.mkdir(parents=True)
+    (session / "claude").mkdir()
+    (session / "claude/settings.json").write_text(json.dumps({"permissions": {"allow": ["Read"]}}))
+
+    def git(*args: str) -> str:
+        command = ["git", "-C", str(clone), *args]
+        return subprocess.run(command, check=True, capture_output=True, text=True).stdout
+
+    git("init", "-q")
+    (clone / "values.yaml").write_text("image: latest\n")
+    git("add", ".")
+    git("-c", "user.name=t", "-c", "user.email=t@t", "commit", "-qm", "base")
+    head = git("rev-parse", "HEAD").strip()
+    monkeypatch.setattr(vq_preflight, "freeze_commits", lambda _t: {clone.name: head})
+    (clone / "values.yaml").write_text("image: pinned\n")
+    recorded = git("diff")
+    changes = ["ecommerce-infrastructure has local changes"]
+    assert vq_preflight.workspace_problems(session, "F-", recorded) == []
+    assert vq_preflight.workspace_problems(session, "F-") == changes
+    (clone / "values.yaml").write_text("image: other\n")
+    assert vq_preflight.workspace_problems(session, "F-", recorded) == changes
+    (clone / "values.yaml").write_text("image: pinned\n")
+    (clone / "extra.txt").write_text("x\n")
+    assert vq_preflight.workspace_problems(session, "F-", recorded) == changes
