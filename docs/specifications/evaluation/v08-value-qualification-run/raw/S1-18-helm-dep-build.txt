@@ -1,0 +1,24 @@
+== src/ecommerce-infrastructure/helm/ecommerce-admin-ui/
+Saving 1 charts
+Deleting outdated charts
+== src/ecommerce-infrastructure/helm/ecommerce-catalog-service/
+Saving 1 charts
+Deleting outdated charts
+== src/ecommerce-infrastructure/helm/ecommerce-category-query-service/
+Saving 1 charts
+Deleting outdated charts
+== src/ecommerce-infrastructure/helm/ecommerce-image-service/
+Saving 1 charts
+Deleting outdated charts
+== src/ecommerce-infrastructure/helm/ecommerce-platform-ui/
+Saving 1 charts
+Deleting outdated charts
+== src/ecommerce-infrastructure/helm/ecommerce-product-query-service/
+Saving 1 charts
+Deleting outdated charts
+== src/ecommerce-infrastructure/helm/ecommerce-tenant-service/
+Saving 1 charts
+Deleting outdated charts
+== src/ecommerce-infrastructure/helm/ecommerce-ui/
+Saving 1 charts
+Deleting outdated charts

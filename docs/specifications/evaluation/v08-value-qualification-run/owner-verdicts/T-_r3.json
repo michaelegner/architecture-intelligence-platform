@@ -1,0 +1,151 @@
+{
+  "K6.1": {
+    "verdict": "MATCHED",
+    "plan_items": [
+      "P02-mm2-config"
+    ],
+    "reason": "P02: checkpoints and group-offset sync on for redpanda->kafka, limited to the two groups.",
+    "basis": "evidence-reviewed"
+  },
+  "K6.2": {
+    "verdict": "DIFFERENT",
+    "plan_items": [
+      "P04-verify-inbound",
+      "P05-drain-and-stop"
+    ],
+    "reason": "P04 waits until the checkpointed Kafka offsets equal the Kafka end offset, but before the services stop (P05); no final-offset/checkpoint equality before restart.",
+    "basis": "evidence-reviewed"
+  },
+  "K8.1": {
+    "verdict": "MATCHED",
+    "plan_items": [
+      "P00-preflight",
+      "P01-create-kafka-topics",
+      "P02-mm2-config"
+    ],
+    "reason": "P00 confirms Kafka has no topics; P01 creates the four topics before MM2 (P03); P02 defines exactly two disjoint flows.",
+    "basis": "evidence-reviewed"
+  },
+  "K8.2": {
+    "verdict": "MATCHED",
+    "plan_items": [
+      "P02-mm2-config",
+      "P03-start-mm2",
+      "P04-verify-inbound"
+    ],
+    "reason": "P03 starts the tenant mirror with group-offset sync; P04 verifies end offsets equal before P05 stops Catalog.",
+    "basis": "evidence-reviewed"
+  },
+  "K8.3": {
+    "verdict": "DIFFERENT",
+    "plan_items": [
+      "P05-drain-and-stop"
+    ],
+    "reason": "P05 scales Catalog to 0 first and then waits for Image lag 0; the key order is reversed (as in v0.8).",
+    "basis": "evidence-reviewed"
+  },
+  "K8.4": {
+    "verdict": "DIFFERENT",
+    "plan_items": [
+      "P05-drain-and-stop"
+    ],
+    "reason": "No check of zero live attachment of the moved groups on Redpanda.",
+    "basis": "evidence-reviewed"
+  },
+  "K8.5": {
+    "verdict": "MATCHED",
+    "plan_items": [
+      "P05-drain-and-stop"
+    ],
+    "reason": "P05 waits until product-query and category-query show lag 0 on all catalog topics before the switch.",
+    "basis": "evidence-reviewed"
+  },
+  "K8.6": {
+    "verdict": "DIFFERENT",
+    "plan_items": [
+      "P04-verify-inbound"
+    ],
+    "reason": "The offset check runs before the services stop; not verified before restart.",
+    "basis": "evidence-reviewed"
+  },
+  "K8.7": {
+    "verdict": "DIFFERENT",
+    "plan_items": [
+      "P03-start-mm2",
+      "P05-drain-and-stop"
+    ],
+    "reason": "P03 starts both flows before P05 stops the producers.",
+    "basis": "evidence-reviewed"
+  },
+  "K8.8": {
+    "verdict": "MATCHED",
+    "plan_items": [
+      "P06-switch-brokers",
+      "P07-verify-cutover"
+    ],
+    "reason": "P06 restarts on Kafka; P07 checks both groups attached on Kafka.",
+    "basis": "evidence-reviewed"
+  },
+  "K8.9": {
+    "verdict": "DIFFERENT",
+    "plan_items": [
+      "P07-verify-cutover",
+      "P08-functional-test"
+    ],
+    "reason": "P08 runs the functional test and checks records reach the query groups, but has no lag-0 condition on both brokers and no mirror catch-up check.",
+    "basis": "evidence-reviewed"
+  },
+  "Q4": {
+    "verdict": "MATCHED",
+    "reason": "Each of the six crossing rows states the delivery the move must preserve and its flow direction (the K1-K4 requirement of the row).",
+    "basis": "evidence-reviewed"
+  },
+  "Q5": {
+    "verdict": "DIFFERENT",
+    "coverage": {
+      "a: an attachment does not establish event handling": "not stated",
+      "b: a capture is one point in time and one broker scope": "statement [3]",
+      "c: a producer is known from source or a declaration, not observed": "statement [3]",
+      "d: a missing document does not mean a missing binding": "not stated"
+    },
+    "reason": "Not stated: a: an attachment does not establish event handling; d: a missing document does not mean a missing binding. Rule applied: MATCHED only when all four key statements are present (my reading of spec \u00a75.2; the owner decides).",
+    "basis": "evidence-reviewed"
+  },
+  "claims": {
+    "answers.q2:direction:ecommerce-catalog-service|tenant.tenant.events": {
+      "verdict": "SUPPORTED",
+      "reason": "binding established (R1/broker output or frozen binding location) and the cited producer call site shows the producer of this topic (TopicFor / event-to-topic map in the producer API module); not a frozen location, same strength as the frozen topics.go constant.",
+      "basis": "evidence-reviewed (direction: verified with support() and the accepted producer call sites)"
+    },
+    "answers.q2:direction:ecommerce-image-service|tenant.tenant.events": {
+      "verdict": "SUPPORTED",
+      "reason": "binding established (R1/broker output or frozen binding location) and the cited producer call site shows the producer of this topic (TopicFor / event-to-topic map in the producer API module); not a frozen location, same strength as the frozen topics.go constant.",
+      "basis": "evidence-reviewed (direction: verified with support() and the accepted producer call sites)"
+    },
+    "answers.q2:direction:ecommerce-product-query-service|catalog.attribute.events": {
+      "verdict": "SUPPORTED",
+      "reason": "binding established (R1/broker output or frozen binding location) and the cited producer call site shows the producer of this topic (TopicFor / event-to-topic map in the producer API module); not a frozen location, same strength as the frozen topics.go constant.",
+      "basis": "evidence-reviewed (direction: verified with support() and the accepted producer call sites)"
+    },
+    "answers.q2:direction:ecommerce-category-query-service|catalog.category.events": {
+      "verdict": "SUPPORTED",
+      "reason": "binding established (R1/broker output or frozen binding location) and the cited producer call site shows the producer of this topic (TopicFor / event-to-topic map in the producer API module); not a frozen location, same strength as the frozen topics.go constant.",
+      "basis": "evidence-reviewed (direction: verified with support() and the accepted producer call sites)"
+    },
+    "answers.q2:direction:ecommerce-category-query-service|catalog.attribute.events": {
+      "verdict": "SUPPORTED",
+      "reason": "binding established (R1/broker output or frozen binding location) and the cited producer call site shows the producer of this topic (TopicFor / event-to-topic map in the producer API module); not a frozen location, same strength as the frozen topics.go constant.",
+      "basis": "evidence-reviewed (direction: verified with support() and the accepted producer call sites)"
+    },
+    "plan.F1-tenant-inbound:direction:*|tenant.tenant.events": {
+      "verdict": "SUPPORTED",
+      "reason": "binding established (R1/broker output or frozen binding location) and the cited producer call site shows the producer of this topic (TopicFor / event-to-topic map in the producer API module); not a frozen location, same strength as the frozen topics.go constant.",
+      "basis": "evidence-reviewed (direction: verified with support() and the accepted producer call sites)"
+    },
+    "answers.q2:direction:ecommerce-product-query-service|catalog.product.events": {
+      "verdict": "UNSUPPORTED",
+      "reason": "no producer evidence is cited for this topic; the binding alone does not establish the direction.",
+      "basis": "evidence-reviewed (direction: verified with support() and the accepted producer call sites)"
+    }
+  }
+}

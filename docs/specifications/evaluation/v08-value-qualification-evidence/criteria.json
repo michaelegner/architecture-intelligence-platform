@@ -1,0 +1,14 @@
+{
+  "authored": "2026-10-29, from spec §5.4; frozen before the first session.",
+  "runs_per_type": 3,
+  "key_items": ["K1", "K2", "K3", "K4", "K5", "K6", "K7", "K8", "Q1", "Q2", "Q3-calibration", "Q3-coverage", "Q4", "Q5"],
+  "not_scored": {"T": ["K7"]},
+  "type_verdict": "the verdict in at least 2 of the 3 runs; otherwise MIXED",
+  "counts": ["unsupported_claims", "tool_calls_attempted", "tool_calls_received", "active_seconds", "output_tokens", "requests"],
+  "lower_is_better": ["unsupported_claims", "tool_calls_attempted", "tool_calls_received", "active_seconds", "output_tokens", "requests"],
+  "count_rule": "the 3 values per type; two types differ only when the ranges [min, max] do not overlap",
+  "key_item_rule": "two types differ when their verdicts differ and neither is MIXED",
+  "comparisons": [["F+", "F-"], ["T+", "T-"]],
+  "outcomes": ["BETTER", "EQUAL", "WORSE", "NOT_DISTINGUISHABLE"],
+  "context": "effort and request counts are shown next to the K1-K4 and Q3 coverage results of the same type"
+}
