@@ -371,4 +371,4 @@ The run needs one bring-up. It fits one or two usage windows, with a checkpoint 
 | D2 | Two settings: full access, and team-scoped with counted requests | owner, confirmed in the #657 review |
 | D3 | 3 runs per session type, fixed before the start | owner, 2026-10-29 |
 | D4 | The criteria are frozen before the run; the v0.9 consequences are not set here | owner, confirmed in the #657 review |
-| D5 | `ecommerce-infrastructure` in the team-scoped workspace | open: owner checkpoint 1 |
+| D5 | `ecommerce-infrastructure` is excluded from the team-scoped workspace ([Step 1](v08-showcase-value-qualification-step1.md)) | owner, checkpoint 1, 2026-10-29 |

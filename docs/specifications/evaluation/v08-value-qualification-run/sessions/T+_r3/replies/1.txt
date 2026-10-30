@@ -1,0 +1,47 @@
+R1-consumer-groups: GROUP        ecommerce-catalog-service
+COORDINATOR  0
+STATE        Stable
+BALANCER     cooperative-sticky
+MEMBERS      1
+TOTAL-LAG    0
+
+TOPIC                 PARTITION  CURRENT-OFFSET  LOG-START-OFFSET  LOG-END-OFFSET  LAG   MEMBER-ID                                 CLIENT-ID  HOST
+tenant.tenant.events  0          1               0                 1               0     kgo-e731d627-aca5-49ac-b049-1086f752964a  kgo        172.20.0.3
+
+GROUP        ecommerce-category-query-service
+COORDINATOR  0
+STATE        Stable
+BALANCER     cooperative-sticky
+MEMBERS      3
+TOTAL-LAG    0
+
+TOPIC                     PARTITION  CURRENT-OFFSET  LOG-START-OFFSET  LOG-END-OFFSET  LAG   MEMBER-ID                                 CLIENT-ID  HOST
+catalog.attribute.events  0          20              0                 20              0     kgo-e938f6f5-81de-4309-8d6e-3f021e7c92ad  kgo        172.20.0.4
+catalog.category.events   0          4               0                 4               0     kgo-340e6746-f18c-4749-bc33-e06fd274ac4c  kgo        172.20.0.4
+tenant.tenant.events      0          1               0                 1               0     kgo-5c2b42a8-4496-45a6-8fee-2e10469c535b  kgo        172.20.0.4
+
+GROUP        ecommerce-image-service
+COORDINATOR  0
+STATE        Stable
+BALANCER     cooperative-sticky
+MEMBERS      2
+TOTAL-LAG    0
+
+TOPIC                   PARTITION  CURRENT-OFFSET  LOG-START-OFFSET  LOG-END-OFFSET  LAG   MEMBER-ID                                 CLIENT-ID  HOST
+catalog.product.events  0          120             0                 120             0     kgo-6a412ed5-7d76-477d-ab96-0c3c01a13634  kgo        172.20.0.4
+tenant.tenant.events    0          1               0                 1               0     kgo-525ed0aa-3392-4d2f-a044-b30a4ef59567  kgo        172.20.0.4
+
+GROUP        ecommerce-product-query-service
+COORDINATOR  0
+STATE        Stable
+BALANCER     cooperative-sticky
+MEMBERS      3
+TOTAL-LAG    0
+
+TOPIC                     PARTITION  CURRENT-OFFSET  LOG-START-OFFSET  LOG-END-OFFSET  LAG   MEMBER-ID                                 CLIENT-ID  HOST
+catalog.attribute.events  0          20              0                 20              0     kgo-52877700-6c48-4413-bbf1-346d5cd80cfb  kgo        172.20.0.3
+catalog.product.events    0          120             0                 120             0     kgo-c64a0db7-57c5-46c2-9f3c-4612878cbbe2  kgo        172.20.0.3
+tenant.tenant.events      0          1               0                 1               0     kgo-3e130a77-8074-4ed7-878a-d068726158b6  kgo        172.20.0.3
+
+
+R2-helm-values-and-topics: not available

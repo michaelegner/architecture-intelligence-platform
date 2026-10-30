@@ -1,0 +1,11 @@
+Client Version: v1.36.1
+Kustomize Version: v5.8.1
+Server Version: v1.35.5+k3s1
+Version:     v24.3.1
+Git ref:     afe1a3f1ff
+Build date:  2024-12-02T23:36:20Z
+OS/Arch:     linux/amd64
+Go version:  go1.23.1
+
+Redpanda Cluster
+  node-0  v24.3.1 - afe1a3f1ffd5ce5005b0828c337fa18b4dc6b922

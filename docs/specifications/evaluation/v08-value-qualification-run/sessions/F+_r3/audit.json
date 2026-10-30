@@ -1,0 +1,220 @@
+{
+  "session": "F+_r3",
+  "type": "F+",
+  "clean": false,
+  "hits": [
+    {
+      "kind": "PLANNING_CHANGE",
+      "session": "planning",
+      "line": 165,
+      "tool": "Bash",
+      "detail": "python3 -I -c",
+      "denied": true
+    }
+  ],
+  "calls": [
+    {
+      "transcript": "f2df7c7e-f84b-4584-99d9-25a980e8f6e5.jsonl",
+      "line": 22,
+      "tool": "Bash",
+      "attempted": true,
+      "received": true
+    },
+    {
+      "transcript": "f2df7c7e-f84b-4584-99d9-25a980e8f6e5.jsonl",
+      "line": 34,
+      "tool": "ToolSearch",
+      "attempted": true,
+      "received": true
+    },
+    {
+      "transcript": "f2df7c7e-f84b-4584-99d9-25a980e8f6e5.jsonl",
+      "line": 36,
+      "tool": "Bash",
+      "attempted": true,
+      "received": true
+    },
+    {
+      "transcript": "f2df7c7e-f84b-4584-99d9-25a980e8f6e5.jsonl",
+      "line": 46,
+      "tool": "mcp__aip__get_binding_picture",
+      "attempted": true,
+      "received": true
+    },
+    {
+      "transcript": "f2df7c7e-f84b-4584-99d9-25a980e8f6e5.jsonl",
+      "line": 52,
+      "tool": "Bash",
+      "attempted": true,
+      "received": false
+    },
+    {
+      "transcript": "f2df7c7e-f84b-4584-99d9-25a980e8f6e5.jsonl",
+      "line": 56,
+      "tool": "Bash",
+      "attempted": true,
+      "received": true
+    },
+    {
+      "transcript": "f2df7c7e-f84b-4584-99d9-25a980e8f6e5.jsonl",
+      "line": 66,
+      "tool": "Read",
+      "attempted": true,
+      "received": true
+    },
+    {
+      "transcript": "f2df7c7e-f84b-4584-99d9-25a980e8f6e5.jsonl",
+      "line": 69,
+      "tool": "Read",
+      "attempted": true,
+      "received": true
+    },
+    {
+      "transcript": "f2df7c7e-f84b-4584-99d9-25a980e8f6e5.jsonl",
+      "line": 71,
+      "tool": "Read",
+      "attempted": true,
+      "received": true
+    },
+    {
+      "transcript": "f2df7c7e-f84b-4584-99d9-25a980e8f6e5.jsonl",
+      "line": 73,
+      "tool": "Read",
+      "attempted": true,
+      "received": true
+    },
+    {
+      "transcript": "f2df7c7e-f84b-4584-99d9-25a980e8f6e5.jsonl",
+      "line": 82,
+      "tool": "Bash",
+      "attempted": true,
+      "received": true
+    },
+    {
+      "transcript": "f2df7c7e-f84b-4584-99d9-25a980e8f6e5.jsonl",
+      "line": 88,
+      "tool": "Bash",
+      "attempted": true,
+      "received": true
+    },
+    {
+      "transcript": "f2df7c7e-f84b-4584-99d9-25a980e8f6e5.jsonl",
+      "line": 92,
+      "tool": "Bash",
+      "attempted": true,
+      "received": true
+    },
+    {
+      "transcript": "f2df7c7e-f84b-4584-99d9-25a980e8f6e5.jsonl",
+      "line": 95,
+      "tool": "Bash",
+      "attempted": true,
+      "received": true
+    },
+    {
+      "transcript": "f2df7c7e-f84b-4584-99d9-25a980e8f6e5.jsonl",
+      "line": 99,
+      "tool": "Bash",
+      "attempted": true,
+      "received": true
+    },
+    {
+      "transcript": "f2df7c7e-f84b-4584-99d9-25a980e8f6e5.jsonl",
+      "line": 101,
+      "tool": "Bash",
+      "attempted": true,
+      "received": false
+    },
+    {
+      "transcript": "f2df7c7e-f84b-4584-99d9-25a980e8f6e5.jsonl",
+      "line": 111,
+      "tool": "Bash",
+      "attempted": true,
+      "received": true
+    },
+    {
+      "transcript": "f2df7c7e-f84b-4584-99d9-25a980e8f6e5.jsonl",
+      "line": 114,
+      "tool": "Read",
+      "attempted": true,
+      "received": true
+    },
+    {
+      "transcript": "f2df7c7e-f84b-4584-99d9-25a980e8f6e5.jsonl",
+      "line": 117,
+      "tool": "Read",
+      "attempted": true,
+      "received": true
+    },
+    {
+      "transcript": "f2df7c7e-f84b-4584-99d9-25a980e8f6e5.jsonl",
+      "line": 126,
+      "tool": "Bash",
+      "attempted": true,
+      "received": true
+    },
+    {
+      "transcript": "f2df7c7e-f84b-4584-99d9-25a980e8f6e5.jsonl",
+      "line": 130,
+      "tool": "Bash",
+      "attempted": true,
+      "received": true
+    },
+    {
+      "transcript": "f2df7c7e-f84b-4584-99d9-25a980e8f6e5.jsonl",
+      "line": 136,
+      "tool": "Bash",
+      "attempted": true,
+      "received": false
+    },
+    {
+      "transcript": "f2df7c7e-f84b-4584-99d9-25a980e8f6e5.jsonl",
+      "line": 141,
+      "tool": "mcp__aip__get_binding_picture",
+      "attempted": true,
+      "received": true
+    },
+    {
+      "transcript": "f2df7c7e-f84b-4584-99d9-25a980e8f6e5.jsonl",
+      "line": 147,
+      "tool": "Bash",
+      "attempted": true,
+      "received": true
+    },
+    {
+      "transcript": "f2df7c7e-f84b-4584-99d9-25a980e8f6e5.jsonl",
+      "line": 153,
+      "tool": "Write",
+      "attempted": true,
+      "received": true
+    },
+    {
+      "transcript": "f2df7c7e-f84b-4584-99d9-25a980e8f6e5.jsonl",
+      "line": 159,
+      "tool": "Write",
+      "attempted": true,
+      "received": true
+    },
+    {
+      "transcript": "f2df7c7e-f84b-4584-99d9-25a980e8f6e5.jsonl",
+      "line": 165,
+      "tool": "Bash",
+      "attempted": true,
+      "received": false
+    },
+    {
+      "transcript": "f2df7c7e-f84b-4584-99d9-25a980e8f6e5.jsonl",
+      "line": 170,
+      "tool": "Edit",
+      "attempted": true,
+      "received": true
+    },
+    {
+      "transcript": "f2df7c7e-f84b-4584-99d9-25a980e8f6e5.jsonl",
+      "line": 176,
+      "tool": "Write",
+      "attempted": true,
+      "received": true
+    }
+  ]
+}

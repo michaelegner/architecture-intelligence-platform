@@ -1,0 +1,25 @@
+{
+  "session": "F+_r2",
+  "type": "F+",
+  "round": 2,
+  "created_utc": "2026-10-29T23:18:00Z",
+  "card_sha256": "2531e9d67087d6262736ed83de15f0b1232c406c95a7c335178350dadc0adf54",
+  "repositories": [
+    "ecommerce-admin-ui",
+    "ecommerce-catalog-service",
+    "ecommerce-catalog-service-api",
+    "ecommerce-category-query-service",
+    "ecommerce-category-query-service-api",
+    "ecommerce-commons",
+    "ecommerce-image-service",
+    "ecommerce-image-service-api",
+    "ecommerce-infrastructure",
+    "ecommerce-platform-ui",
+    "ecommerce-product-query-service",
+    "ecommerce-product-query-service-api",
+    "ecommerce-tenant-service",
+    "ecommerce-tenant-service-api",
+    "ecommerce-ui",
+    "ecommerce-workspace"
+  ]
+}

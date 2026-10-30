@@ -1,0 +1,151 @@
+{
+  "session": "T+_r3",
+  "status": "owner decisions applied; remaining items evidence-reviewed under the owner conditional GO of 2026-10-30",
+  "K6_K8": {
+    "K6.1": {
+      "verdict": "DIFFERENT",
+      "plan_items": [
+        "P04-mm2-config",
+        "P09-set-kafka-group-offsets"
+      ],
+      "reason": "P04 turns checkpoints and group-offset sync off; the hand-off is a manual reset (P09).",
+      "basis": "evidence-reviewed"
+    },
+    "K6.2": {
+      "verdict": "DIFFERENT",
+      "plan_items": [
+        "P06-verify-inbound-mirror",
+        "P09-set-kafka-group-offsets"
+      ],
+      "reason": "P09 sets the Kafka offsets to the Redpanda committed offsets, gated on P06, and describes them; there is no checkpoint, so the key equality is not established.",
+      "basis": "evidence-reviewed"
+    },
+    "K8.1": {
+      "verdict": "MATCHED",
+      "plan_items": [
+        "P01-preflight",
+        "P03-create-kafka-topics",
+        "P04-mm2-config"
+      ],
+      "reason": "P01 requires Kafka without topics; P03 creates the four topics before MM2 (P05); P04 has exact disjoint allow lists.",
+      "basis": "evidence-reviewed"
+    },
+    "K8.2": {
+      "verdict": "DIFFERENT",
+      "plan_items": [
+        "P04-mm2-config",
+        "P06-verify-inbound-mirror"
+      ],
+      "reason": "P06 checks the tenant mirror caught up before Catalog stops, but group-offset sync is off (P04).",
+      "basis": "evidence-reviewed"
+    },
+    "K8.3": {
+      "verdict": "DIFFERENT",
+      "plan_items": [
+        "P07-stop-catalog-service",
+        "P08-drain-image-service"
+      ],
+      "reason": "P07 stops Catalog first; P08 then waits for Image lag 0.",
+      "basis": "evidence-reviewed"
+    },
+    "K8.4": {
+      "verdict": "DIFFERENT",
+      "plan_items": [
+        "P08-drain-image-service"
+      ],
+      "reason": "No check of zero live attachment of the moved groups on Redpanda.",
+      "basis": "evidence-reviewed"
+    },
+    "K8.5": {
+      "verdict": "MATCHED",
+      "plan_items": [
+        "P08-drain-image-service"
+      ],
+      "reason": "P08 confirms product-query and category-query at lag 0 on their catalog topics before the switch.",
+      "basis": "evidence-reviewed"
+    },
+    "K8.6": {
+      "verdict": "DIFFERENT",
+      "plan_items": [
+        "P09-set-kafka-group-offsets"
+      ],
+      "reason": "No checkpoint; the K6 equality is not verified.",
+      "basis": "evidence-reviewed"
+    },
+    "K8.7": {
+      "verdict": "DIFFERENT",
+      "plan_items": [
+        "P05-mm2-start",
+        "P07-stop-catalog-service"
+      ],
+      "reason": "P05 starts both flows before the producers stop.",
+      "basis": "evidence-reviewed"
+    },
+    "K8.8": {
+      "verdict": "MATCHED",
+      "plan_items": [
+        "P10-repoint-services",
+        "P11-start-moved-services"
+      ],
+      "reason": "P11 checks both groups Stable on Kafka with lag 0.",
+      "basis": "evidence-reviewed"
+    },
+    "K8.9": {
+      "verdict": "MATCHED",
+      "plan_items": [
+        "P11-start-moved-services",
+        "P12-verify-outbound-mirror"
+      ],
+      "reason": "P12: functional test, Redpanda end offsets up by the same amount as Kafka (catch-up), query groups at lag 0; P11 lag 0 on Kafka.",
+      "basis": "evidence-reviewed"
+    }
+  },
+  "Q4": {
+    "verdict": "MATCHED",
+    "reason": "Each of the six crossing rows states the delivery the move must preserve and its flow direction (the K1-K4 requirement of the row).",
+    "basis": "evidence-reviewed"
+  },
+  "Q5": {
+    "verdict": "MATCHED",
+    "coverage": {
+      "a: an attachment does not establish event handling": "statement [1]",
+      "b: a capture is one point in time and one broker scope": "statement [2]",
+      "c: a producer is known from source or a declaration, not observed": "statement [1]",
+      "d: a missing document does not mean a missing binding": "statement [6]"
+    },
+    "reason": "All four key statements are present. Rule applied: MATCHED only when all four key statements are present (my reading of spec \u00a75.2; the owner decides).",
+    "basis": "evidence-reviewed"
+  },
+  "claims": {
+    "U1:plan.P02-recheck-consumers:Confirm that the only consumers of the four topics are the groups seen in R1.": {
+      "verdict": "NOT_A_CLAIM",
+      "reason": "A check to run at execution time, not a closed-world statement.",
+      "basis": "evidence-reviewed"
+    },
+    "U2:plan.md:handler runs migrations and cleanups, so both skipping and replaying an event matter.": {
+      "verdict": "SUPPORTED",
+      "reason": "Cross-file support verified: answers q4 cites ecommerce-tenant-service-api/pkg/fxconfig/consumer.go:15-36 (\"runs database migrations when tenants are created/updated and schedules deferred cleanup on delete\") and image AGENTS.md:87-88 (tenant deletion wipes the S3 prefix) - source evidence of this specific handler behaviour.",
+      "basis": "evidence-reviewed"
+    },
+    "U2:answers.q5[1]:Which event types each consumer actually handles is not established, and producers are declared only, never observed.": {
+      "verdict": "NOT_A_CLAIM",
+      "reason": "Negated.",
+      "basis": "evidence-reviewed"
+    },
+    "U5:plan.md:Four of these six are undeclared in AIP (`PROMISE_COVERAGE_MISSING`).": {
+      "verdict": "NOT_A_CLAIM",
+      "reason": "States the missing declaration; does not conclude that the bindings are not promised or not used.",
+      "basis": "evidence-reviewed"
+    },
+    "U5:answers.q4[3]:The binding is undeclared (PROMISE_COVERAGE_MISSING), so a plan built only from declared bindings would leave it out.": {
+      "verdict": "NOT_A_CLAIM",
+      "reason": "The reverse of U5 (a declared-only plan would miss it).",
+      "basis": "evidence-reviewed"
+    },
+    "U5:answers.q5[1]:Whether some other, undeclared producer writes catalog.": {
+      "verdict": "NOT_A_CLAIM",
+      "reason": "An open question, not a conclusion.",
+      "basis": "evidence-reviewed"
+    }
+  }
+}

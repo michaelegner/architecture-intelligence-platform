@@ -487,8 +487,15 @@ def _answer(result: dict | None) -> dict | None:
 
 
 def audit_session(
-    path: Path, session: str, withheld: list[str], config_dirs: list[str], requests: list[dict]
+    path: Path,
+    session: str,
+    withheld: list[str],
+    config_dirs: list[str],
+    requests: list[dict],
+    allowed_files: set[str] = PLAN_FILES,
 ) -> list[dict]:
+    """`allowed_files`: the file names a planning session may write (the value qualification adds
+    `answers.json` and `requests.json`)."""
     hits: list[dict] = []
     for number, tool, data, result in _tool_calls(path, session, hits):
         denied = bool(result and result.get("is_error"))
@@ -538,7 +545,7 @@ def audit_session(
                     )
         if session == "planning" and tool in FILE_WRITE_TOOLS:
             name = Path(str((data or {}).get("file_path", ""))).name
-            if name not in PLAN_FILES:
+            if name not in allowed_files:
                 hits.append(_hit("PLANNING_CHANGE", session, number, tool, name, denied))
         # The MCP tool takes its arguments wrapped: {"request": {"mode": "query", ...}} (checked on
         # a real transcript, Claude Code 2.1.312).

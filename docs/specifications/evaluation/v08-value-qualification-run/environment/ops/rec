@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+# rec NAME -- COMMAND...: stdout to package/raw/NAME.txt, stderr to .err (kept when not empty), .meta with UTC, command, exit.
+n="$1"; shift 2; b="$VQ_RUN_HOME/package/raw/$n"; rc=0
+"$@" >"$b.txt" 2>"$b.err" || rc=$?
+printf 'utc: %s\ncommand: %s\nexit: %d\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$*" "$rc" >"$b.meta"
+[[ -s "$b.err" ]] || rm -f "$b.err"; exit "$rc"
