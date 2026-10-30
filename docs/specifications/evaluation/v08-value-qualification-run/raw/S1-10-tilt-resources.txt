@@ -1,0 +1,17 @@
+logto-seed ok/ok
+minio-init ok/ok
+ecommerce-image-service ok/ok
+mongo ok/ok
+(Tiltfile) not_applicable/ok
+uncategorized ok/ok
+imgproxy ok/ok
+redpanda ok/ok
+ecommerce-catalog-service ok/ok
+ecommerce-category-query-service ok/ok
+ecommerce-product-query-service ok/ok
+ecommerce-tenant-service-seeder ok/ok
+logto ok/ok
+logto-credentials not_applicable/ok
+ecommerce-tenant-service ok/ok
+minio ok/ok
+logto-db ok/ok

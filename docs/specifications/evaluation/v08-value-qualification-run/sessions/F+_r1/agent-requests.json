@@ -1,0 +1,407 @@
+[
+  {
+    "index": 0,
+    "line": 49,
+    "request": {
+      "bounded_context_id": "catalog-management",
+      "environment": "local",
+      "limit": 200,
+      "mode": "query"
+    },
+    "session": "planning",
+    "transcript_answer": {
+      "data": {
+        "capture_sources": [
+          {
+            "broker_id": "kafka:sokol111-local",
+            "captured_at": "2026-10-29T20:02:22Z",
+            "source_instance_id": "urn:aip:source:kafka-consumer-state:3be60c43a058512e56dc34d4dddb6ed2282e99ac7f0768c8dacb9a778bb5e9dc",
+            "source_revision": "kafka:not-established+capture:2026-10-29T20:02:22Z"
+          }
+        ],
+        "catalog_source": {
+          "catalog_digest": "ff24602762eb2bac4d56955900b82f00f23f01dc5479a12140719753e9ae250e",
+          "lookup_digest": "63adbc14429b0cea899076e44ae0f4fc8e3b7ab259a87bfd918526866973adf1",
+          "source_instance_id": "urn:aip:source:event-catalog:9f0dee1c1c3902c957f0f6d7fb126d4da85cb8cc63c9a1fa940242811f94d1d9",
+          "source_revision": "catalog-sha256:ff24602762eb2bac4d56955900b82f00f23f01dc5479a12140719753e9ae250e+lookup-sha256:63adbc14429b0cea899076e44ae0f4fc8e3b7ab259a87bfd918526866973adf1"
+        },
+        "page": {
+          "limit": 200,
+          "returned": 9
+        },
+        "request_context": {
+          "bounded_context_id": "catalog-management",
+          "broker_ids": [
+            "kafka:sokol111-local"
+          ],
+          "environment": "local"
+        },
+        "rows": [
+          {
+            "attachment_evidence_refs": [
+              "binding-evidence:2faf927c7142652645adf72a2c23f4225c573ca74aaf0c307374772a1063e1a0"
+            ],
+            "broker_id": "kafka:sokol111-local",
+            "captured_at": "2026-10-29T20:02:22Z",
+            "consumer_service_id": "service:ecommerce-category-query-service",
+            "cross_broker_producers": false,
+            "crossing": "OUTBOUND",
+            "declared_event_types": [],
+            "group_ids": [
+              "ecommerce-category-query-service"
+            ],
+            "mapping_evidence_refs": [
+              "binding-evidence:6010e680f6db3718b1e8a4e59d04672b421769067d7387abfd279f662a82624c"
+            ],
+            "producers": [
+              {
+                "bounded_context_id": "catalog-management",
+                "broker_ids": [
+                  "kafka:sokol111-local"
+                ],
+                "declared_event_types": [],
+                "service_id": "service:ecommerce-catalog-service"
+              }
+            ],
+            "promise_evidence_refs": [],
+            "reason": "PROMISE_COVERAGE_MISSING",
+            "status": "UNRESOLVED",
+            "topic_id": "topic:owned:ef00b8a20df7bed4e26c809d03727b11fd83d1169cc8e425f88922d3b5973bd6",
+            "topic_name": "catalog.attribute.events"
+          },
+          {
+            "attachment_evidence_refs": [
+              "binding-evidence:42371282166555e1d87c7b54e7a9a6b878ac126e04174874e026ee87706d4928"
+            ],
+            "broker_id": "kafka:sokol111-local",
+            "captured_at": "2026-10-29T20:02:22Z",
+            "consumer_service_id": "service:ecommerce-product-query-service",
+            "cross_broker_producers": false,
+            "crossing": "OUTBOUND",
+            "declared_event_types": [],
+            "group_ids": [
+              "ecommerce-product-query-service"
+            ],
+            "mapping_evidence_refs": [
+              "binding-evidence:95d56e664cc24a4f1eab75758455b8d722aa73c83489e8863fa6362621cbc187"
+            ],
+            "producers": [
+              {
+                "bounded_context_id": "catalog-management",
+                "broker_ids": [
+                  "kafka:sokol111-local"
+                ],
+                "declared_event_types": [],
+                "service_id": "service:ecommerce-catalog-service"
+              }
+            ],
+            "promise_evidence_refs": [],
+            "reason": "PROMISE_COVERAGE_MISSING",
+            "status": "UNRESOLVED",
+            "topic_id": "topic:owned:ef00b8a20df7bed4e26c809d03727b11fd83d1169cc8e425f88922d3b5973bd6",
+            "topic_name": "catalog.attribute.events"
+          },
+          {
+            "attachment_evidence_refs": [
+              "binding-evidence:69234273b3743289f20c08be374f1e15927605ad07ac410e6383a0d8e0ab8569"
+            ],
+            "broker_id": "kafka:sokol111-local",
+            "captured_at": "2026-10-29T20:02:22Z",
+            "consumer_service_id": "service:ecommerce-category-query-service",
+            "cross_broker_producers": false,
+            "crossing": "OUTBOUND",
+            "declared_event_types": [],
+            "group_ids": [
+              "ecommerce-category-query-service"
+            ],
+            "mapping_evidence_refs": [
+              "binding-evidence:6010e680f6db3718b1e8a4e59d04672b421769067d7387abfd279f662a82624c"
+            ],
+            "producers": [
+              {
+                "bounded_context_id": "catalog-management",
+                "broker_ids": [
+                  "kafka:sokol111-local"
+                ],
+                "declared_event_types": [
+                  "CategoryEvents"
+                ],
+                "service_id": "service:ecommerce-catalog-service"
+              }
+            ],
+            "promise_evidence_refs": [],
+            "reason": "PROMISE_COVERAGE_MISSING",
+            "status": "UNRESOLVED",
+            "topic_id": "topic:owned:53418bb503b87bfe0ea8cb1fbc2677d69d1d70dc81b86cb8520dcc03bcc1bfa0",
+            "topic_name": "catalog.category.events"
+          },
+          {
+            "attachment_evidence_refs": [
+              "binding-evidence:1966e793d23b8e489671cf130edd4c521e95d71c226a8d2701689188d2cbf950"
+            ],
+            "broker_id": "kafka:sokol111-local",
+            "captured_at": "2026-10-29T20:02:22Z",
+            "consumer_service_id": "service:ecommerce-image-service",
+            "cross_broker_producers": false,
+            "crossing": "INSIDE",
+            "declared_event_types": [
+              "ProductUpdated"
+            ],
+            "group_ids": [
+              "ecommerce-image-service"
+            ],
+            "mapping_evidence_refs": [
+              "binding-evidence:35a166806893bcfa2967b5c15b1665e1eb55b61f43f6e23324ed5ce5d1c77a30"
+            ],
+            "producers": [
+              {
+                "bounded_context_id": "catalog-management",
+                "broker_ids": [
+                  "kafka:sokol111-local"
+                ],
+                "declared_event_types": [
+                  "ProductEvents",
+                  "ProductUpdated"
+                ],
+                "service_id": "service:ecommerce-catalog-service"
+              },
+              {
+                "bounded_context_id": "catalog-management",
+                "broker_ids": [
+                  "kafka:sokol111-local"
+                ],
+                "declared_event_types": [
+                  "ProductImagePromoted"
+                ],
+                "service_id": "service:ecommerce-image-service"
+              }
+            ],
+            "promise_evidence_refs": [
+              "binding-evidence:ca8d003bd8a9743167fc59f9cf362ab380922c75280a59ab2b6626d18cdf8bc8"
+            ],
+            "status": "PROMISED_AND_OBSERVED",
+            "topic_id": "topic:owned:5534005a20357fa91c86e22e83f557c20a0be39302067e509fa59c85eb034539",
+            "topic_name": "catalog.product.events"
+          },
+          {
+            "attachment_evidence_refs": [
+              "binding-evidence:5a1f9c8c2b8d29e960db26df4337748c1c1801274fccc3bbf8c128f02324910a"
+            ],
+            "broker_id": "kafka:sokol111-local",
+            "captured_at": "2026-10-29T20:02:22Z",
+            "consumer_service_id": "service:ecommerce-product-query-service",
+            "cross_broker_producers": false,
+            "crossing": "OUTBOUND",
+            "declared_event_types": [
+              "ProductImagePromoted",
+              "ProductUpdated"
+            ],
+            "group_ids": [
+              "ecommerce-product-query-service"
+            ],
+            "mapping_evidence_refs": [
+              "binding-evidence:95d56e664cc24a4f1eab75758455b8d722aa73c83489e8863fa6362621cbc187"
+            ],
+            "producers": [
+              {
+                "bounded_context_id": "catalog-management",
+                "broker_ids": [
+                  "kafka:sokol111-local"
+                ],
+                "declared_event_types": [
+                  "ProductEvents",
+                  "ProductUpdated"
+                ],
+                "service_id": "service:ecommerce-catalog-service"
+              },
+              {
+                "bounded_context_id": "catalog-management",
+                "broker_ids": [
+                  "kafka:sokol111-local"
+                ],
+                "declared_event_types": [
+                  "ProductImagePromoted"
+                ],
+                "service_id": "service:ecommerce-image-service"
+              }
+            ],
+            "promise_evidence_refs": [
+              "binding-evidence:53559cbcf2a54e5fa295115067b2c803178a2a9105806975545cd40ad4711502",
+              "binding-evidence:b3707b909f82763a7414f4a06901a5a959e974eeecfbb74dc981cea65b3d9f42"
+            ],
+            "status": "PROMISED_AND_OBSERVED",
+            "topic_id": "topic:owned:5534005a20357fa91c86e22e83f557c20a0be39302067e509fa59c85eb034539",
+            "topic_name": "catalog.product.events"
+          },
+          {
+            "attachment_evidence_refs": [
+              "binding-evidence:a61267d1b44ca68ac27f8968e091283f63003fa573b331b345f2f1c4fcda447f"
+            ],
+            "broker_id": "kafka:sokol111-local",
+            "captured_at": "2026-10-29T20:02:22Z",
+            "consumer_service_id": "service:ecommerce-catalog-service",
+            "cross_broker_producers": false,
+            "crossing": "INBOUND",
+            "declared_event_types": [],
+            "group_ids": [
+              "ecommerce-catalog-service"
+            ],
+            "mapping_evidence_refs": [
+              "binding-evidence:3cf65bace6fddb3b11982f8b7373e72e81b91bbb28d66ba1f469c3e6bc2dd72b"
+            ],
+            "producers": [
+              {
+                "bounded_context_id": "store-provisioning",
+                "broker_ids": [
+                  "kafka:sokol111-local"
+                ],
+                "declared_event_types": [
+                  "TenantUpdated"
+                ],
+                "service_id": "service:ecommerce-tenant-service"
+              }
+            ],
+            "promise_evidence_refs": [],
+            "reason": "PROMISE_COVERAGE_MISSING",
+            "status": "UNRESOLVED",
+            "topic_id": "topic:owned:80ac3adc89d6d4d0c21254e63f88920456c927900edbe9d78fa242ce57bdc592",
+            "topic_name": "tenant.tenant.events"
+          },
+          {
+            "attachment_evidence_refs": [
+              "binding-evidence:5d7160fe91cc98d06718b032a3cff4f78d87e6e20cdcef8965ab4a5cd7cee81a"
+            ],
+            "broker_id": "kafka:sokol111-local",
+            "captured_at": "2026-10-29T20:02:22Z",
+            "consumer_service_id": "service:ecommerce-category-query-service",
+            "cross_broker_producers": false,
+            "crossing": "NONE",
+            "declared_event_types": [],
+            "group_ids": [
+              "ecommerce-category-query-service"
+            ],
+            "mapping_evidence_refs": [
+              "binding-evidence:6010e680f6db3718b1e8a4e59d04672b421769067d7387abfd279f662a82624c"
+            ],
+            "producers": [
+              {
+                "bounded_context_id": "store-provisioning",
+                "broker_ids": [
+                  "kafka:sokol111-local"
+                ],
+                "declared_event_types": [
+                  "TenantUpdated"
+                ],
+                "service_id": "service:ecommerce-tenant-service"
+              }
+            ],
+            "promise_evidence_refs": [],
+            "reason": "PROMISE_COVERAGE_MISSING",
+            "status": "UNRESOLVED",
+            "topic_id": "topic:owned:80ac3adc89d6d4d0c21254e63f88920456c927900edbe9d78fa242ce57bdc592",
+            "topic_name": "tenant.tenant.events"
+          },
+          {
+            "attachment_evidence_refs": [
+              "binding-evidence:6af3e408b37c7cc92940b52474c0d27012014f7c4e20703ccb1fb886e881d453"
+            ],
+            "broker_id": "kafka:sokol111-local",
+            "captured_at": "2026-10-29T20:02:22Z",
+            "consumer_service_id": "service:ecommerce-image-service",
+            "cross_broker_producers": false,
+            "crossing": "INBOUND",
+            "declared_event_types": [],
+            "group_ids": [
+              "ecommerce-image-service"
+            ],
+            "mapping_evidence_refs": [
+              "binding-evidence:35a166806893bcfa2967b5c15b1665e1eb55b61f43f6e23324ed5ce5d1c77a30"
+            ],
+            "producers": [
+              {
+                "bounded_context_id": "store-provisioning",
+                "broker_ids": [
+                  "kafka:sokol111-local"
+                ],
+                "declared_event_types": [
+                  "TenantUpdated"
+                ],
+                "service_id": "service:ecommerce-tenant-service"
+              }
+            ],
+            "promise_evidence_refs": [],
+            "reason": "PROMISE_COVERAGE_MISSING",
+            "status": "UNRESOLVED",
+            "topic_id": "topic:owned:80ac3adc89d6d4d0c21254e63f88920456c927900edbe9d78fa242ce57bdc592",
+            "topic_name": "tenant.tenant.events"
+          },
+          {
+            "attachment_evidence_refs": [
+              "binding-evidence:db90bc3603c9dada7210636efb61980e6a85e324ff2feb4be65ac9e8ba638b6e"
+            ],
+            "broker_id": "kafka:sokol111-local",
+            "captured_at": "2026-10-29T20:02:22Z",
+            "consumer_service_id": "service:ecommerce-product-query-service",
+            "cross_broker_producers": false,
+            "crossing": "NONE",
+            "declared_event_types": [],
+            "group_ids": [
+              "ecommerce-product-query-service"
+            ],
+            "mapping_evidence_refs": [
+              "binding-evidence:95d56e664cc24a4f1eab75758455b8d722aa73c83489e8863fa6362621cbc187"
+            ],
+            "producers": [
+              {
+                "bounded_context_id": "store-provisioning",
+                "broker_ids": [
+                  "kafka:sokol111-local"
+                ],
+                "declared_event_types": [
+                  "TenantUpdated"
+                ],
+                "service_id": "service:ecommerce-tenant-service"
+              }
+            ],
+            "promise_evidence_refs": [],
+            "reason": "PROMISE_COVERAGE_MISSING",
+            "status": "UNRESOLVED",
+            "topic_id": "topic:owned:80ac3adc89d6d4d0c21254e63f88920456c927900edbe9d78fa242ce57bdc592",
+            "topic_name": "tenant.tenant.events"
+          }
+        ]
+      },
+      "limitations": [
+        {
+          "code": "CAPTURE_SCOPE_LIMITED",
+          "message": "each capture covers only its configured consumer groups at its own capture time"
+        },
+        {
+          "code": "EVENT_HANDLING_NOT_ESTABLISHED",
+          "message": "an attachment shows a consumer group's topic assignment, not which event types it handles"
+        },
+        {
+          "code": "PRODUCER_SIDE_DECLARED_ONLY",
+          "message": "producers are declared evidence only, never observed"
+        },
+        {
+          "code": "PROMISES_ASSUMED_CONFIRMED",
+          "message": "catalog entries count as confirmed promises by a disclosed demonstration assumption"
+        }
+      ],
+      "mode": "query",
+      "outcome": "PARTIAL",
+      "producer": {
+        "build_revision": "unknown",
+        "name": "architecture-intelligence-platform",
+        "version": "0.8.0"
+      },
+      "schema_version": "0.8.0",
+      "snapshot": {
+        "model_revision": "sha256:18d59102a7c451ae8e84d3acaf3d2c6b036ff105ec14a59f255c2be0ffda906e",
+        "snapshot_id": "aip:snapshot:v1:18d59102a7c451ae8e84d3acaf3d2c6b036ff105ec14a59f255c2be0ffda906e"
+      },
+      "tool": "get_binding_picture"
+    }
+  }
+]

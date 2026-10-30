@@ -1,0 +1,247 @@
+{
+  "q1": {
+    "services": ["ecommerce-catalog-service", "ecommerce-image-service"],
+    "boundary": "The Catalog Management bounded context (catalog-management) becomes the broker boundary: its two services move from Redpanda to Apache Kafka, while every other service (ecommerce-product-query-service, ecommerce-category-query-service, ecommerce-tenant-service and the rest) stays on Redpanda. Every consumer x topic binding that crosses catalog-management (INBOUND or OUTBOUND) therefore now also crosses the Redpanda/Kafka boundary and must be carried by MirrorMaker 2. Bindings inside the context (image-service on catalog.product.events) move together with it.",
+    "evidence": [
+      {"kind": "aip", "reference": "Binding picture for bounded_context_id catalog-management, environment local: producers ecommerce-catalog-service and ecommerce-image-service carry bounded_context_id catalog-management; ecommerce-tenant-service is in store-provisioning.", "snapshot_id": "aip:snapshot:v1:18d59102a7c451ae8e84d3acaf3d2c6b036ff105ec14a59f255c2be0ffda906e", "broker_id": "kafka:sokol111-local"},
+      {"kind": "documentation", "reference": "src/ecommerce-workspace/docs/architecture/platform-overview.md:29-36", "note": "Catalog Service and Image Service form 'Manage products'"},
+      {"kind": "documentation", "reference": "src/ecommerce-workspace/docs/architecture/platform-overview.md:40", "note": "Redpanda is the domain event bus today"}
+    ]
+  },
+  "q2": [
+    {
+      "consumer": "ecommerce-catalog-service",
+      "topic": "tenant.tenant.events",
+      "direction": "inbound",
+      "evidence": [
+        {"kind": "aip", "reference": "crossing INBOUND, group ecommerce-catalog-service, producer ecommerce-tenant-service (store-provisioning)", "snapshot_id": "aip:snapshot:v1:18d59102a7c451ae8e84d3acaf3d2c6b036ff105ec14a59f255c2be0ffda906e", "broker_id": "kafka:sokol111-local", "topic_name": "tenant.tenant.events", "consumer_service_id": "service:ecommerce-catalog-service", "evidence_refs": ["binding-evidence:a61267d1b44ca68ac27f8968e091283f63003fa573b331b345f2f1c4fcda447f", "binding-evidence:3cf65bace6fddb3b11982f8b7373e72e81b91bbb28d66ba1f469c3e6bc2dd72b"]},
+        {"kind": "source", "reference": "src/ecommerce-catalog-service/internal/infrastructure/fxconfig/module.go:13", "note": "fx_tenant_api.NewKafkaConsumerModule()"},
+        {"kind": "source", "reference": "src/ecommerce-tenant-service-api/pkg/events/topics.go:11-17"}
+      ]
+    },
+    {
+      "consumer": "ecommerce-image-service",
+      "topic": "tenant.tenant.events",
+      "direction": "inbound",
+      "evidence": [
+        {"kind": "aip", "reference": "crossing INBOUND, group ecommerce-image-service, producer ecommerce-tenant-service (store-provisioning)", "snapshot_id": "aip:snapshot:v1:18d59102a7c451ae8e84d3acaf3d2c6b036ff105ec14a59f255c2be0ffda906e", "broker_id": "kafka:sokol111-local", "topic_name": "tenant.tenant.events", "consumer_service_id": "service:ecommerce-image-service", "evidence_refs": ["binding-evidence:6af3e408b37c7cc92940b52474c0d27012014f7c4e20703ccb1fb886e881d453", "binding-evidence:35a166806893bcfa2967b5c15b1665e1eb55b61f43f6e23324ed5ce5d1c77a30"]},
+        {"kind": "source", "reference": "src/ecommerce-image-service/internal/infrastructure/fxconfig/module.go:36", "note": "fx_tenant_api.NewKafkaConsumerModule()"}
+      ]
+    },
+    {
+      "consumer": "ecommerce-product-query-service",
+      "topic": "catalog.product.events",
+      "direction": "outbound",
+      "evidence": [
+        {"kind": "aip", "reference": "crossing OUTBOUND, PROMISED_AND_OBSERVED, group ecommerce-product-query-service; producers ecommerce-catalog-service (ProductUpdated) and ecommerce-image-service (ProductImagePromoted)", "snapshot_id": "aip:snapshot:v1:18d59102a7c451ae8e84d3acaf3d2c6b036ff105ec14a59f255c2be0ffda906e", "broker_id": "kafka:sokol111-local", "topic_name": "catalog.product.events", "consumer_service_id": "service:ecommerce-product-query-service", "evidence_refs": ["binding-evidence:53559cbcf2a54e5fa295115067b2c803178a2a9105806975545cd40ad4711502", "binding-evidence:5a1f9c8c2b8d29e960db26df4337748c1c1801274fccc3bbf8c128f02324910a", "binding-evidence:95d56e664cc24a4f1eab75758455b8d722aa73c83489e8863fa6362621cbc187", "binding-evidence:b3707b909f82763a7414f4a06901a5a959e974eeecfbb74dc981cea65b3d9f42"]},
+        {"kind": "source", "reference": "src/ecommerce-catalog-service-api/pkg/events/topics.go:18-19"},
+        {"kind": "source", "reference": "src/ecommerce-image-service-api/pkg/events/topics.go:16"}
+      ]
+    },
+    {
+      "consumer": "ecommerce-category-query-service",
+      "topic": "catalog.category.events",
+      "direction": "outbound",
+      "evidence": [
+        {"kind": "aip", "reference": "crossing OUTBOUND, UNRESOLVED PROMISE_COVERAGE_MISSING (observed, not declared), group ecommerce-category-query-service, producer ecommerce-catalog-service", "snapshot_id": "aip:snapshot:v1:18d59102a7c451ae8e84d3acaf3d2c6b036ff105ec14a59f255c2be0ffda906e", "broker_id": "kafka:sokol111-local", "topic_name": "catalog.category.events", "consumer_service_id": "service:ecommerce-category-query-service", "evidence_refs": ["binding-evidence:6010e680f6db3718b1e8a4e59d04672b421769067d7387abfd279f662a82624c", "binding-evidence:69234273b3743289f20c08be374f1e15927605ad07ac410e6383a0d8e0ab8569"]},
+        {"kind": "source", "reference": "src/ecommerce-catalog-service-api/pkg/events/topics.go:20"}
+      ]
+    },
+    {
+      "consumer": "ecommerce-category-query-service",
+      "topic": "catalog.attribute.events",
+      "direction": "outbound",
+      "evidence": [
+        {"kind": "aip", "reference": "crossing OUTBOUND, UNRESOLVED PROMISE_COVERAGE_MISSING, group ecommerce-category-query-service, producer ecommerce-catalog-service", "snapshot_id": "aip:snapshot:v1:18d59102a7c451ae8e84d3acaf3d2c6b036ff105ec14a59f255c2be0ffda906e", "broker_id": "kafka:sokol111-local", "topic_name": "catalog.attribute.events", "consumer_service_id": "service:ecommerce-category-query-service", "evidence_refs": ["binding-evidence:2faf927c7142652645adf72a2c23f4225c573ca74aaf0c307374772a1063e1a0", "binding-evidence:6010e680f6db3718b1e8a4e59d04672b421769067d7387abfd279f662a82624c"]},
+        {"kind": "source", "reference": "src/ecommerce-catalog-service-api/pkg/events/topics.go:21"}
+      ]
+    },
+    {
+      "consumer": "ecommerce-product-query-service",
+      "topic": "catalog.attribute.events",
+      "direction": "outbound",
+      "evidence": [
+        {"kind": "aip", "reference": "crossing OUTBOUND, UNRESOLVED PROMISE_COVERAGE_MISSING, group ecommerce-product-query-service, producer ecommerce-catalog-service", "snapshot_id": "aip:snapshot:v1:18d59102a7c451ae8e84d3acaf3d2c6b036ff105ec14a59f255c2be0ffda906e", "broker_id": "kafka:sokol111-local", "topic_name": "catalog.attribute.events", "consumer_service_id": "service:ecommerce-product-query-service", "evidence_refs": ["binding-evidence:42371282166555e1d87c7b54e7a9a6b878ac126e04174874e026ee87706d4928", "binding-evidence:95d56e664cc24a4f1eab75758455b8d722aa73c83489e8863fa6362621cbc187"]},
+        {"kind": "source", "reference": "src/ecommerce-catalog-service-api/pkg/events/topics.go:21"}
+      ]
+    }
+  ],
+  "q3": [
+    {
+      "consumer": "ecommerce-catalog-service",
+      "topic": "tenant.tenant.events",
+      "documented": "no",
+      "observed": "yes",
+      "documented_evidence": [
+        {"kind": "documentation", "reference": "src/ecommerce-workspace/docs/architecture/platform-overview.md:50", "note": "docs name only the producer side (TenantUpdated event -> broker); no document names catalog-service as a consumer"},
+        {"kind": "aip", "reference": "status UNRESOLVED, reason PROMISE_COVERAGE_MISSING: no catalog promise covers this binding", "snapshot_id": "aip:snapshot:v1:18d59102a7c451ae8e84d3acaf3d2c6b036ff105ec14a59f255c2be0ffda906e", "broker_id": "kafka:sokol111-local", "topic_name": "tenant.tenant.events", "consumer_service_id": "service:ecommerce-catalog-service"}
+      ],
+      "observed_evidence": [
+        {"kind": "aip", "reference": "group ecommerce-catalog-service attached at capture 2026-10-29T20:02:22Z", "snapshot_id": "aip:snapshot:v1:18d59102a7c451ae8e84d3acaf3d2c6b036ff105ec14a59f255c2be0ffda906e", "broker_id": "kafka:sokol111-local", "topic_name": "tenant.tenant.events", "consumer_service_id": "service:ecommerce-catalog-service", "evidence_refs": ["binding-evidence:a61267d1b44ca68ac27f8968e091283f63003fa573b331b345f2f1c4fcda447f"]}
+      ]
+    },
+    {
+      "consumer": "ecommerce-image-service",
+      "topic": "tenant.tenant.events",
+      "documented": "no",
+      "observed": "yes",
+      "documented_evidence": [
+        {"kind": "documentation", "reference": "src/ecommerce-workspace/docs/architecture/platform-overview.md:50", "note": "producer side only; no consumer named"},
+        {"kind": "aip", "reference": "status UNRESOLVED, reason PROMISE_COVERAGE_MISSING", "snapshot_id": "aip:snapshot:v1:18d59102a7c451ae8e84d3acaf3d2c6b036ff105ec14a59f255c2be0ffda906e", "broker_id": "kafka:sokol111-local", "topic_name": "tenant.tenant.events", "consumer_service_id": "service:ecommerce-image-service"}
+      ],
+      "observed_evidence": [
+        {"kind": "aip", "reference": "group ecommerce-image-service attached at capture 2026-10-29T20:02:22Z", "snapshot_id": "aip:snapshot:v1:18d59102a7c451ae8e84d3acaf3d2c6b036ff105ec14a59f255c2be0ffda906e", "broker_id": "kafka:sokol111-local", "topic_name": "tenant.tenant.events", "consumer_service_id": "service:ecommerce-image-service", "evidence_refs": ["binding-evidence:6af3e408b37c7cc92940b52474c0d27012014f7c4e20703ccb1fb886e881d453"]}
+      ]
+    },
+    {
+      "consumer": "ecommerce-product-query-service",
+      "topic": "catalog.product.events",
+      "documented": "yes",
+      "observed": "yes",
+      "documented_evidence": [
+        {"kind": "documentation", "reference": "src/ecommerce-workspace/docs/architecture/product-update-flow.md:25-35", "note": "ProductQuery consumes ProductUpdated and the image promotion event; both map to catalog.product.events"},
+        {"kind": "aip", "reference": "status PROMISED_AND_OBSERVED, declared event types ProductImagePromoted, ProductUpdated", "snapshot_id": "aip:snapshot:v1:18d59102a7c451ae8e84d3acaf3d2c6b036ff105ec14a59f255c2be0ffda906e", "broker_id": "kafka:sokol111-local", "topic_name": "catalog.product.events", "consumer_service_id": "service:ecommerce-product-query-service", "evidence_refs": ["binding-evidence:53559cbcf2a54e5fa295115067b2c803178a2a9105806975545cd40ad4711502", "binding-evidence:b3707b909f82763a7414f4a06901a5a959e974eeecfbb74dc981cea65b3d9f42"]}
+      ],
+      "observed_evidence": [
+        {"kind": "aip", "reference": "group ecommerce-product-query-service attached at capture 2026-10-29T20:02:22Z", "snapshot_id": "aip:snapshot:v1:18d59102a7c451ae8e84d3acaf3d2c6b036ff105ec14a59f255c2be0ffda906e", "broker_id": "kafka:sokol111-local", "topic_name": "catalog.product.events", "consumer_service_id": "service:ecommerce-product-query-service", "evidence_refs": ["binding-evidence:5a1f9c8c2b8d29e960db26df4337748c1c1801274fccc3bbf8c128f02324910a"]}
+      ]
+    },
+    {
+      "consumer": "ecommerce-category-query-service",
+      "topic": "catalog.category.events",
+      "documented": "yes",
+      "observed": "yes",
+      "documented_evidence": [
+        {"kind": "documentation", "reference": "src/ecommerce-workspace/docs/architecture/platform-overview.md:41-43", "note": "Product and Category Query Services build projections from the broker"},
+        {"kind": "documentation", "reference": "src/ecommerce-workspace/docs/architecture/platform-overview.md:51", "note": "catalog publishes product and category events; the binding is named at the level of 'category events' and 'Category Query Service', not by topic name"}
+      ],
+      "observed_evidence": [
+        {"kind": "aip", "reference": "group ecommerce-category-query-service attached at capture 2026-10-29T20:02:22Z", "snapshot_id": "aip:snapshot:v1:18d59102a7c451ae8e84d3acaf3d2c6b036ff105ec14a59f255c2be0ffda906e", "broker_id": "kafka:sokol111-local", "topic_name": "catalog.category.events", "consumer_service_id": "service:ecommerce-category-query-service", "evidence_refs": ["binding-evidence:69234273b3743289f20c08be374f1e15927605ad07ac410e6383a0d8e0ab8569"]}
+      ]
+    },
+    {
+      "consumer": "ecommerce-category-query-service",
+      "topic": "catalog.attribute.events",
+      "documented": "no",
+      "observed": "yes",
+      "documented_evidence": [
+        {"kind": "documentation", "reference": "src/ecommerce-workspace/docs/architecture/platform-overview.md:51", "note": "docs name product and category events only; attribute events are not named anywhere in docs/"},
+        {"kind": "aip", "reference": "status UNRESOLVED, reason PROMISE_COVERAGE_MISSING", "snapshot_id": "aip:snapshot:v1:18d59102a7c451ae8e84d3acaf3d2c6b036ff105ec14a59f255c2be0ffda906e", "broker_id": "kafka:sokol111-local", "topic_name": "catalog.attribute.events", "consumer_service_id": "service:ecommerce-category-query-service"}
+      ],
+      "observed_evidence": [
+        {"kind": "aip", "reference": "group ecommerce-category-query-service attached at capture 2026-10-29T20:02:22Z", "snapshot_id": "aip:snapshot:v1:18d59102a7c451ae8e84d3acaf3d2c6b036ff105ec14a59f255c2be0ffda906e", "broker_id": "kafka:sokol111-local", "topic_name": "catalog.attribute.events", "consumer_service_id": "service:ecommerce-category-query-service", "evidence_refs": ["binding-evidence:2faf927c7142652645adf72a2c23f4225c573ca74aaf0c307374772a1063e1a0"]}
+      ]
+    },
+    {
+      "consumer": "ecommerce-product-query-service",
+      "topic": "catalog.attribute.events",
+      "documented": "no",
+      "observed": "yes",
+      "documented_evidence": [
+        {"kind": "documentation", "reference": "src/ecommerce-workspace/docs/architecture/product-update-flow.md:25-35", "note": "the product flow names only product and image events for ProductQuery; attribute events are not named in docs/"},
+        {"kind": "aip", "reference": "status UNRESOLVED, reason PROMISE_COVERAGE_MISSING", "snapshot_id": "aip:snapshot:v1:18d59102a7c451ae8e84d3acaf3d2c6b036ff105ec14a59f255c2be0ffda906e", "broker_id": "kafka:sokol111-local", "topic_name": "catalog.attribute.events", "consumer_service_id": "service:ecommerce-product-query-service"}
+      ],
+      "observed_evidence": [
+        {"kind": "aip", "reference": "group ecommerce-product-query-service attached at capture 2026-10-29T20:02:22Z", "snapshot_id": "aip:snapshot:v1:18d59102a7c451ae8e84d3acaf3d2c6b036ff105ec14a59f255c2be0ffda906e", "broker_id": "kafka:sokol111-local", "topic_name": "catalog.attribute.events", "consumer_service_id": "service:ecommerce-product-query-service", "evidence_refs": ["binding-evidence:42371282166555e1d87c7b54e7a9a6b878ac126e04174874e026ee87706d4928"]}
+      ]
+    }
+  ],
+  "q4": [
+    {
+      "consumer": "ecommerce-catalog-service",
+      "topic": "tenant.tenant.events",
+      "must_preserve": "Tenant lifecycle events produced on Redpanda by ecommerce-tenant-service must reach catalog-service on Kafka (flow redpanda->kafka), with the same topic name, keys and the tenant header, and with the group's position carried over by MM2 offset sync so it neither skips tenant events (a new tenant's catalog database would not be migrated) nor replays all of them from earliest.",
+      "evidence": [
+        {"kind": "source", "reference": "src/ecommerce-tenant-service-api/pkg/fxconfig/consumer.go:15-28", "note": "consumer runs tenant DB migrations on create/update and cleanup on delete"},
+        {"kind": "configuration", "reference": "src/ecommerce-catalog-service/configs/config.e2e.yaml:16-19", "note": "auto-offset-reset earliest"},
+        {"kind": "aip", "reference": "INBOUND, producer ecommerce-tenant-service stays on Redpanda", "snapshot_id": "aip:snapshot:v1:18d59102a7c451ae8e84d3acaf3d2c6b036ff105ec14a59f255c2be0ffda906e", "broker_id": "kafka:sokol111-local", "topic_name": "tenant.tenant.events", "consumer_service_id": "service:ecommerce-catalog-service"}
+      ]
+    },
+    {
+      "consumer": "ecommerce-image-service",
+      "topic": "tenant.tenant.events",
+      "must_preserve": "Same as for catalog-service: tenant events from Redpanda must reach image-service on Kafka, with translated group offsets, so tenant migrations and the image tenant cleaners still run for every tenant change.",
+      "evidence": [
+        {"kind": "source", "reference": "src/ecommerce-tenant-service-api/pkg/fxconfig/consumer.go:15-24", "note": "tenant_cleaners group, e.g. image tenant cleaner"},
+        {"kind": "aip", "reference": "INBOUND, producer ecommerce-tenant-service stays on Redpanda", "snapshot_id": "aip:snapshot:v1:18d59102a7c451ae8e84d3acaf3d2c6b036ff105ec14a59f255c2be0ffda906e", "broker_id": "kafka:sokol111-local", "topic_name": "tenant.tenant.events", "consumer_service_id": "service:ecommerce-image-service"}
+      ]
+    },
+    {
+      "consumer": "ecommerce-product-query-service",
+      "topic": "catalog.product.events",
+      "must_preserve": "Both producers of this topic move (catalog-service: ProductUpdated/ProductDeleted; image-service: ProductImagePromoted), so every record they write on Kafka must be mirrored into the same-named topic on Redpanda, keeping key, partition, per-key order and headers (tenant header), so the product read model and image URLs on the storefront keep updating.",
+      "evidence": [
+        {"kind": "documentation", "reference": "src/ecommerce-workspace/docs/architecture/product-update-flow.md:25-45", "note": "projection uses event versions; delayed/out-of-order messages tolerated"},
+        {"kind": "source", "reference": "src/ecommerce-catalog-service/internal/infrastructure/outbound/kafka/product_event_factory.go:72-83"},
+        {"kind": "source", "reference": "src/ecommerce-image-service/internal/infrastructure/outbound/kafka/event_factory.go:27"}
+      ]
+    },
+    {
+      "consumer": "ecommerce-category-query-service",
+      "topic": "catalog.category.events",
+      "must_preserve": "CategoryUpdated events written by catalog-service on Kafka must be mirrored into catalog.category.events on Redpanda with key, partition and headers intact, so the category read model keeps updating.",
+      "evidence": [
+        {"kind": "source", "reference": "src/ecommerce-catalog-service/internal/infrastructure/outbound/kafka/category_event_factory.go:64"},
+        {"kind": "documentation", "reference": "src/ecommerce-workspace/docs/architecture/platform-overview.md:43"}
+      ]
+    },
+    {
+      "consumer": "ecommerce-category-query-service",
+      "topic": "catalog.attribute.events",
+      "must_preserve": "AttributeUpdated events written by catalog-service on Kafka must be mirrored into catalog.attribute.events on Redpanda. This binding is undocumented and undeclared (only observed), so it is easy to miss; dropping the topic from the allow-list would silently stop this consumer.",
+      "evidence": [
+        {"kind": "source", "reference": "src/ecommerce-catalog-service/internal/infrastructure/outbound/kafka/attribute_event_factory.go:68"},
+        {"kind": "aip", "reference": "UNRESOLVED PROMISE_COVERAGE_MISSING: observed, undeclared", "snapshot_id": "aip:snapshot:v1:18d59102a7c451ae8e84d3acaf3d2c6b036ff105ec14a59f255c2be0ffda906e", "broker_id": "kafka:sokol111-local", "topic_name": "catalog.attribute.events", "consumer_service_id": "service:ecommerce-category-query-service"}
+      ]
+    },
+    {
+      "consumer": "ecommerce-product-query-service",
+      "topic": "catalog.attribute.events",
+      "must_preserve": "Same topic and flow as the previous row: attribute events from Kafka must reach product-query-service on Redpanda; undocumented and undeclared, observed only.",
+      "evidence": [
+        {"kind": "aip", "reference": "UNRESOLVED PROMISE_COVERAGE_MISSING: observed, undeclared", "snapshot_id": "aip:snapshot:v1:18d59102a7c451ae8e84d3acaf3d2c6b036ff105ec14a59f255c2be0ffda906e", "broker_id": "kafka:sokol111-local", "topic_name": "catalog.attribute.events", "consumer_service_id": "service:ecommerce-product-query-service", "evidence_refs": ["binding-evidence:42371282166555e1d87c7b54e7a9a6b878ac126e04174874e026ee87706d4928"]}
+      ]
+    }
+  ],
+  "q5": [
+    {
+      "statement": "The list of bindings may be incomplete: the AIP capture covers only its configured consumer groups at one capture time (2026-10-29T20:02:22Z). A consumer group not in the capture (another team's service, a tool, a renamed group) would not appear. The execution session must compare the live Redpanda group list (platform team, P00) with q2 before starting.",
+      "evidence": [
+        {"kind": "aip", "reference": "limitation CAPTURE_SCOPE_LIMITED", "snapshot_id": "aip:snapshot:v1:18d59102a7c451ae8e84d3acaf3d2c6b036ff105ec14a59f255c2be0ffda906e"}
+      ]
+    },
+    {
+      "statement": "An attachment shows only that a group is assigned to a topic, not that it handles the events. Whether product-query and category-query actually process attribute events, and whether product-query also needs catalog.category.events (no attachment seen; its repository is not in the workspace), is not established. The allow-list mirrors all three catalog topics regardless, so this does not change the plan.",
+      "evidence": [
+        {"kind": "aip", "reference": "limitation EVENT_HANDLING_NOT_ESTABLISHED", "snapshot_id": "aip:snapshot:v1:18d59102a7c451ae8e84d3acaf3d2c6b036ff105ec14a59f255c2be0ffda906e"}
+      ]
+    },
+    {
+      "statement": "Producers are declared only. That catalog-service and image-service are the only producers of the three catalog topics, and tenant-service the only producer of tenant.tenant.events, comes from source and the catalog, not from the broker. If another producer writes to a catalog topic on Redpanda after the move, those records would not reach the moved image-service.",
+      "evidence": [
+        {"kind": "aip", "reference": "limitation PRODUCER_SIDE_DECLARED_ONLY", "snapshot_id": "aip:snapshot:v1:18d59102a7c451ae8e84d3acaf3d2c6b036ff105ec14a59f255c2be0ffda906e"},
+        {"kind": "source", "reference": "src/ecommerce-catalog-service-api/pkg/events/topics.go:11-21"}
+      ]
+    },
+    {
+      "statement": "Delivery between the brokers is not established by any evidence I have; MM2 is at-least-once. The move is not claimed to be lossless or exactly-once. Duplicates can occur (MM2 restarts, offset translation, rollback), and records written to Redpanda's catalog.product.events but not yet read by image-service at cutover would be missed if the drain check (P04) is skipped.",
+      "evidence": [
+        {"kind": "aip", "reference": "Binding picture: delivery between brokers is never established", "snapshot_id": "aip:snapshot:v1:18d59102a7c451ae8e84d3acaf3d2c6b036ff105ec14a59f255c2be0ffda906e"},
+        {"kind": "reasoning", "reference": "MirrorMaker 2 provides at-least-once replication; offset translation is approximate."}
+      ]
+    },
+    {
+      "statement": "The exact Helm values files and keys for the broker address, and the group ids used locally, are not visible: the values repository is not in the workspace. AIP shows catalog-service's tenant group as ecommerce-catalog-service, while config.e2e.yaml uses catalog-service-tenant-events; the live group ids must be confirmed before the MM2 groups allow-list is set.",
+      "evidence": [
+        {"kind": "configuration", "reference": "src/ecommerce-catalog-service/configs/config.e2e.yaml:18"},
+        {"kind": "aip", "reference": "group_ids [ecommerce-catalog-service] on tenant.tenant.events", "snapshot_id": "aip:snapshot:v1:18d59102a7c451ae8e84d3acaf3d2c6b036ff105ec14a59f255c2be0ffda906e", "broker_id": "kafka:sokol111-local", "topic_name": "tenant.tenant.events", "consumer_service_id": "service:ecommerce-catalog-service"}
+      ]
+    },
+    {
+      "statement": "To verify after the move: (1) on Kafka, both moved groups are attached to tenant.tenant.events and image-service to catalog.product.events; (2) on Redpanda, product-query and category-query groups keep consuming new records on all three catalog topics with lag returning to 0; (3) mirrored records keep key, partition and the tenant header; (4) the functional test passes (requested from the operator); (5) Redpanda shows no catalog-service/image-service group members left; (6) a fresh AIP binding picture, taken after the move, shows the moved bindings on the Kafka broker.",
+      "evidence": [
+        {"kind": "reasoning", "reference": "These are the checks P07 and P08 of plan.json; each is a stop condition."}
+      ]
+    }
+  ]
+}

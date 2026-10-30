@@ -1,0 +1,3 @@
+utc: 2026-10-29T20:02:21Z
+command: docker image ls -a --no-trunc --format {{.ID}} {{.Repository}}:{{.Tag}}
+exit: 0

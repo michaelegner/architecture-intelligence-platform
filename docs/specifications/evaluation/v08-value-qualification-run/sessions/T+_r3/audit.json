@@ -1,0 +1,412 @@
+{
+  "session": "T+_r3",
+  "type": "T+",
+  "clean": false,
+  "hits": [
+    {
+      "kind": "PLANNING_CHANGE",
+      "session": "planning",
+      "line": 66,
+      "tool": "Bash",
+      "detail": "for f in",
+      "denied": true
+    },
+    {
+      "kind": "PLANNING_CHANGE",
+      "session": "planning",
+      "line": 66,
+      "tool": "Bash",
+      "detail": "do echo == $f",
+      "denied": true
+    },
+    {
+      "kind": "PLANNING_CHANGE",
+      "session": "planning",
+      "line": 66,
+      "tool": "Bash",
+      "detail": "done",
+      "denied": true
+    },
+    {
+      "kind": "PLANNING_CHANGE",
+      "session": "planning",
+      "line": 190,
+      "tool": "Bash",
+      "detail": "python3 -I -c",
+      "denied": true
+    },
+    {
+      "kind": "PLANNING_CHANGE",
+      "session": "planning",
+      "line": 190,
+      "tool": "Bash",
+      "detail": "import json,sys",
+      "denied": true
+    },
+    {
+      "kind": "PLANNING_CHANGE",
+      "session": "planning",
+      "line": 190,
+      "tool": "Bash",
+      "detail": "try:",
+      "denied": true
+    },
+    {
+      "kind": "PLANNING_CHANGE",
+      "session": "planning",
+      "line": 190,
+      "tool": "Bash",
+      "detail": "import jsonschema",
+      "denied": true
+    },
+    {
+      "kind": "PLANNING_CHANGE",
+      "session": "planning",
+      "line": 190,
+      "tool": "Bash",
+      "detail": "except ImportError:",
+      "denied": true
+    },
+    {
+      "kind": "PLANNING_CHANGE",
+      "session": "planning",
+      "line": 190,
+      "tool": "Bash",
+      "detail": "for d,s in",
+      "denied": true
+    },
+    {
+      "kind": "PLANNING_CHANGE",
+      "session": "planning",
+      "line": 190,
+      "tool": "Bash",
+      "detail": "plan.json,plan.schema.json",
+      "denied": true
+    },
+    {
+      "kind": "PLANNING_CHANGE",
+      "session": "planning",
+      "line": 190,
+      "tool": "Bash",
+      "detail": ",",
+      "denied": true
+    },
+    {
+      "kind": "PLANNING_CHANGE",
+      "session": "planning",
+      "line": 190,
+      "tool": "Bash",
+      "detail": "answers.json,answers.schema.json",
+      "denied": true
+    },
+    {
+      "kind": "PLANNING_CHANGE",
+      "session": "planning",
+      "line": 190,
+      "tool": "Bash",
+      "detail": ",",
+      "denied": true
+    },
+    {
+      "kind": "PLANNING_CHANGE",
+      "session": "planning",
+      "line": 190,
+      "tool": "Bash",
+      "detail": "requests.json,requests.schema.json",
+      "denied": true
+    },
+    {
+      "kind": "PLANNING_CHANGE",
+      "session": "planning",
+      "line": 190,
+      "tool": "Bash",
+      "detail": "]:",
+      "denied": true
+    },
+    {
+      "kind": "PLANNING_CHANGE",
+      "session": "planning",
+      "line": 190,
+      "tool": "Bash",
+      "detail": "open",
+      "denied": true
+    },
+    {
+      "kind": "PLANNING_CHANGE",
+      "session": "planning",
+      "line": 190,
+      "tool": "Bash",
+      "detail": "d )); sch=json.load",
+      "denied": true
+    },
+    {
+      "kind": "PLANNING_CHANGE",
+      "session": "planning",
+      "line": 190,
+      "tool": "Bash",
+      "detail": "open",
+      "denied": true
+    },
+    {
+      "kind": "PLANNING_CHANGE",
+      "session": "planning",
+      "line": 190,
+      "tool": "Bash",
+      "detail": "s ))",
+      "denied": true
+    },
+    {
+      "kind": "PLANNING_CHANGE",
+      "session": "planning",
+      "line": 190,
+      "tool": "Bash",
+      "detail": "if jsonschema: jsonschema.validate",
+      "denied": true
+    },
+    {
+      "kind": "PLANNING_CHANGE",
+      "session": "planning",
+      "line": 190,
+      "tool": "Bash",
+      "detail": "doc,sch ); print",
+      "denied": true
+    },
+    {
+      "kind": "PLANNING_CHANGE",
+      "session": "planning",
+      "line": 190,
+      "tool": "Bash",
+      "detail": "d,valid",
+      "denied": true
+    },
+    {
+      "kind": "PLANNING_CHANGE",
+      "session": "planning",
+      "line": 190,
+      "tool": "Bash",
+      "detail": "else: print",
+      "denied": true
+    },
+    {
+      "kind": "PLANNING_CHANGE",
+      "session": "planning",
+      "line": 190,
+      "tool": "Bash",
+      "detail": "d,parsed (no jsonschema)",
+      "denied": true
+    },
+    {
+      "kind": "PLANNING_CHANGE",
+      "session": "planning",
+      "line": 190,
+      "tool": "Bash",
+      "detail": "\"",
+      "denied": true
+    }
+  ],
+  "calls": [
+    {
+      "transcript": "0bb55567-6d60-4e69-9d3a-ee5f12faf7d5.jsonl",
+      "line": 22,
+      "tool": "Bash",
+      "attempted": true,
+      "received": true
+    },
+    {
+      "transcript": "0bb55567-6d60-4e69-9d3a-ee5f12faf7d5.jsonl",
+      "line": 35,
+      "tool": "Bash",
+      "attempted": true,
+      "received": false
+    },
+    {
+      "transcript": "0bb55567-6d60-4e69-9d3a-ee5f12faf7d5.jsonl",
+      "line": 37,
+      "tool": "ToolSearch",
+      "attempted": true,
+      "received": true
+    },
+    {
+      "transcript": "0bb55567-6d60-4e69-9d3a-ee5f12faf7d5.jsonl",
+      "line": 47,
+      "tool": "mcp__aip__get_binding_picture",
+      "attempted": true,
+      "received": true
+    },
+    {
+      "transcript": "0bb55567-6d60-4e69-9d3a-ee5f12faf7d5.jsonl",
+      "line": 53,
+      "tool": "Bash",
+      "attempted": true,
+      "received": true
+    },
+    {
+      "transcript": "0bb55567-6d60-4e69-9d3a-ee5f12faf7d5.jsonl",
+      "line": 56,
+      "tool": "Bash",
+      "attempted": true,
+      "received": true
+    },
+    {
+      "transcript": "0bb55567-6d60-4e69-9d3a-ee5f12faf7d5.jsonl",
+      "line": 66,
+      "tool": "Bash",
+      "attempted": true,
+      "received": false
+    },
+    {
+      "transcript": "0bb55567-6d60-4e69-9d3a-ee5f12faf7d5.jsonl",
+      "line": 73,
+      "tool": "Bash",
+      "attempted": true,
+      "received": true
+    },
+    {
+      "transcript": "0bb55567-6d60-4e69-9d3a-ee5f12faf7d5.jsonl",
+      "line": 75,
+      "tool": "Read",
+      "attempted": true,
+      "received": true
+    },
+    {
+      "transcript": "0bb55567-6d60-4e69-9d3a-ee5f12faf7d5.jsonl",
+      "line": 78,
+      "tool": "Read",
+      "attempted": true,
+      "received": true
+    },
+    {
+      "transcript": "0bb55567-6d60-4e69-9d3a-ee5f12faf7d5.jsonl",
+      "line": 87,
+      "tool": "Read",
+      "attempted": true,
+      "received": true
+    },
+    {
+      "transcript": "0bb55567-6d60-4e69-9d3a-ee5f12faf7d5.jsonl",
+      "line": 90,
+      "tool": "Read",
+      "attempted": true,
+      "received": true
+    },
+    {
+      "transcript": "0bb55567-6d60-4e69-9d3a-ee5f12faf7d5.jsonl",
+      "line": 93,
+      "tool": "Read",
+      "attempted": true,
+      "received": true
+    },
+    {
+      "transcript": "0bb55567-6d60-4e69-9d3a-ee5f12faf7d5.jsonl",
+      "line": 95,
+      "tool": "Read",
+      "attempted": true,
+      "received": true
+    },
+    {
+      "transcript": "0bb55567-6d60-4e69-9d3a-ee5f12faf7d5.jsonl",
+      "line": 104,
+      "tool": "Bash",
+      "attempted": true,
+      "received": true
+    },
+    {
+      "transcript": "0bb55567-6d60-4e69-9d3a-ee5f12faf7d5.jsonl",
+      "line": 106,
+      "tool": "Read",
+      "attempted": true,
+      "received": true
+    },
+    {
+      "transcript": "0bb55567-6d60-4e69-9d3a-ee5f12faf7d5.jsonl",
+      "line": 111,
+      "tool": "Read",
+      "attempted": true,
+      "received": true
+    },
+    {
+      "transcript": "0bb55567-6d60-4e69-9d3a-ee5f12faf7d5.jsonl",
+      "line": 114,
+      "tool": "Read",
+      "attempted": true,
+      "received": true
+    },
+    {
+      "transcript": "0bb55567-6d60-4e69-9d3a-ee5f12faf7d5.jsonl",
+      "line": 123,
+      "tool": "Bash",
+      "attempted": true,
+      "received": false
+    },
+    {
+      "transcript": "0bb55567-6d60-4e69-9d3a-ee5f12faf7d5.jsonl",
+      "line": 129,
+      "tool": "Bash",
+      "attempted": true,
+      "received": true
+    },
+    {
+      "transcript": "0bb55567-6d60-4e69-9d3a-ee5f12faf7d5.jsonl",
+      "line": 135,
+      "tool": "Write",
+      "attempted": true,
+      "received": true
+    },
+    {
+      "transcript": "0bb55567-6d60-4e69-9d3a-ee5f12faf7d5.jsonl",
+      "line": 153,
+      "tool": "Write",
+      "attempted": true,
+      "received": true
+    },
+    {
+      "transcript": "0bb55567-6d60-4e69-9d3a-ee5f12faf7d5.jsonl",
+      "line": 163,
+      "tool": "Bash",
+      "attempted": true,
+      "received": true
+    },
+    {
+      "transcript": "0bb55567-6d60-4e69-9d3a-ee5f12faf7d5.jsonl",
+      "line": 167,
+      "tool": "Edit",
+      "attempted": true,
+      "received": true
+    },
+    {
+      "transcript": "0bb55567-6d60-4e69-9d3a-ee5f12faf7d5.jsonl",
+      "line": 173,
+      "tool": "Write",
+      "attempted": true,
+      "received": true
+    },
+    {
+      "transcript": "0bb55567-6d60-4e69-9d3a-ee5f12faf7d5.jsonl",
+      "line": 179,
+      "tool": "Bash",
+      "attempted": true,
+      "received": true
+    },
+    {
+      "transcript": "0bb55567-6d60-4e69-9d3a-ee5f12faf7d5.jsonl",
+      "line": 182,
+      "tool": "Edit",
+      "attempted": true,
+      "received": true
+    },
+    {
+      "transcript": "0bb55567-6d60-4e69-9d3a-ee5f12faf7d5.jsonl",
+      "line": 184,
+      "tool": "Write",
+      "attempted": true,
+      "received": true
+    },
+    {
+      "transcript": "0bb55567-6d60-4e69-9d3a-ee5f12faf7d5.jsonl",
+      "line": 190,
+      "tool": "Bash",
+      "attempted": true,
+      "received": false
+    }
+  ]
+}

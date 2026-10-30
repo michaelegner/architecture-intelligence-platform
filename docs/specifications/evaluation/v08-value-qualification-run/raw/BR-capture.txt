@@ -1,0 +1,1 @@
+wrote <run home>/package/captures/b-r/kafka-consumer-state.json complete=True

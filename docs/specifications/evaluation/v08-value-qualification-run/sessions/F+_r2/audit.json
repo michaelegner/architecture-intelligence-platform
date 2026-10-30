@@ -1,0 +1,269 @@
+{
+  "session": "F+_r2",
+  "type": "F+",
+  "clean": false,
+  "hits": [
+    {
+      "kind": "PLANNING_CHANGE",
+      "session": "planning",
+      "line": 201,
+      "tool": "Bash",
+      "detail": "python3 -I -c",
+      "denied": true
+    }
+  ],
+  "calls": [
+    {
+      "transcript": "ebaf0e27-347f-431a-91d2-862154af84e8.jsonl",
+      "line": 22,
+      "tool": "Bash",
+      "attempted": true,
+      "received": true
+    },
+    {
+      "transcript": "ebaf0e27-347f-431a-91d2-862154af84e8.jsonl",
+      "line": 34,
+      "tool": "ToolSearch",
+      "attempted": true,
+      "received": true
+    },
+    {
+      "transcript": "ebaf0e27-347f-431a-91d2-862154af84e8.jsonl",
+      "line": 36,
+      "tool": "Bash",
+      "attempted": true,
+      "received": true
+    },
+    {
+      "transcript": "ebaf0e27-347f-431a-91d2-862154af84e8.jsonl",
+      "line": 46,
+      "tool": "mcp__aip__get_binding_picture",
+      "attempted": true,
+      "received": true
+    },
+    {
+      "transcript": "ebaf0e27-347f-431a-91d2-862154af84e8.jsonl",
+      "line": 48,
+      "tool": "Bash",
+      "attempted": true,
+      "received": true
+    },
+    {
+      "transcript": "ebaf0e27-347f-431a-91d2-862154af84e8.jsonl",
+      "line": 58,
+      "tool": "Bash",
+      "attempted": true,
+      "received": false
+    },
+    {
+      "transcript": "ebaf0e27-347f-431a-91d2-862154af84e8.jsonl",
+      "line": 63,
+      "tool": "Read",
+      "attempted": true,
+      "received": true
+    },
+    {
+      "transcript": "ebaf0e27-347f-431a-91d2-862154af84e8.jsonl",
+      "line": 66,
+      "tool": "Read",
+      "attempted": true,
+      "received": true
+    },
+    {
+      "transcript": "ebaf0e27-347f-431a-91d2-862154af84e8.jsonl",
+      "line": 68,
+      "tool": "Read",
+      "attempted": true,
+      "received": true
+    },
+    {
+      "transcript": "ebaf0e27-347f-431a-91d2-862154af84e8.jsonl",
+      "line": 79,
+      "tool": "Bash",
+      "attempted": true,
+      "received": true
+    },
+    {
+      "transcript": "ebaf0e27-347f-431a-91d2-862154af84e8.jsonl",
+      "line": 82,
+      "tool": "Read",
+      "attempted": true,
+      "received": true
+    },
+    {
+      "transcript": "ebaf0e27-347f-431a-91d2-862154af84e8.jsonl",
+      "line": 85,
+      "tool": "Read",
+      "attempted": true,
+      "received": true
+    },
+    {
+      "transcript": "ebaf0e27-347f-431a-91d2-862154af84e8.jsonl",
+      "line": 87,
+      "tool": "Read",
+      "attempted": true,
+      "received": true
+    },
+    {
+      "transcript": "ebaf0e27-347f-431a-91d2-862154af84e8.jsonl",
+      "line": 89,
+      "tool": "Read",
+      "attempted": true,
+      "received": true
+    },
+    {
+      "transcript": "ebaf0e27-347f-431a-91d2-862154af84e8.jsonl",
+      "line": 98,
+      "tool": "Bash",
+      "attempted": true,
+      "received": true
+    },
+    {
+      "transcript": "ebaf0e27-347f-431a-91d2-862154af84e8.jsonl",
+      "line": 104,
+      "tool": "Bash",
+      "attempted": true,
+      "received": true
+    },
+    {
+      "transcript": "ebaf0e27-347f-431a-91d2-862154af84e8.jsonl",
+      "line": 109,
+      "tool": "Bash",
+      "attempted": true,
+      "received": true
+    },
+    {
+      "transcript": "ebaf0e27-347f-431a-91d2-862154af84e8.jsonl",
+      "line": 114,
+      "tool": "Bash",
+      "attempted": true,
+      "received": true
+    },
+    {
+      "transcript": "ebaf0e27-347f-431a-91d2-862154af84e8.jsonl",
+      "line": 118,
+      "tool": "Bash",
+      "attempted": true,
+      "received": true
+    },
+    {
+      "transcript": "ebaf0e27-347f-431a-91d2-862154af84e8.jsonl",
+      "line": 122,
+      "tool": "Bash",
+      "attempted": true,
+      "received": false
+    },
+    {
+      "transcript": "ebaf0e27-347f-431a-91d2-862154af84e8.jsonl",
+      "line": 126,
+      "tool": "Bash",
+      "attempted": true,
+      "received": true
+    },
+    {
+      "transcript": "ebaf0e27-347f-431a-91d2-862154af84e8.jsonl",
+      "line": 132,
+      "tool": "mcp__aip__get_binding_picture",
+      "attempted": true,
+      "received": true
+    },
+    {
+      "transcript": "ebaf0e27-347f-431a-91d2-862154af84e8.jsonl",
+      "line": 139,
+      "tool": "Bash",
+      "attempted": true,
+      "received": true
+    },
+    {
+      "transcript": "ebaf0e27-347f-431a-91d2-862154af84e8.jsonl",
+      "line": 145,
+      "tool": "Bash",
+      "attempted": true,
+      "received": true
+    },
+    {
+      "transcript": "ebaf0e27-347f-431a-91d2-862154af84e8.jsonl",
+      "line": 149,
+      "tool": "Bash",
+      "attempted": true,
+      "received": true
+    },
+    {
+      "transcript": "ebaf0e27-347f-431a-91d2-862154af84e8.jsonl",
+      "line": 155,
+      "tool": "Write",
+      "attempted": true,
+      "received": true
+    },
+    {
+      "transcript": "ebaf0e27-347f-431a-91d2-862154af84e8.jsonl",
+      "line": 161,
+      "tool": "Read",
+      "attempted": true,
+      "received": true
+    },
+    {
+      "transcript": "ebaf0e27-347f-431a-91d2-862154af84e8.jsonl",
+      "line": 166,
+      "tool": "Edit",
+      "attempted": true,
+      "received": true
+    },
+    {
+      "transcript": "ebaf0e27-347f-431a-91d2-862154af84e8.jsonl",
+      "line": 168,
+      "tool": "Edit",
+      "attempted": true,
+      "received": true
+    },
+    {
+      "transcript": "ebaf0e27-347f-431a-91d2-862154af84e8.jsonl",
+      "line": 170,
+      "tool": "Edit",
+      "attempted": true,
+      "received": true
+    },
+    {
+      "transcript": "ebaf0e27-347f-431a-91d2-862154af84e8.jsonl",
+      "line": 172,
+      "tool": "Edit",
+      "attempted": true,
+      "received": true
+    },
+    {
+      "transcript": "ebaf0e27-347f-431a-91d2-862154af84e8.jsonl",
+      "line": 181,
+      "tool": "Write",
+      "attempted": true,
+      "received": true
+    },
+    {
+      "transcript": "ebaf0e27-347f-431a-91d2-862154af84e8.jsonl",
+      "line": 187,
+      "tool": "Read",
+      "attempted": true,
+      "received": true
+    },
+    {
+      "transcript": "ebaf0e27-347f-431a-91d2-862154af84e8.jsonl",
+      "line": 190,
+      "tool": "Edit",
+      "attempted": true,
+      "received": true
+    },
+    {
+      "transcript": "ebaf0e27-347f-431a-91d2-862154af84e8.jsonl",
+      "line": 192,
+      "tool": "Write",
+      "attempted": true,
+      "received": true
+    },
+    {
+      "transcript": "ebaf0e27-347f-431a-91d2-862154af84e8.jsonl",
+      "line": 201,
+      "tool": "Bash",
+      "attempted": true,
+      "received": false
+    }
+  ]
+}

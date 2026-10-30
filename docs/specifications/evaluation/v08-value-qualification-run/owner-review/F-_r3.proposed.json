@@ -1,0 +1,143 @@
+{
+  "session": "F-_r3",
+  "status": "owner decisions applied; remaining items evidence-reviewed under the owner conditional GO of 2026-10-30",
+  "K6_K8": {
+    "K6.1": {
+      "verdict": "MATCHED",
+      "plan_items": [
+        "S02-mm2-config",
+        "S03-mm2-flow-redpanda-to-kafka"
+      ],
+      "reason": "S02/S03: group-offset sync on redpanda->kafka for the two moving groups.",
+      "basis": "evidence-reviewed"
+    },
+    "K6.2": {
+      "verdict": "DIFFERENT",
+      "plan_items": [
+        "C04-drain-check"
+      ],
+      "reason": "C04, after both services stop and before C06 restarts: both Redpanda groups Empty with lag 0, then the Kafka group offsets on tenant.tenant.events must equal the Redpanda committed offsets. owner decision 2026-10-30: the frozen key requires the checkpoint upstream/downstream comparison; comparing final Redpanda offsets directly with installed Kafka offsets does not establish it.",
+      "basis": "owner"
+    },
+    "K8.1": {
+      "verdict": "MATCHED",
+      "plan_items": [
+        "P02-preflight-kafka",
+        "S01-create-kafka-topics",
+        "S02-mm2-config"
+      ],
+      "reason": "P02 requires Kafka empty; S01 creates the four topics before MM2 (S05); S02 has disjoint allow lists.",
+      "basis": "evidence-reviewed"
+    },
+    "K8.2": {
+      "verdict": "MATCHED",
+      "plan_items": [
+        "S05-mm2-start",
+        "V01-verify-mirror-ready",
+        "C03-stop-moving-services"
+      ],
+      "reason": "S05 starts the tenant mirror with group-offset sync; V01 verifies end offsets and translated offsets before C03 stops Catalog.",
+      "basis": "evidence-reviewed"
+    },
+    "K8.3": {
+      "verdict": "DIFFERENT",
+      "plan_items": [
+        "C03-stop-moving-services",
+        "C04-drain-check"
+      ],
+      "reason": "C03 stops Catalog and then Image without waiting for Image lag 0 in between; C04 checks the lag afterwards.",
+      "basis": "evidence-reviewed"
+    },
+    "K8.4": {
+      "verdict": "MATCHED",
+      "plan_items": [
+        "C04-drain-check"
+      ],
+      "reason": "C04 requires both moved groups Empty with lag 0 on Redpanda.",
+      "basis": "evidence-reviewed"
+    },
+    "K8.5": {
+      "verdict": "MISSING",
+      "plan_items": [],
+      "reason": "No pre-cut-over drain of the query groups; checked only after the test (V02).",
+      "basis": "evidence-reviewed"
+    },
+    "K8.6": {
+      "verdict": "DIFFERENT",
+      "plan_items": [
+        "C04-drain-check"
+      ],
+      "reason": "C04 verifies the hand-off before the restart. owner decision 2026-10-30: the frozen key requires the checkpoint upstream/downstream comparison; comparing final Redpanda offsets directly with installed Kafka offsets does not establish it.",
+      "basis": "owner"
+    },
+    "K8.7": {
+      "verdict": "DIFFERENT",
+      "plan_items": [
+        "S05-mm2-start",
+        "C03-stop-moving-services"
+      ],
+      "reason": "S05 starts both flows before C03 stops the producers.",
+      "basis": "evidence-reviewed"
+    },
+    "K8.8": {
+      "verdict": "MATCHED",
+      "plan_items": [
+        "C06-start-on-kafka"
+      ],
+      "reason": "C06 checks both groups Stable with members on Kafka.",
+      "basis": "evidence-reviewed"
+    },
+    "K8.9": {
+      "verdict": "DIFFERENT",
+      "plan_items": [
+        "T01-functional-test",
+        "V02-verify-bindings"
+      ],
+      "reason": "V02: functional test, catch-up (Redpanda growth = Kafka growth), query groups lag 0; but no lag-0 condition for the moved groups on Kafka.",
+      "basis": "evidence-reviewed"
+    }
+  },
+  "Q4": {
+    "verdict": "MATCHED",
+    "reason": "Each of the six crossing rows states the delivery the move must preserve and its flow direction (the K1-K4 requirement of the row).",
+    "basis": "evidence-reviewed"
+  },
+  "Q5": {
+    "verdict": "DIFFERENT",
+    "coverage": {
+      "a: an attachment does not establish event handling": "not stated",
+      "b: a capture is one point in time and one broker scope": "statement [0]",
+      "c: a producer is known from source or a declaration, not observed": "not stated",
+      "d: a missing document does not mean a missing binding": "not stated"
+    },
+    "reason": "Not stated: a: an attachment does not establish event handling; c: a producer is known from source or a declaration, not observed; d: a missing document does not mean a missing binding. Rule applied: MATCHED only when all four key statements are present (my reading of spec \u00a75.2; the owner decides).",
+    "basis": "evidence-reviewed"
+  },
+  "claims": {
+    "answers.q2:direction:ecommerce-category-query-service|catalog.attribute.events": {
+      "verdict": "SUPPORTED",
+      "reason": "binding established (R1/broker output or frozen binding location) and the cited producer call site shows the producer of this topic (TopicFor / event-to-topic map in the producer API module); not a frozen location, same strength as the frozen topics.go constant.",
+      "basis": "evidence-reviewed (direction: verified with support() and the accepted producer call sites)"
+    },
+    "plan.S03-mm2-flow-redpanda-to-kafka:direction:*|tenant.tenant.events": {
+      "verdict": "SUPPORTED",
+      "reason": "binding established (R1/broker output or frozen binding location) and the cited producer call site shows the producer of this topic (TopicFor / event-to-topic map in the producer API module); not a frozen location, same strength as the frozen topics.go constant.",
+      "basis": "evidence-reviewed (direction: verified with support() and the accepted producer call sites)"
+    },
+    "plan.S04-mm2-flow-kafka-to-redpanda:direction:*|catalog.product.events": {
+      "verdict": "SUPPORTED",
+      "reason": "binding established (R1/broker output or frozen binding location) and the cited producer call site shows the producer of this topic (TopicFor / event-to-topic map in the producer API module); not a frozen location, same strength as the frozen topics.go constant.",
+      "basis": "evidence-reviewed (direction: verified with support() and the accepted producer call sites)"
+    },
+    "plan.S04-mm2-flow-kafka-to-redpanda:direction:*|catalog.category.events": {
+      "verdict": "SUPPORTED",
+      "reason": "binding established (R1/broker output or frozen binding location) and the cited producer call site shows the producer of this topic (TopicFor / event-to-topic map in the producer API module); not a frozen location, same strength as the frozen topics.go constant.",
+      "basis": "evidence-reviewed (direction: verified with support() and the accepted producer call sites)"
+    },
+    "plan.S04-mm2-flow-kafka-to-redpanda:direction:*|catalog.attribute.events": {
+      "verdict": "SUPPORTED",
+      "reason": "binding established (R1/broker output or frozen binding location) and the cited producer call site shows the producer of this topic (TopicFor / event-to-topic map in the producer API module); not a frozen location, same strength as the frozen topics.go constant.",
+      "basis": "evidence-reviewed (direction: verified with support() and the accepted producer call sites)"
+    }
+  }
+}

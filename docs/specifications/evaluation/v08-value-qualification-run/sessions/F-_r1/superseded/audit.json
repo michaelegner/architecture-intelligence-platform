@@ -1,0 +1,262 @@
+{
+  "session": "F-_r1",
+  "type": "F-",
+  "clean": false,
+  "hits": [
+    {
+      "kind": "PLANNING_CHANGE",
+      "session": "planning",
+      "line": 182,
+      "tool": "Bash",
+      "detail": "python3 -I -c",
+      "denied": true
+    }
+  ],
+  "calls": [
+    {
+      "transcript": "7854c115-905f-45bc-84d3-527e3a200046.jsonl",
+      "line": 22,
+      "tool": "Bash",
+      "attempted": true,
+      "received": true
+    },
+    {
+      "transcript": "7854c115-905f-45bc-84d3-527e3a200046.jsonl",
+      "line": 33,
+      "tool": "Bash",
+      "attempted": true,
+      "received": true
+    },
+    {
+      "transcript": "7854c115-905f-45bc-84d3-527e3a200046.jsonl",
+      "line": 36,
+      "tool": "Bash",
+      "attempted": true,
+      "received": false
+    },
+    {
+      "transcript": "7854c115-905f-45bc-84d3-527e3a200046.jsonl",
+      "line": 40,
+      "tool": "Bash",
+      "attempted": true,
+      "received": true
+    },
+    {
+      "transcript": "7854c115-905f-45bc-84d3-527e3a200046.jsonl",
+      "line": 44,
+      "tool": "Read",
+      "attempted": true,
+      "received": true
+    },
+    {
+      "transcript": "7854c115-905f-45bc-84d3-527e3a200046.jsonl",
+      "line": 47,
+      "tool": "Read",
+      "attempted": true,
+      "received": true
+    },
+    {
+      "transcript": "7854c115-905f-45bc-84d3-527e3a200046.jsonl",
+      "line": 49,
+      "tool": "Read",
+      "attempted": true,
+      "received": true
+    },
+    {
+      "transcript": "7854c115-905f-45bc-84d3-527e3a200046.jsonl",
+      "line": 51,
+      "tool": "Read",
+      "attempted": true,
+      "received": true
+    },
+    {
+      "transcript": "7854c115-905f-45bc-84d3-527e3a200046.jsonl",
+      "line": 63,
+      "tool": "Bash",
+      "attempted": true,
+      "received": true
+    },
+    {
+      "transcript": "7854c115-905f-45bc-84d3-527e3a200046.jsonl",
+      "line": 67,
+      "tool": "Read",
+      "attempted": true,
+      "received": true
+    },
+    {
+      "transcript": "7854c115-905f-45bc-84d3-527e3a200046.jsonl",
+      "line": 70,
+      "tool": "Read",
+      "attempted": true,
+      "received": true
+    },
+    {
+      "transcript": "7854c115-905f-45bc-84d3-527e3a200046.jsonl",
+      "line": 72,
+      "tool": "Read",
+      "attempted": true,
+      "received": true
+    },
+    {
+      "transcript": "7854c115-905f-45bc-84d3-527e3a200046.jsonl",
+      "line": 74,
+      "tool": "Read",
+      "attempted": true,
+      "received": true
+    },
+    {
+      "transcript": "7854c115-905f-45bc-84d3-527e3a200046.jsonl",
+      "line": 76,
+      "tool": "Read",
+      "attempted": true,
+      "received": true
+    },
+    {
+      "transcript": "7854c115-905f-45bc-84d3-527e3a200046.jsonl",
+      "line": 85,
+      "tool": "Bash",
+      "attempted": true,
+      "received": true
+    },
+    {
+      "transcript": "7854c115-905f-45bc-84d3-527e3a200046.jsonl",
+      "line": 90,
+      "tool": "Bash",
+      "attempted": true,
+      "received": true
+    },
+    {
+      "transcript": "7854c115-905f-45bc-84d3-527e3a200046.jsonl",
+      "line": 94,
+      "tool": "Bash",
+      "attempted": true,
+      "received": true
+    },
+    {
+      "transcript": "7854c115-905f-45bc-84d3-527e3a200046.jsonl",
+      "line": 100,
+      "tool": "Read",
+      "attempted": true,
+      "received": true
+    },
+    {
+      "transcript": "7854c115-905f-45bc-84d3-527e3a200046.jsonl",
+      "line": 110,
+      "tool": "Bash",
+      "attempted": true,
+      "received": true
+    },
+    {
+      "transcript": "7854c115-905f-45bc-84d3-527e3a200046.jsonl",
+      "line": 114,
+      "tool": "Bash",
+      "attempted": true,
+      "received": true
+    },
+    {
+      "transcript": "7854c115-905f-45bc-84d3-527e3a200046.jsonl",
+      "line": 117,
+      "tool": "Bash",
+      "attempted": true,
+      "received": true
+    },
+    {
+      "transcript": "7854c115-905f-45bc-84d3-527e3a200046.jsonl",
+      "line": 121,
+      "tool": "Bash",
+      "attempted": true,
+      "received": true
+    },
+    {
+      "transcript": "7854c115-905f-45bc-84d3-527e3a200046.jsonl",
+      "line": 126,
+      "tool": "Bash",
+      "attempted": true,
+      "received": true
+    },
+    {
+      "transcript": "7854c115-905f-45bc-84d3-527e3a200046.jsonl",
+      "line": 130,
+      "tool": "Bash",
+      "attempted": true,
+      "received": true
+    },
+    {
+      "transcript": "7854c115-905f-45bc-84d3-527e3a200046.jsonl",
+      "line": 139,
+      "tool": "Bash",
+      "attempted": true,
+      "received": true
+    },
+    {
+      "transcript": "7854c115-905f-45bc-84d3-527e3a200046.jsonl",
+      "line": 144,
+      "tool": "Bash",
+      "attempted": true,
+      "received": false
+    },
+    {
+      "transcript": "7854c115-905f-45bc-84d3-527e3a200046.jsonl",
+      "line": 146,
+      "tool": "Bash",
+      "attempted": true,
+      "received": true
+    },
+    {
+      "transcript": "7854c115-905f-45bc-84d3-527e3a200046.jsonl",
+      "line": 147,
+      "tool": "Bash",
+      "attempted": true,
+      "received": false
+    },
+    {
+      "transcript": "7854c115-905f-45bc-84d3-527e3a200046.jsonl",
+      "line": 157,
+      "tool": "Bash",
+      "attempted": true,
+      "received": true
+    },
+    {
+      "transcript": "7854c115-905f-45bc-84d3-527e3a200046.jsonl",
+      "line": 160,
+      "tool": "Bash",
+      "attempted": true,
+      "received": true
+    },
+    {
+      "transcript": "7854c115-905f-45bc-84d3-527e3a200046.jsonl",
+      "line": 164,
+      "tool": "Bash",
+      "attempted": true,
+      "received": true
+    },
+    {
+      "transcript": "7854c115-905f-45bc-84d3-527e3a200046.jsonl",
+      "line": 170,
+      "tool": "Write",
+      "attempted": true,
+      "received": true
+    },
+    {
+      "transcript": "7854c115-905f-45bc-84d3-527e3a200046.jsonl",
+      "line": 176,
+      "tool": "Write",
+      "attempted": true,
+      "received": true
+    },
+    {
+      "transcript": "7854c115-905f-45bc-84d3-527e3a200046.jsonl",
+      "line": 182,
+      "tool": "Bash",
+      "attempted": true,
+      "received": false
+    },
+    {
+      "transcript": "7854c115-905f-45bc-84d3-527e3a200046.jsonl",
+      "line": 187,
+      "tool": "Write",
+      "attempted": true,
+      "received": true
+    }
+  ]
+}
