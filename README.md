@@ -2,75 +2,77 @@
 
 [![CI](https://github.com/michaelegner/architecture-intelligence-platform/actions/workflows/ci.yml/badge.svg)](https://github.com/michaelegner/architecture-intelligence-platform/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
+[![Architecture Intelligence Platform on mcprush](https://mcprush.com/badge/architecture-intelligence-platform-mcp/score.svg)](https://mcprush.com/to/architecture-intelligence-platform-mcp?ref=badge)
 
-**Understand the relationships across your system's boundaries before changing them.**
+**Before changing a distributed system, do you know who relies on the part you're changing?**
 
-In a distributed system, a service's dependencies are spread across API contracts, event
-declarations, configuration, runtime evidence, and other teams' knowledge. No single repository
-or diagram necessarily shows the complete picture.
+The answer may be spread across repositories, API contracts, broker configuration, runtime
+observations, catalogs, and other teams. Some relationships are documented; others appear in
+observations but have no matching documented promise.
 
-**AIP** combines attributable architectural promises with independently qualified evidence to
-show **who relies on what, across which boundary, what is established, and what remains unresolved**.
-Architects, engineering teams, and coding agents can inspect the same snapshot-bound answers.
+**AIP shows who relies on what across autonomous boundaries, which promises apply, what
+the evidence establishes, and what remains unresolved.** It provides evidence-qualified
+architectural context that architects, engineering teams, and coding agents can inspect.
 
-**[Try the hosted MCP demo](#try-aip) · [See the binding picture](#the-binding-picture) ·
-[Explore the technical documentation](#documentation)**
+**[See the binding picture](#the-binding-picture) · [Try the hosted MCP demo](#try-aip) ·
+[Technical documentation](#documentation)**
+
+**MCP Registry:** [`io.github.michaelegner/architecture-intelligence-platform`](https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github.michaelegner/architecture-intelligence-platform)
 
 ## What is AIP?
 
-AIP addresses a practical question before a team changes or moves a capability:
+AIP addresses a concrete question before a team changes, moves, or starts to use a capability:
 
-> Which relationships cross this boundary, what do the participating services promise,
-> and what does the available evidence actually establish?
+> Which relationships cross this system boundary, what do the participants promise, and
+> what does the available evidence actually establish?
 
-AIP separates three things that architecture descriptions often blur:
+**Repository and source-analysis tools** help explain implementations an engineer or agent can
+inspect. **AIP complements them** with attributable cross-boundary promises and independently
+qualified observations from other sources. It does not attempt to replace source analysis or
+automate architectural decisions.
 
-- **Current State:** relationships supported by observations and other applicable evidence,
-  qualified by environment, capture scope, identity, and time.
-- **Intent:** attributable promises made by participating systems or their owners.
-- **Assessment:** a bounded comparison of relevant promises with what the evidence establishes,
-  including explicit uncertainty.
-
-It does not infer service ownership from traffic, turn missing observations into proof of absence,
-or make an agent's plausible explanation authoritative. Its purpose is to supply defensible
-architectural premises for a concrete question—not to own a complete enterprise architecture
-model or perform the change itself.
+AIP keeps three views distinct: **Current State** (evidence-qualified relationships),
+**Intent** (attributable promises), and **Assessment** (their bounded comparison).
+The resulting answers are scoped to a question, environment, and snapshot; uncertainty stays
+explicit. Missing observations are not proof of absence, and an agent cannot manufacture a
+fact or a promise by describing it confidently.
 
 ## The binding picture
 
 The [v0.8.0 showcase](docs/release-validation/v0.8.0-release-notes.md) uses
 [Sokol111](https://github.com/Sokol111/ecommerce-workspace), a distributed e-commerce system.
-The proposed change moves **Catalog Management** from Redpanda to Apache Kafka.
-Before planning that move, which consumers and event dependencies must be examined?
+Suppose a team moves **Catalog Management** from Redpanda to Apache Kafka. Which event
+relationships need examination before the move?
 
-The documented architecture describes some of the relationships. A frozen broker capture also
-establishes consumer-group attachments that the documents do not describe. AIP evaluates the
-attachments against the defined Catalog Management boundary and a generated EventCatalog.
+Sokol111's documents describe some relationships, but a frozen broker capture shows additional
+consumer-group attachments. AIP projects this evidence, the generated EventCatalog, and declared
+context membership into a **nine-row binding picture**. Two examples make the difference tangible:
 
-| Frozen v0.8 C1 result | What it means |
-|---|---|
-| **2 `PROMISED_AND_OBSERVED`** bindings on `catalog.product.events` | The demo's assumed-confirmed promises and captured consumer attachments agree. |
-| **7 `UNRESOLVED`** bindings | Consumer attachments are evidenced, but promise coverage is missing (`PROMISE_COVERAGE_MISSING`). |
-| **Boundary classifications** | The nine rows distinguish `INBOUND`, `OUTBOUND`, `INSIDE`, and `NONE` relative to the selected context. |
+| Topic → attributed consumer | Relative to Catalog Management | AIP assessment |
+|---|---|---|
+| `catalog.product.events` → `ecommerce-product-query-service` | `OUTBOUND` | `PROMISED_AND_OBSERVED`: a matching catalog promise and a consumer attachment at capture time T. |
+| `tenant.tenant.events` → `ecommerce-catalog-service` | `INBOUND` | `UNRESOLVED`: a consumer attachment at T, but no matching catalog promise (`PROMISE_COVERAGE_MISSING`). |
 
-The answer is **`PARTIAL`**, not a claim that the whole system has been discovered.
-Each row is connected to evidence that can be retrieved against the same snapshot.
+Across all nine rows, **2 are `PROMISED_AND_OBSERVED` and 7 are `UNRESOLVED`** for missing
+promise coverage. Not every row crosses the boundary: other rows are classified `INSIDE` or
+`NONE`. The answer is `PARTIAL` and its supporting evidence can be resolved at the same snapshot.
 
-The [showcase report](docs/specifications/0.8.0/i4-evidence/report.html) follows the
-migration through the before/after broker captures. The [frozen evidence package](docs/specifications/0.8.0/i1-evidence/README.md)
-shows which inputs are captured, authored, or generated.
+The [showcase report](docs/specifications/0.8.0/i4-evidence/report.html) records the
+before/after migration evidence. The [frozen input package](docs/specifications/0.8.0/i1-evidence/README.md)
+distinguishes real captures, authored declarations, and generated catalog entries.
 
-**Important:** The EventCatalog is generated from the project's documents; treating its entries
-as confirmed owner promises is an explicit *demonstration assumption*. Consumer attachment is not
-event handling or end-to-end delivery. This is a technical demonstration, not proof that AIP
-improves migration-planning quality.
+**Limits:** Catalog entries are treated as confirmed owner promises by an explicit
+*demonstration assumption*; owners are illustrative. A topic attachment does not establish
+event handling or delivery, and the evidence is a frozen capture, not live monitoring.
+The showcase demonstrates a binding picture, **not improved migration-planning quality**.
 
 ## Try AIP
 
-### Hosted MCP demo — no installation or credentials
+### Hosted MCP demo
 
 The public, read-only endpoint serves the frozen **v0.8.0 Sokol111 C1** dataset, not live
-monitoring. It exposes seven tools, including the experimental `get_binding_picture`:
+monitoring. It requires no local AIP server or server credentials. With **Claude Code installed**,
+connect to seven read-only tools, including the experimental `get_binding_picture`:
 
 ```bash
 claude mcp add --transport http aip-hosted https://mcp.daip.io/mcp
@@ -86,7 +88,7 @@ Use `get_binding_picture` with `bounded_context_id: catalog-management` and
 `broker_ids: [kafka:sokol111-local]`. See the [hosted walkthrough](examples/pitstop-demo/TRY_IT_HOSTED.md)
 for the exact request, expected findings, limitations, and troubleshooting.
 
-### Quick Start — run a local example
+### Quick Start
 
 For an introductory, deterministic declared-versus-observed demo, install Docker with Compose,
 plus `curl` and `jq`. No LLM API key is needed:
@@ -110,25 +112,35 @@ not re-qualified for v0.8.0.
 
 ## How AIP works
 
-AIP makes *bounded, evidence-qualified answers* from distinct sources, rather than collapsing
-every input into one unquestionable architecture description.
+AIP combines independent sources **without treating declarations, observations, and promises
+as interchangeable**. It projects only what is relevant to a selected architectural question.
 
-```text
-OpenAPI / AsyncAPI / mappings ───┐
-Runtime traces / broker capture ─┼──> qualified Current State ─┐
-                                 │                             │
-EventCatalog / owner promises ───┴──> attributable Intent ─────┼──> bounded Assessment
-Declared context membership ───────────────────────────────────┘      │
-                                                                        v
-                                                           read-only MCP / REST
-                                                           + snapshot-bound evidence
+```mermaid
+flowchart TB
+    C["OpenAPI · AsyncAPI · configuration"]
+    R["Runtime traces · broker captures"]
+    P["EventCatalog · attributable promises"]
+    B["Declared boundary membership"]
+
+    CS["Current State<br/>Qualified relationships"]
+    I["Intent<br/>Attributable promises"]
+    A["Assessment<br/>Agreement · unresolved"]
+    OUT["Binding picture<br/>Context · snapshot · evidence · limitations"]
+
+    C --> CS
+    R --> CS
+    P --> I
+    CS --> A
+    I --> A
+    B --> A
+    A --> OUT
 ```
 
-The core is a deterministic architecture service backed by Neo4j. The MCP tools and REST APIs
-provide read-only access to its qualified results. **Six MCP tools are enabled by default**;
+AIP's deterministic architecture service uses Neo4j and makes qualified results available
+through read-only REST and MCP interfaces. **Six MCP tools are enabled by default**;
 `get_binding_picture` is an **experimental seventh tool** behind
 `architecture_intelligence.experimental.binding-picture: true` (enabled on the hosted demo).
-No model or LLM key is needed to produce these answers.
+No LLM key is required to produce these answers.
 
 ### Declared vs observed
 
@@ -154,14 +166,19 @@ on a trusted network. See the [security model](docs/security-model.md).
 
 ## Documentation
 
-| Explore | Reference |
-|---|---|
-| MCP tools, schemas, and evidence drill-down | [MCP reference](docs/mcp.md) |
-| Architecture, ingestion, configuration, and local development | [Architecture](docs/architecture.md) · [Configuration](docs/configuration.md) · [Development](docs/development.md) |
-| v0.8 release, showcase, and hosted deployment | [Release notes](docs/release-validation/v0.8.0-release-notes.md) · [Showcase evidence](docs/specifications/0.8.0/i4-evidence/README.md) · [Hosted record](docs/release-validation/v0.8.0-hosted-record.md) |
-| Product thinking and next steps | [Product doctrine](docs/product-doctrine-and-strategic-direction.md) · [Roadmap](ROADMAP.md) |
-| Source, evaluation, and independent findings | [Evaluation](evaluation/README.md) · [v0.8 comparison](docs/specifications/evaluation/v08-showcase-value-qualification-result.md) |
-| Contribute or report an issue | [Contributing](CONTRIBUTING.md) · [Discussions](https://github.com/michaelegner/architecture-intelligence-platform/discussions) · [Security reports](SECURITY.md) |
+**Try and integrate:** [Hosted walkthrough](examples/pitstop-demo/TRY_IT_HOSTED.md) ·
+[MCP reference](docs/mcp.md) · [Client setup](examples/mcp-clients/README.md) ·
+[Architecture](docs/architecture.md) · [Development](docs/development.md)
+
+**Evidence and limitations:** [v0.8 release notes](docs/release-validation/v0.8.0-release-notes.md) ·
+[Showcase evidence](docs/specifications/0.8.0/i4-evidence/README.md) ·
+[v0.8 comparison](docs/specifications/evaluation/v08-showcase-value-qualification-result.md) ·
+[Security](docs/security-model.md)
+
+**Project:** [Product doctrine](docs/product-doctrine-and-strategic-direction.md) ·
+[Roadmap](ROADMAP.md) · [Contributing](CONTRIBUTING.md) ·
+[Discussions](https://github.com/michaelegner/architecture-intelligence-platform/discussions) ·
+[Security reports](SECURITY.md)
 
 **Current status:** [v0.8.0](https://github.com/michaelegner/architecture-intelligence-platform/releases/tag/v0.8.0)
 is a shipped **demonstration release**. The binding-picture contract remains experimental.
