@@ -1,0 +1,118 @@
+{
+  "label": "SENSITIVITY ANALYSIS, not the official score. Official Q3 results are in sessions/*/scoring.json and package/compare-mechanical.json.",
+  "variant": "Row 5 (category-query x catalog.category.events, documented = partly): coverage counts the row when observed is established (as officially) and documented is `yes` or `cannot_tell` (the calibration acceptance for a partly row), with partial evidence accepted for `yes`. Rows 1-4 and 6 unchanged.",
+  "sessions": {
+    "T-_r1": {
+      "official": "MATCHED",
+      "row5_answer": [
+        "cannot_tell",
+        "yes"
+      ],
+      "sensitivity": "MATCHED"
+    },
+    "T-_r2": {
+      "official": "DIFFERENT",
+      "row5_answer": [
+        "yes",
+        "yes"
+      ],
+      "sensitivity": "MATCHED"
+    },
+    "T-_r3": {
+      "official": "MATCHED",
+      "row5_answer": [
+        "cannot_tell",
+        "yes"
+      ],
+      "sensitivity": "MATCHED"
+    },
+    "T+_r1": {
+      "official": "MATCHED",
+      "row5_answer": [
+        "cannot_tell",
+        "yes"
+      ],
+      "sensitivity": "MATCHED"
+    },
+    "T+_r2": {
+      "official": "DIFFERENT",
+      "row5_answer": [
+        "yes",
+        "yes"
+      ],
+      "sensitivity": "MATCHED"
+    },
+    "T+_r3": {
+      "official": "MATCHED",
+      "row5_answer": [
+        "cannot_tell",
+        "yes"
+      ],
+      "sensitivity": "MATCHED"
+    },
+    "F-_r1": {
+      "official": "DIFFERENT",
+      "row5_answer": [
+        "yes",
+        "yes"
+      ],
+      "sensitivity": "MATCHED"
+    },
+    "F-_r2": {
+      "official": "DIFFERENT",
+      "row5_answer": [
+        "yes",
+        "yes"
+      ],
+      "sensitivity": "MATCHED"
+    },
+    "F-_r3": {
+      "official": "DIFFERENT",
+      "row5_answer": [
+        "no",
+        "yes"
+      ],
+      "sensitivity": "DIFFERENT"
+    },
+    "F+_r1": {
+      "official": "DIFFERENT",
+      "row5_answer": [
+        "yes",
+        "yes"
+      ],
+      "sensitivity": "MATCHED"
+    },
+    "F+_r2": {
+      "official": "MATCHED",
+      "row5_answer": [
+        "cannot_tell",
+        "yes"
+      ],
+      "sensitivity": "MATCHED"
+    },
+    "F+_r3": {
+      "official": "MATCHED",
+      "row5_answer": [
+        "cannot_tell",
+        "yes"
+      ],
+      "sensitivity": "MATCHED"
+    }
+  },
+  "types": {
+    "T-": "MATCHED",
+    "T+": "MATCHED",
+    "F-": "MATCHED",
+    "F+": "MATCHED"
+  },
+  "comparison": {
+    "F+ vs F-": {
+      "official": "BETTER",
+      "sensitivity": "EQUAL"
+    },
+    "T+ vs T-": {
+      "official": "EQUAL",
+      "sensitivity": "EQUAL"
+    }
+  }
+}

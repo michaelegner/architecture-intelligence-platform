@@ -1,0 +1,140 @@
+{
+  "K6.1": {
+    "verdict": "DIFFERENT",
+    "plan_items": [
+      "P04-mm2-config",
+      "P07-seed-kafka-group-offsets"
+    ],
+    "reason": "P04 sets emit.checkpoints.enabled=false and sync.group.offsets.enabled=false; the hand-off is a manual seed (P07) from a 1:1 log alignment (P05), not configured group-offset translation.",
+    "basis": "evidence-reviewed"
+  },
+  "K6.2": {
+    "verdict": "DIFFERENT",
+    "plan_items": [
+      "P02-quiesce-moving-services",
+      "P05-start-mm2-inbound-flow",
+      "P07-seed-kafka-group-offsets"
+    ],
+    "reason": "P07 installs the Redpanda committed offsets recorded in P02 on Kafka, gated on the P05 1:1 alignment, but no checkpoint exists and the installed Kafka offsets are not verified before P08 restarts the services.",
+    "basis": "evidence-reviewed"
+  },
+  "K8.1": {
+    "verdict": "MATCHED",
+    "plan_items": [
+      "P00-preflight",
+      "P03-create-kafka-topics",
+      "P04-mm2-config"
+    ],
+    "reason": "P00 confirms Kafka has no non-internal topics; P03 creates the topics before P05 starts MM2; P04 defines disjoint one-way allow lists.",
+    "basis": "evidence-reviewed"
+  },
+  "K8.2": {
+    "verdict": "DIFFERENT",
+    "plan_items": [
+      "P02-quiesce-moving-services",
+      "P04-mm2-config",
+      "P05-start-mm2-inbound-flow"
+    ],
+    "reason": "The tenant mirror (P05) starts after Catalog has stopped (P02) and without group-offset sync (P04).",
+    "basis": "evidence-reviewed"
+  },
+  "K8.3": {
+    "verdict": "DIFFERENT",
+    "plan_items": [
+      "P02-quiesce-moving-services"
+    ],
+    "reason": "P02 scales Catalog and Image to 0 together and checks lag afterwards; Image lag 0 on catalog.product.events is not required before Catalog stops.",
+    "basis": "evidence-reviewed"
+  },
+  "K8.4": {
+    "verdict": "DIFFERENT",
+    "plan_items": [
+      "P02-quiesce-moving-services"
+    ],
+    "reason": "P02 checks lag 0 for every group but does not check that the two moved groups have no live member on Redpanda.",
+    "basis": "evidence-reviewed"
+  },
+  "K8.5": {
+    "verdict": "MATCHED",
+    "plan_items": [
+      "P02-quiesce-moving-services"
+    ],
+    "reason": "P02 requires every Redpanda group, the query groups included, at lag 0 on all four topics before any change; it waits or stops otherwise.",
+    "basis": "evidence-reviewed"
+  },
+  "K8.6": {
+    "verdict": "DIFFERENT",
+    "plan_items": [
+      "P05-start-mm2-inbound-flow",
+      "P07-seed-kafka-group-offsets"
+    ],
+    "reason": "No step verifies the K6 checkpoint upstream/downstream equality; P07 seeds offsets without a following check before restart.",
+    "basis": "evidence-reviewed"
+  },
+  "K8.7": {
+    "verdict": "MATCHED",
+    "plan_items": [
+      "P02-quiesce-moving-services",
+      "P05-start-mm2-inbound-flow",
+      "P06-mm2-outbound-flow"
+    ],
+    "reason": "MM2 (both flows) starts in P05, after P02 has stopped both producers and drained every group to lag 0.",
+    "basis": "evidence-reviewed"
+  },
+  "K8.8": {
+    "verdict": "MATCHED",
+    "plan_items": [
+      "P08-switch-broker-config",
+      "P09-verify-attachments"
+    ],
+    "reason": "P08 restarts both services on Kafka; P09 checks both groups Stable with members on Kafka.",
+    "basis": "evidence-reviewed"
+  },
+  "K8.9": {
+    "verdict": "DIFFERENT",
+    "plan_items": [
+      "P09-verify-attachments",
+      "P10-functional-check"
+    ],
+    "reason": "P10 runs the functional test and checks query lag 0, but requires only that the Redpanda catalog offsets \"advanced past\" P02, not that the catalog mirror caught up after the new traffic.",
+    "basis": "evidence-reviewed"
+  },
+  "Q4": {
+    "verdict": "MATCHED",
+    "reason": "Each of the six crossing rows states the delivery the move must preserve and its flow direction (the K1-K4 requirement of the row).",
+    "basis": "evidence-reviewed"
+  },
+  "Q5": {
+    "verdict": "MATCHED",
+    "coverage": {
+      "a: an attachment does not establish event handling": "statement [0]",
+      "b: a capture is one point in time and one broker scope": "statement [2]",
+      "c: a producer is known from source or a declaration, not observed": "statement [1]",
+      "d: a missing document does not mean a missing binding": "statement [6]"
+    },
+    "reason": "All four key statements are present. d: statement [6] names five crossing bindings that \"are attached but carry no promise in the event catalog\", i.e. a missing promise does not mean an absent binding (owner test: an explicit non-absence statement, source-neutral wording allowed).",
+    "basis": "owner test applied (2026-10-30)"
+  },
+  "claims": {
+    "U2:plan.md:Handler": {
+      "verdict": "NOT_A_CLAIM",
+      "reason": "Fragment of \"Handler idempotency is unknown\" (plan.md:100-101): negated.",
+      "basis": "evidence-reviewed"
+    },
+    "U2:answers.q5[0]:The broker evidence shows that groups are assigned to topics, not which event types each handler processes or whether handlers are idempotent.": {
+      "verdict": "NOT_A_CLAIM",
+      "reason": "Negated.",
+      "basis": "evidence-reviewed"
+    },
+    "U5:answers.q4[3]:The binding is undeclared in the event catalog and absent from the docs, so a plan built from documentation alone would drop it.": {
+      "verdict": "NOT_A_CLAIM",
+      "reason": "The reverse of U5.",
+      "basis": "evidence-reviewed"
+    },
+    "U5:answers.q4[5]:The binding is undocumented and undeclared, observed only on the broker.": {
+      "verdict": "NOT_A_CLAIM",
+      "reason": "The reverse of U5.",
+      "basis": "evidence-reviewed"
+    }
+  }
+}

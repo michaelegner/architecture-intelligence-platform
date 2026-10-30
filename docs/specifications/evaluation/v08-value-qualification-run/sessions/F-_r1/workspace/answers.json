@@ -1,0 +1,266 @@
+{
+  "q1": {
+    "services": ["ecommerce-catalog-service", "ecommerce-image-service"],
+    "boundary": "The broker boundary between Catalog Management (catalog-service and image-service, which move to Apache Kafka) and everything else (tenant-service, product-query-service and category-query-service, which stay on Redpanda). After the move, a binding crosses this boundary when its producer and its consumer sit on different brokers. Both producers of catalog.product.events (catalog-service and image-service) move together, so the topic's producers all end up on Kafka.",
+    "evidence": [
+      {"kind": "configuration", "reference": "src/ecommerce-infrastructure/environments/local/values/ecommerce-catalog-service.yaml:31-42"},
+      {"kind": "configuration", "reference": "src/ecommerce-infrastructure/environments/local/values/ecommerce-image-service.yaml:23-36"},
+      {"kind": "configuration", "reference": "src/ecommerce-infrastructure/environments/local/values/ecommerce-tenant-service.yaml:23-24"},
+      {"kind": "source", "reference": "src/ecommerce-catalog-service-api/pkg/events/topics.go:11-21", "note": "catalog-service produces catalog.product/category/attribute.events"},
+      {"kind": "source", "reference": "src/ecommerce-image-service-api/pkg/events/topics.go:11-16", "note": "image-service produces ProductImagePromotedEvent to catalog.product.events"},
+      {"kind": "source", "reference": "src/ecommerce-tenant-service-api/pkg/events/topics.go:11-17", "note": "tenant-service produces tenant.tenant.events"}
+    ]
+  },
+  "q2": [
+    {
+      "consumer": "ecommerce-product-query-service",
+      "topic": "catalog.product.events",
+      "direction": "outbound",
+      "evidence": [
+        {"kind": "configuration", "reference": "src/ecommerce-infrastructure/environments/local/values/ecommerce-product-query-service.yaml:27-28"},
+        {"kind": "source", "reference": "src/ecommerce-product-query-service/internal/infrastructure/inbound/kafka/fxconfig/module.go:14-23", "note": "Handles ProductUpdated, ProductDeleted (from catalog) and ProductImagePromoted (from image)."},
+        {"kind": "source", "reference": "src/ecommerce-catalog-service/internal/infrastructure/outbound/kafka/product_event_factory.go:72"},
+        {"kind": "source", "reference": "src/ecommerce-image-service/internal/infrastructure/outbound/kafka/event_factory.go:19-27"},
+        {"kind": "broker_tool", "reference": "docker exec redpanda rpk group describe ecommerce-catalog-service ecommerce-category-query-service ecommerce-image-service ecommerce-product-query-service"}
+      ]
+    },
+    {
+      "consumer": "ecommerce-product-query-service",
+      "topic": "catalog.attribute.events",
+      "direction": "outbound",
+      "evidence": [
+        {"kind": "configuration", "reference": "src/ecommerce-infrastructure/environments/local/values/ecommerce-product-query-service.yaml:33-34"},
+        {"kind": "source", "reference": "src/ecommerce-product-query-service/internal/infrastructure/inbound/kafka/fxconfig/module.go:15"},
+        {"kind": "source", "reference": "src/ecommerce-catalog-service/internal/infrastructure/outbound/kafka/attribute_event_factory.go:68"},
+        {"kind": "broker_tool", "reference": "docker exec redpanda rpk group describe ecommerce-catalog-service ecommerce-category-query-service ecommerce-image-service ecommerce-product-query-service"}
+      ]
+    },
+    {
+      "consumer": "ecommerce-category-query-service",
+      "topic": "catalog.category.events",
+      "direction": "outbound",
+      "evidence": [
+        {"kind": "configuration", "reference": "src/ecommerce-infrastructure/environments/local/values/ecommerce-category-query-service.yaml:27-28"},
+        {"kind": "source", "reference": "src/ecommerce-category-query-service/internal/infrastructure/inbound/kafka/fxconfig/module.go:14"},
+        {"kind": "source", "reference": "src/ecommerce-catalog-service/internal/infrastructure/outbound/kafka/category_event_factory.go:64"},
+        {"kind": "broker_tool", "reference": "docker exec redpanda rpk group describe ecommerce-catalog-service ecommerce-category-query-service ecommerce-image-service ecommerce-product-query-service"}
+      ]
+    },
+    {
+      "consumer": "ecommerce-category-query-service",
+      "topic": "catalog.attribute.events",
+      "direction": "outbound",
+      "evidence": [
+        {"kind": "configuration", "reference": "src/ecommerce-infrastructure/environments/local/values/ecommerce-category-query-service.yaml:33-34"},
+        {"kind": "source", "reference": "src/ecommerce-category-query-service/internal/infrastructure/inbound/kafka/fxconfig/module.go:15"},
+        {"kind": "source", "reference": "src/ecommerce-catalog-service/internal/infrastructure/outbound/kafka/attribute_event_factory.go:68"},
+        {"kind": "broker_tool", "reference": "docker exec redpanda rpk group describe ecommerce-catalog-service ecommerce-category-query-service ecommerce-image-service ecommerce-product-query-service"}
+      ]
+    },
+    {
+      "consumer": "ecommerce-catalog-service",
+      "topic": "tenant.tenant.events",
+      "direction": "inbound",
+      "evidence": [
+        {"kind": "configuration", "reference": "src/ecommerce-infrastructure/environments/local/values/ecommerce-catalog-service.yaml:37-38"},
+        {"kind": "source", "reference": "src/ecommerce-catalog-service/internal/infrastructure/fxconfig/module.go:13"},
+        {"kind": "source", "reference": "src/ecommerce-tenant-service-api/pkg/fxconfig/consumer.go:13-35"},
+        {"kind": "source", "reference": "src/ecommerce-tenant-service/internal/infrastructure/outbound/kafka/event_factory.go:30"},
+        {"kind": "broker_tool", "reference": "docker exec redpanda rpk group describe ecommerce-catalog-service ecommerce-category-query-service ecommerce-image-service ecommerce-product-query-service"}
+      ]
+    },
+    {
+      "consumer": "ecommerce-image-service",
+      "topic": "tenant.tenant.events",
+      "direction": "inbound",
+      "evidence": [
+        {"kind": "configuration", "reference": "src/ecommerce-infrastructure/environments/local/values/ecommerce-image-service.yaml:31-32"},
+        {"kind": "source", "reference": "src/ecommerce-image-service/internal/infrastructure/fxconfig/module.go:36"},
+        {"kind": "source", "reference": "src/ecommerce-tenant-service-api/pkg/fxconfig/consumer.go:13-35"},
+        {"kind": "source", "reference": "src/ecommerce-tenant-service/internal/infrastructure/outbound/kafka/event_factory.go:30"},
+        {"kind": "broker_tool", "reference": "docker exec redpanda rpk group describe ecommerce-catalog-service ecommerce-category-query-service ecommerce-image-service ecommerce-product-query-service"}
+      ]
+    }
+  ],
+  "q3": [
+    {
+      "consumer": "ecommerce-product-query-service",
+      "topic": "catalog.product.events",
+      "documented": "yes",
+      "observed": "yes",
+      "documented_evidence": [
+        {"kind": "documentation", "reference": "src/ecommerce-workspace/docs/architecture/product-update-flow.md:25-35", "note": "Names Product Query Service consuming ProductUpdated and the image promotion event from Redpanda. The doc names the event types, not the topic; the source maps both to catalog.product.events."},
+        {"kind": "source", "reference": "src/ecommerce-catalog-service-api/pkg/events/topics.go:18"},
+        {"kind": "source", "reference": "src/ecommerce-image-service-api/pkg/events/topics.go:16"}
+      ],
+      "observed_evidence": [
+        {"kind": "broker_tool", "reference": "docker exec redpanda rpk group describe ecommerce-catalog-service ecommerce-category-query-service ecommerce-image-service ecommerce-product-query-service", "note": "Group ecommerce-product-query-service is Stable with a member on catalog.product.events p0, offset 120/120."}
+      ]
+    },
+    {
+      "consumer": "ecommerce-product-query-service",
+      "topic": "catalog.attribute.events",
+      "documented": "no",
+      "observed": "yes",
+      "documented_evidence": [
+        {"kind": "documentation", "reference": "src/ecommerce-workspace/docs/architecture/platform-overview.md:32", "note": "Attributes are mentioned only as catalog data. No document names an attribute event or its consumers. All four files in docs/ were read."}
+      ],
+      "observed_evidence": [
+        {"kind": "broker_tool", "reference": "docker exec redpanda rpk group describe ecommerce-catalog-service ecommerce-category-query-service ecommerce-image-service ecommerce-product-query-service", "note": "Group ecommerce-product-query-service has a member on catalog.attribute.events p0, offset 20/20."}
+      ]
+    },
+    {
+      "consumer": "ecommerce-category-query-service",
+      "topic": "catalog.category.events",
+      "documented": "yes",
+      "observed": "yes",
+      "documented_evidence": [
+        {"kind": "documentation", "reference": "src/ecommerce-workspace/docs/architecture/platform-overview.md:41-43", "note": "Product and Category Query Services build projections from Redpanda."},
+        {"kind": "documentation", "reference": "src/ecommerce-workspace/docs/architecture/platform-overview.md:51", "note": "Catalog publishes product and category events. This names the binding at diagram level only; the topic name is not given."}
+      ],
+      "observed_evidence": [
+        {"kind": "broker_tool", "reference": "docker exec redpanda rpk group describe ecommerce-catalog-service ecommerce-category-query-service ecommerce-image-service ecommerce-product-query-service", "note": "Group ecommerce-category-query-service has a member on catalog.category.events p0, offset 4/4."}
+      ]
+    },
+    {
+      "consumer": "ecommerce-category-query-service",
+      "topic": "catalog.attribute.events",
+      "documented": "no",
+      "observed": "yes",
+      "documented_evidence": [
+        {"kind": "documentation", "reference": "src/ecommerce-workspace/docs/architecture/platform-overview.md:51", "note": "Only product and category events are named as published. No attribute events appear in any document."}
+      ],
+      "observed_evidence": [
+        {"kind": "broker_tool", "reference": "docker exec redpanda rpk group describe ecommerce-catalog-service ecommerce-category-query-service ecommerce-image-service ecommerce-product-query-service", "note": "Group ecommerce-category-query-service has a member on catalog.attribute.events p0, offset 20/20."}
+      ]
+    },
+    {
+      "consumer": "ecommerce-catalog-service",
+      "topic": "tenant.tenant.events",
+      "documented": "no",
+      "observed": "yes",
+      "documented_evidence": [
+        {"kind": "documentation", "reference": "src/ecommerce-workspace/docs/architecture/platform-overview.md:50", "note": "Documents only the producer (tenant to broker, TenantUpdated). No document names catalog-service as a consumer."}
+      ],
+      "observed_evidence": [
+        {"kind": "broker_tool", "reference": "docker exec redpanda rpk group describe ecommerce-catalog-service ecommerce-category-query-service ecommerce-image-service ecommerce-product-query-service", "note": "Group ecommerce-catalog-service has a member on tenant.tenant.events p0, offset 1/1."}
+      ]
+    },
+    {
+      "consumer": "ecommerce-image-service",
+      "topic": "tenant.tenant.events",
+      "documented": "no",
+      "observed": "yes",
+      "documented_evidence": [
+        {"kind": "documentation", "reference": "src/ecommerce-workspace/docs/architecture/platform-overview.md:50", "note": "Documents only the producer. No document names image-service as a tenant-event consumer."}
+      ],
+      "observed_evidence": [
+        {"kind": "broker_tool", "reference": "docker exec redpanda rpk group describe ecommerce-catalog-service ecommerce-category-query-service ecommerce-image-service ecommerce-product-query-service", "note": "Group ecommerce-image-service has a member on tenant.tenant.events p0, offset 1/1."}
+      ]
+    }
+  ],
+  "q4": [
+    {
+      "consumer": "ecommerce-product-query-service",
+      "topic": "catalog.product.events",
+      "must_preserve": "After the move, every ProductUpdated/ProductDeleted (from catalog-service) and every ProductImagePromoted (from image-service) produced on Kafka must arrive on Redpanda's catalog.product.events under the same topic name, with key, headers and partition order kept. The kafka->redpanda flow provides this. No events may be produced to Redpanda's topic directly after cutover, and none may be stranded at the switch (catalog stopped before image is drained). Product read models and storefront image URLs depend on it.",
+      "evidence": [
+        {"kind": "source", "reference": "src/ecommerce-product-query-service/internal/infrastructure/inbound/kafka/fxconfig/module.go:21-23"},
+        {"kind": "source", "reference": "src/ecommerce-image-service-api/pkg/events/topics.go:16"},
+        {"kind": "documentation", "reference": "src/ecommerce-workspace/docs/architecture/product-update-flow.md:27-35"},
+        {"kind": "documentation", "reference": "src/ecommerce-workspace/docs/architecture/product-update-flow.md:43-45", "note": "Projections use event versions, so they tolerate delayed or out-of-order messages."}
+      ]
+    },
+    {
+      "consumer": "ecommerce-product-query-service",
+      "topic": "catalog.attribute.events",
+      "must_preserve": "AttributeUpdated events produced by catalog-service on Kafka must reach Redpanda's catalog.attribute.events under the same name, in order, so the product read model's attribute data stays current. The existing group offset on Redpanda (20) must stay valid: mirrored records are appended after it.",
+      "evidence": [
+        {"kind": "source", "reference": "src/ecommerce-product-query-service/internal/infrastructure/inbound/kafka/fxconfig/module.go:29"},
+        {"kind": "source", "reference": "src/ecommerce-catalog-service/internal/infrastructure/outbound/kafka/attribute_event_factory.go:68"}
+      ]
+    },
+    {
+      "consumer": "ecommerce-category-query-service",
+      "topic": "catalog.category.events",
+      "must_preserve": "CategoryUpdated events from catalog-service on Kafka must reach Redpanda's catalog.category.events under the same name and in order, so the category read model behind the storefront keeps updating.",
+      "evidence": [
+        {"kind": "source", "reference": "src/ecommerce-category-query-service/internal/infrastructure/inbound/kafka/fxconfig/module.go:21"},
+        {"kind": "source", "reference": "src/ecommerce-catalog-service/internal/infrastructure/outbound/kafka/category_event_factory.go:64"},
+        {"kind": "documentation", "reference": "src/ecommerce-workspace/docs/architecture/platform-overview.md:41-43"}
+      ]
+    },
+    {
+      "consumer": "ecommerce-category-query-service",
+      "topic": "catalog.attribute.events",
+      "must_preserve": "The same attribute event stream as for product-query: a second independent consumer group on Redpanda depends on the same mirrored topic, so the kafka->redpanda flow must cover catalog.attribute.events once, for both consumers.",
+      "evidence": [
+        {"kind": "source", "reference": "src/ecommerce-category-query-service/internal/infrastructure/inbound/kafka/fxconfig/module.go:27"},
+        {"kind": "broker_tool", "reference": "docker exec redpanda rpk group describe ecommerce-catalog-service ecommerce-category-query-service ecommerce-image-service ecommerce-product-query-service"}
+      ]
+    },
+    {
+      "consumer": "ecommerce-catalog-service",
+      "topic": "tenant.tenant.events",
+      "must_preserve": "TenantUpdated/TenantDeleted events produced by tenant-service on Redpanda must reach Kafka's tenant.tenant.events (redpanda->kafka flow), so catalog-service keeps provisioning and cleaning up per-tenant databases. The group's position must carry over (MM2 offset sync) rather than reset to earliest, and failed messages now go to a DLQ on Kafka.",
+      "evidence": [
+        {"kind": "source", "reference": "src/ecommerce-tenant-service-api/pkg/fxconfig/consumer.go:25-35"},
+        {"kind": "source", "reference": "src/ecommerce-tenant-service/internal/infrastructure/outbound/kafka/event_factory.go:30-40"},
+        {"kind": "configuration", "reference": "src/ecommerce-infrastructure/environments/local/values/ecommerce-catalog-service.yaml:34-42"}
+      ]
+    },
+    {
+      "consumer": "ecommerce-image-service",
+      "topic": "tenant.tenant.events",
+      "must_preserve": "Same as for catalog-service: tenant lifecycle events from Redpanda must reach image-service on Kafka with its group offset carried over, so tenant-scoped image data stays in step with tenants created or deleted after the move.",
+      "evidence": [
+        {"kind": "source", "reference": "src/ecommerce-image-service/internal/infrastructure/fxconfig/module.go:36"},
+        {"kind": "configuration", "reference": "src/ecommerce-infrastructure/environments/local/values/ecommerce-image-service.yaml:26-36"}
+      ]
+    }
+  ],
+  "q5": [
+    {
+      "statement": "Kafka's state was not queried in this session (kafka-topics.sh and helm list were denied). That the Kafka broker is empty, its auto.create.topics.enable value, and whether the services are Helm releases rest on TASK.md alone. The execution session must check them first (P01).",
+      "evidence": [{"kind": "reasoning", "reference": "Tool calls were denied in the planning session."}]
+    },
+    {
+      "statement": "Producers come from source and configuration, not from runtime observation; rpk group describe shows consumers only. An undeclared producer still writing to Redpanda catalog.* after cutover would not reach image-service on Kafka, because the Redpanda->Kafka flow carries only tenant.tenant.events. Verify after the move that Redpanda catalog.* offsets grow only by the mirrored counts.",
+      "evidence": [
+        {"kind": "broker_tool", "reference": "docker exec redpanda rpk group describe ecommerce-catalog-service ecommerce-category-query-service ecommerce-image-service ecommerce-product-query-service"},
+        {"kind": "source", "reference": "src/ecommerce-image-service-api/pkg/events/topics.go:11-16"}
+      ]
+    },
+    {
+      "statement": "The move is not lossless or exactly-once. MM2 delivers at-least-once, so restarts can duplicate records. Tenant offsets are translated approximately, and missing sync means replay from earliest. Rollback causes re-reads. Idempotence is documented only for product projections (event versions). The tenant handlers and the category-query handlers are not shown to be idempotent.",
+      "evidence": [
+        {"kind": "documentation", "reference": "src/ecommerce-workspace/docs/architecture/product-update-flow.md:43-45"},
+        {"kind": "configuration", "reference": "src/ecommerce-infrastructure/environments/local/values/ecommerce-catalog-service.yaml:35"}
+      ]
+    },
+    {
+      "statement": "Unverified: whether MM2 (Kafka 4.1.2) creates a heartbeats topic when emit.heartbeats.enabled=false, and whether Redpanda v24.3.1 supports everything MM2 needs (offset-sync/checkpoint group APIs, topic describe). P05 and P08 are gates: a heartbeats topic on either broker, or no synced offsets, stops the run.",
+      "evidence": [{"kind": "broker_tool", "reference": "docker image ls --digests", "note": "redpandadata/redpanda v24.3.1 and apache/kafka 4.1.2 are the images present."}]
+    },
+    {
+      "statement": "DLQ topics (topic + '.dlq') are not mirrored. After the move, catalog-service and image-service write tenant-event failures to tenant.tenant.events.dlq on Kafka (auto-created by the producer, if the broker allows it). Product-query and category-query keep using the Redpanda DLQ of the same name. No DLQ topic exists today and no DLQ consumer was observed, so DLQ inspection must now look at both brokers.",
+      "evidence": [
+        {"kind": "source", "reference": "src/ecommerce-commons/pkg/kafka/config/defaults.go:61-64"},
+        {"kind": "source", "reference": "src/ecommerce-commons/pkg/kafka/producer/fxconfig/module.go:35"},
+        {"kind": "broker_tool", "reference": "docker exec redpanda rpk topic list"}
+      ]
+    },
+    {
+      "statement": "The 'documented' answers rely on event-type names in the docs, not topic names, and the category-query binding is documented only at the level of the overview diagram. The attribute and tenant-consumer bindings are undocumented.",
+      "evidence": [{"kind": "documentation", "reference": "src/ecommerce-workspace/docs/architecture/platform-overview.md:41-51"}]
+    },
+    {
+      "statement": "Scope is the local k3d environment only. Production values (environments/production/values) and the Tilt workflow were not changed or analysed. A later Tilt run would redeploy from the edited values files.",
+      "evidence": [{"kind": "configuration", "reference": "src/ecommerce-infrastructure/environments/local/values/ecommerce-catalog-service.yaml:32"}]
+    },
+    {
+      "statement": "Check after the move: the operator's functional test passes. On Kafka, groups ecommerce-catalog-service and ecommerce-image-service are Stable with lag 0. On Redpanda, product-query and category-query groups are Stable with lag 0, and catalog.* end offsets rise by exactly the records produced to Kafka catalog.*. Tenant events produced on Redpanda appear on Kafka. No heartbeats topic exists on either broker. MM2 logs show no errors. MM2 must keep running for as long as the services are split.",
+      "evidence": [{"kind": "reasoning", "reference": "These are the gate checks P11 and P13 of the plan."}]
+    }
+  ]
+}

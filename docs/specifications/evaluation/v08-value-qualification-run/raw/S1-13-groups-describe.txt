@@ -1,0 +1,44 @@
+GROUP        ecommerce-catalog-service
+COORDINATOR  0
+STATE        Stable
+BALANCER     cooperative-sticky
+MEMBERS      1
+TOTAL-LAG    0
+
+TOPIC                 PARTITION  CURRENT-OFFSET  LOG-START-OFFSET  LOG-END-OFFSET  LAG   MEMBER-ID                                 CLIENT-ID  HOST
+tenant.tenant.events  0          1               0                 1               0     kgo-34a2dae8-44a4-400b-89e5-93bc2d0e76cf  kgo        172.19.0.4
+
+GROUP        ecommerce-category-query-service
+COORDINATOR  0
+STATE        Stable
+BALANCER     cooperative-sticky
+MEMBERS      3
+TOTAL-LAG    0
+
+TOPIC                     PARTITION  CURRENT-OFFSET  LOG-START-OFFSET  LOG-END-OFFSET  LAG   MEMBER-ID                                 CLIENT-ID  HOST
+catalog.attribute.events  0          20              0                 20              0     kgo-42f13f52-4987-4de9-8e4f-55420c3dd989  kgo        172.19.0.4
+catalog.category.events   0          4               0                 4               0     kgo-4e6b9447-b78f-439a-9fa0-8c2267fa9c30  kgo        172.19.0.4
+tenant.tenant.events      0          1               0                 1               0     kgo-357750ad-0f76-4797-9442-d74da5266ba9  kgo        172.19.0.4
+
+GROUP        ecommerce-image-service
+COORDINATOR  0
+STATE        Stable
+BALANCER     cooperative-sticky
+MEMBERS      2
+TOTAL-LAG    0
+
+TOPIC                   PARTITION  CURRENT-OFFSET  LOG-START-OFFSET  LOG-END-OFFSET  LAG   MEMBER-ID                                 CLIENT-ID  HOST
+catalog.product.events  0          120             0                 120             0     kgo-57256ad5-880c-427e-b322-169f274f95ed  kgo        172.19.0.3
+tenant.tenant.events    0          1               0                 1               0     kgo-716efabd-14ac-44c0-ae4f-335a61b1aff5  kgo        172.19.0.3
+
+GROUP        ecommerce-product-query-service
+COORDINATOR  0
+STATE        Stable
+BALANCER     cooperative-sticky
+MEMBERS      3
+TOTAL-LAG    0
+
+TOPIC                     PARTITION  CURRENT-OFFSET  LOG-START-OFFSET  LOG-END-OFFSET  LAG   MEMBER-ID                                 CLIENT-ID  HOST
+catalog.attribute.events  0          20              0                 20              0     kgo-05ae5298-2f2b-4185-8ab1-f3f724dccaee  kgo        172.19.0.3
+catalog.product.events    0          120             0                 120             0     kgo-c47cc2dd-36f8-4699-9dc9-97d1115edb43  kgo        172.19.0.3
+tenant.tenant.events      0          1               0                 1               0     kgo-1c4341f4-ac5d-48c9-92c2-42af1ac9b6d1  kgo        172.19.0.3
