@@ -1,0 +1,83 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="640" viewBox="0 0 1400 640" role="img" aria-labelledby="diagram-title diagram-desc">
+  <title id="diagram-title">AIP binding picture: dependencies around Catalog Management before a broker migration</title>
+  <desc id="diagram-desc">Three service boundaries: Store Provisioning, Catalog Management, and Storefront. Product events from Catalog Management to Storefront are documented. Broker consumer attachments reveal additional tenant-event consumers in Catalog Management and attribute-event consumers in Storefront. The image illustrates architecture context, not confirmed event delivery.</desc>
+  <defs>
+    <linearGradient id="header" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0%" stop-color="#132A3D"/>
+      <stop offset="100%" stop-color="#184E54"/>
+    </linearGradient>
+    <linearGradient id="focus" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0%" stop-color="#EDFAF8"/>
+      <stop offset="100%" stop-color="#F5FCFA"/>
+    </linearGradient>
+    <filter id="cardshadow" x="-20%" y="-30%" width="150%" height="165%">
+      <feDropShadow dx="0" dy="6" stdDeviation="11" flood-color="#11283D" flood-opacity="0.08"/>
+    </filter>
+    <marker id="arrow-documented" markerWidth="10" markerHeight="10" refX="8" refY="4" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0 0 L8 4 L0 8 Z" fill="#007B75"/>
+    </marker>
+    <marker id="arrow-additional" markerWidth="10" markerHeight="10" refX="8" refY="4" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0 0 L8 4 L0 8 Z" fill="#CC812D"/>
+    </marker>
+    <clipPath id="pageclip"><rect x="1" y="1" width="1398" height="638" rx="26"/></clipPath>
+  </defs>
+  <g clip-path="url(#pageclip)">
+    <rect x="0" y="0" width="1400" height="640" fill="#F8FBFC"/>
+    <rect x="0" y="0" width="1400" height="187" fill="url(#header)"/>
+    <circle cx="1334" cy="-29" r="186" fill="none" stroke="#76D4CC" stroke-width="1.5" opacity="0.17"/>
+    <circle cx="1334" cy="-29" r="141" fill="none" stroke="#76D4CC" stroke-width="1.5" opacity="0.14"/>
+    <circle cx="1334" cy="-29" r="94" fill="none" stroke="#76D4CC" stroke-width="1.5" opacity="0.14"/>
+    <text x="68" y="48" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="700" letter-spacing="2.2" fill="#9BE4DC">AIP  /  SOKOL111 BINDING PICTURE</text>
+    <text x="68" y="107" font-family="Arial, Helvetica, sans-serif" font-size="43" font-weight="700" fill="#FFFFFF">What would a migration plan miss?</text>
+    <text x="70" y="151" font-family="Arial, Helvetica, sans-serif" font-size="23" fill="#D3E5E9">Moving Catalog Management from Redpanda to Kafka</text>
+
+    <rect x="62" y="242" width="313" height="218" rx="19" fill="#FFFFFF" stroke="#DEE6EB" stroke-width="2" filter="url(#cardshadow)"/>
+    <rect x="543" y="230" width="315" height="242" rx="19" fill="url(#focus)" stroke="#079B90" stroke-width="2.6" filter="url(#cardshadow)"/>
+    <rect x="1025" y="242" width="313" height="218" rx="19" fill="#FFFFFF" stroke="#DEE6EB" stroke-width="2" filter="url(#cardshadow)"/>
+
+    <rect x="85" y="264" width="91" height="26" rx="13" fill="#EEF2F6"/>
+    <text x="130.5" y="282" font-family="Arial, Helvetica, sans-serif" font-weight="700" font-size="13" letter-spacing="0.7" text-anchor="middle" fill="#6E7B89">SOURCE</text>
+    <text x="86" y="333" font-family="Arial, Helvetica, sans-serif" font-weight="700" font-size="28" fill="#1B3344">Store Provisioning</text>
+    <text x="87" y="367" font-family="Arial, Helvetica, sans-serif" font-size="19" fill="#617484">Tenant events</text>
+    <line x1="86" x2="352" y1="396" y2="396" stroke="#E5EAEE" stroke-width="2"/>
+    <text x="87" y="429" font-family="Arial, Helvetica, sans-serif" font-size="17" fill="#607080">Outside the moving boundary</text>
+
+    <rect x="568" y="251" width="162" height="28" rx="14" fill="#D0F1EB"/>
+    <text x="649" y="270" font-family="Arial, Helvetica, sans-serif" font-weight="700" font-size="13" text-anchor="middle" letter-spacing="0.4" fill="#0B786C">MOVING TO KAFKA</text>
+    <text x="569" y="326" font-family="Arial, Helvetica, sans-serif" font-weight="700" font-size="30" fill="#163E43">Catalog</text>
+    <text x="569" y="361" font-family="Arial, Helvetica, sans-serif" font-weight="700" font-size="30" fill="#163E43">Management</text>
+    <line x1="570" x2="830" y1="387" y2="387" stroke="#B9DBD5" stroke-width="2"/>
+    <text x="569" y="418" font-family="Arial, Helvetica, sans-serif" font-size="20" fill="#466C6B">Catalog service</text>
+    <text x="569" y="446" font-family="Arial, Helvetica, sans-serif" font-size="20" fill="#466C6B">Image service</text>
+
+    <rect x="1048" y="264" width="90" height="26" rx="13" fill="#EEF2F6"/>
+    <text x="1093" y="282" font-family="Arial, Helvetica, sans-serif" font-weight="700" font-size="13" letter-spacing="0.7" text-anchor="middle" fill="#6E7B89">CLIENTS</text>
+    <text x="1050" y="333" font-family="Arial, Helvetica, sans-serif" font-weight="700" font-size="30" fill="#1B3344">Storefront</text>
+    <text x="1050" y="367" font-family="Arial, Helvetica, sans-serif" font-size="19" fill="#617484">Product / Category Query</text>
+    <line x1="1050" x2="1315" y1="396" y2="396" stroke="#E5EAEE" stroke-width="2"/>
+    <text x="1050" y="429" font-family="Arial, Helvetica, sans-serif" font-size="17" fill="#607080">Outside the moving boundary</text>
+
+    <rect x="392" y="289" width="134" height="31" rx="12" fill="#FFF2DC"/>
+    <text x="459" y="310" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="700" fill="#92560E">Tenant events</text>
+    <path d="M383 350 L528 350" stroke="#CC812D" stroke-width="4.4" stroke-dasharray="10 8" fill="none" marker-end="url(#arrow-additional)" stroke-linecap="round"/>
+    <text x="459" y="384" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="16" fill="#9C6C33">not in docs</text>
+
+    <rect x="877" y="272" width="131" height="31" rx="12" fill="#DDF5F1"/>
+    <text x="942.5" y="293" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="16.5" font-weight="700" fill="#0A756E">Product events</text>
+    <path d="M865 320 L1011 320" stroke="#007B75" stroke-width="4.4" fill="none" marker-end="url(#arrow-documented)" stroke-linecap="round"/>
+    <rect x="870" y="360" width="143" height="31" rx="12" fill="#FFF2DC"/>
+    <text x="941.5" y="381" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="16.5" font-weight="700" fill="#92560E">Attribute events</text>
+    <path d="M865 414 L1011 414" stroke="#CC812D" stroke-width="4.4" stroke-dasharray="10 8" fill="none" marker-end="url(#arrow-additional)" stroke-linecap="round"/>
+
+    <line x1="77" y1="510" x2="109" y2="510" stroke="#007B75" stroke-width="4.5" stroke-linecap="round"/>
+    <text x="124" y="516" font-family="Arial, Helvetica, sans-serif" font-size="17" fill="#506170">Documented relationship</text>
+    <line x1="406" y1="510" x2="438" y2="510" stroke="#CC812D" stroke-width="4.5" stroke-dasharray="9 7" stroke-linecap="round"/>
+    <text x="452" y="516" font-family="Arial, Helvetica, sans-serif" font-size="17" fill="#506170">Additional consumer attachment in the broker capture</text>
+
+    <rect x="60" y="540" width="1278" height="72" rx="15" fill="#E7F2F1"/>
+    <rect x="60" y="540" width="7" height="72" rx="4" fill="#0C8C80"/>
+    <text x="89" y="585" font-family="Arial, Helvetica, sans-serif" font-size="26" font-weight="700" fill="#1B4548">See what to investigate before you change the system.</text>
+    <text x="1308" y="585" text-anchor="end" font-family="Arial, Helvetica, sans-serif" font-size="16" fill="#467471">AIP · evidence-qualified context</text>
+  </g>
+  <rect x="1" y="1" width="1398" height="638" rx="26" fill="none" stroke="#D5E1E6" stroke-width="2"/>
+</svg>
