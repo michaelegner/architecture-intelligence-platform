@@ -21,21 +21,10 @@ architectural context that architects, engineering teams, and coding agents can 
 
 ## What is AIP?
 
-AIP addresses a concrete question before a team changes, moves, or starts to use a capability:
-
-> Which relationships cross this system boundary, what do the participants promise, and
-> what does the available evidence actually establish?
-
-**Repository and source-analysis tools** help explain implementations an engineer or agent can
-inspect. **AIP complements them** with attributable cross-boundary promises and independently
-qualified observations from other sources. It does not attempt to replace source analysis or
-automate architectural decisions.
-
-AIP keeps three views distinct: **Current State** (evidence-qualified relationships),
-**Intent** (attributable promises), and **Assessment** (their bounded comparison).
-The resulting answers are scoped to a question, environment, and snapshot; uncertainty stays
-explicit. Missing observations are not proof of absence, and an agent cannot manufacture a
-fact or a promise by describing it confidently.
+**Repository and source-analysis tools** explain implementations an engineer or agent can
+inspect. **AIP complements them** with attributable architectural promises and independent
+evidence about relationships across autonomous boundaries. It keeps what is promised,
+observed, and unresolved distinct instead of presenting assumptions as facts.
 
 ## The binding picture
 
@@ -44,14 +33,15 @@ The [v0.8.0 showcase](docs/release-validation/v0.8.0-release-notes.md) uses
 Suppose a team moves **Catalog Management** from Redpanda to Apache Kafka. Which event
 relationships need examination before the move?
 
-Sokol111's documents describe some relationships, but a frozen broker capture shows additional
-consumer-group attachments. AIP projects this evidence, the generated EventCatalog, and declared
-context membership into a **nine-row binding picture**. Two examples make the difference tangible:
+Sokol111's documents describe Catalog Management publishing events to Storefront. A frozen
+broker capture also shows Catalog consuming tenant events from Store Provisioning, which the
+generated EventCatalog does not cover. AIP combines the captured attachments, authored
+declarations, and context membership into a **nine-row binding picture**:
 
-| Topic → attributed consumer | Relative to Catalog Management | AIP assessment |
+| Boundary view | Consumer attachment observed at T | AIP assessment |
 |---|---|---|
-| `catalog.product.events` → `ecommerce-product-query-service` | `OUTBOUND` | `PROMISED_AND_OBSERVED`: a matching catalog promise and a consumer attachment at capture time T. |
-| `tenant.tenant.events` → `ecommerce-catalog-service` | `INBOUND` | `UNRESOLVED`: a consumer attachment at T, but no matching catalog promise (`PROMISE_COVERAGE_MISSING`). |
+| **Catalog Management → Storefront** | Product Query attached to `catalog.product.events` | `PROMISED_AND_OBSERVED` — matching demo catalog promise (`OUTBOUND`). |
+| **Store Provisioning → Catalog Management** | Catalog attached to `tenant.tenant.events` | `UNRESOLVED` — no matching catalog promise (`INBOUND`). |
 
 Across all nine rows, **2 are `PROMISED_AND_OBSERVED` and 7 are `UNRESOLVED`** for missing
 promise coverage. Not every row crosses the boundary: other rows are classified `INSIDE` or
@@ -61,12 +51,15 @@ The [showcase report](docs/specifications/0.8.0/i4-evidence/report.html) records
 before/after migration evidence. The [frozen input package](docs/specifications/0.8.0/i1-evidence/README.md)
 distinguishes real captures, authored declarations, and generated catalog entries.
 
-**Limits:** Catalog entries are treated as confirmed owner promises by an explicit
-*demonstration assumption*; owners are illustrative. A topic attachment does not establish
-event handling or delivery, and the evidence is a frozen capture, not live monitoring.
-The showcase demonstrates a binding picture, **not improved migration-planning quality**.
+**Limits:** Boundary directions use authored producer declarations and context membership;
+producer traffic was not observed. Catalog entries count as confirmed owner promises only by an
+explicit *demonstration assumption*; owners are illustrative. A frozen consumer-group attachment
+does not prove event handling or delivery. The showcase demonstrates a binding picture,
+**not improved migration-planning quality**.
 
 ## Try AIP
+
+<a id="connect-aip-to-your-coding-agent"></a>
 
 ### Hosted MCP demo
 
