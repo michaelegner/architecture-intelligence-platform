@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="790" viewBox="0 0 1440 790" role="img" aria-labelledby="title desc">
+<title id="title">How AIP works</title>
+<desc id="desc">Source repositories, API contracts, runtime observations and architecture documentation flow into AIP, which provides a binding picture, current state and evidence-qualified answers.</desc>
+<defs>
+ <linearGradient id="bg" x2="1" y2="1"><stop stop-color="#ffffff"/><stop offset="1" stop-color="#f1f7ff"/></linearGradient>
+ <linearGradient id="hub" x2="1" y2="1"><stop stop-color="#fff"/><stop offset="1" stop-color="#eaf5ff"/></linearGradient>
+ <filter id="sh" x="-20%" y="-30%" width="150%" height="160%"><feDropShadow dx="0" dy="10" stdDeviation="15" flood-color="#28467f" flood-opacity=".10"/></filter>
+ <style>text{font-family:Inter,Segoe UI,Arial,sans-serif;fill:#071537}.head{font-size:66px;font-weight:800}.sub{font-size:24px;fill:#526382}.lab{font-size:25px;font-weight:650}.small{font-size:22px;fill:#526382}.card{fill:white;stroke:#e7edf7;stroke-width:1.5;filter:url(#sh)}.line{fill:none;stroke-width:3.5;stroke-linecap:round}.dot{stroke:white;stroke-width:3}</style>
+</defs>
+<rect width="1440" height="790" fill="url(#bg)"/>
+<circle cx="1430" cy="390" r="260" fill="#eaf6ff" opacity=".55"/><circle cx="60" cy="750" r="195" fill="#f4f0ff" opacity=".55"/>
+<text x="52" y="107" class="head">How AIP works</text>
+<text x="54" y="156" class="sub">Bring architectural signals together without collapsing what is promised, observed, or unresolved.</text>
+<g class="line"><path d="M399 265 C500 265 455 365 551 365" stroke="#5497fd"/><path d="M399 385 C500 385 455 428 551 428" stroke="#27c6b0"/><path d="M399 505 C500 505 455 492 551 492" stroke="#9373f8"/><path d="M399 625 C500 625 455 555 551 555" stroke="#ffb948"/><path d="M889 395 C970 395 958 294 1057 294" stroke="#5497fd"/><path d="M889 463 C980 463 955 446 1057 446" stroke="#27c6b0"/><path d="M889 526 C980 526 955 601 1057 601" stroke="#9373f8"/></g>
+<g>
+<rect class="card" x="52" y="213" width="348" height="104" rx="22"/><rect x="74" y="230" width="78" height="70" rx="18" fill="#dbeaff"/><text x="92" y="276" font-size="34" fill="#1451ad">⑂</text><text x="172" y="277" class="lab">Source &amp; repos</text>
+<rect class="card" x="52" y="333" width="348" height="104" rx="22"/><rect x="74" y="350" width="78" height="70" rx="18" fill="#d9f6f1"/><text x="88" y="397" font-size="28" fill="#087b70">&lt;/&gt;</text><text x="172" y="397" class="lab" font-size="23">OpenAPI / AsyncAPI</text>
+<rect class="card" x="52" y="453" width="348" height="104" rx="22"/><rect x="74" y="470" width="78" height="70" rx="18" fill="#e9e1ff"/><text x="97" y="517" font-size="33" fill="#664acb">▤</text><text x="172" y="501" class="lab">Runtime &amp;</text><text x="172" y="531" class="lab">infrastructure</text>
+<rect class="card" x="52" y="573" width="348" height="104" rx="22"/><rect x="74" y="590" width="78" height="70" rx="18" fill="#fff0d6"/><text x="94" y="636" font-size="31" fill="#ac690c">▤</text><text x="172" y="621" class="lab">Architecture docs</text><text x="172" y="651" class="lab">&amp; decisions</text>
+</g>
+<g><rect x="552" y="292" width="338" height="336" rx="34" fill="url(#hub)" stroke="#d9e9ff" stroke-width="2" filter="url(#sh)"/>
+<circle cx="721" cy="395" r="94" fill="#edf6ff"/><circle cx="721" cy="395" r="69" fill="#e1efff"/>
+<path d="M669 375 l52 -28 52 28 -52 28z" fill="#5d9afc"/><path d="M669 394 l52 28 52 -28 0 15 -52 28 -52 -28z" fill="#27c6b0"/><path d="M669 419 l52 28 52 -28 0 15 -52 28 -52 -28z" fill="#8e7af5"/>
+<text x="721" y="514" text-anchor="middle" font-size="60" font-weight="800">AIP</text><text x="721" y="550" text-anchor="middle" class="small">Collects signals, preserves</text><text x="721" y="577" text-anchor="middle" class="small">provenance, keeps evidence</text><text x="721" y="604" text-anchor="middle" class="small">qualified</text></g>
+<g>
+<rect class="card" x="1057" y="240" width="333" height="111" rx="22"/><rect x="1078" y="261" width="75" height="70" rx="17" fill="#dbeaff"/><text x="1098" y="307" font-size="37" fill="#1451ad">♧</text><text x="1171" y="307" class="lab">Binding picture</text>
+<rect class="card" x="1057" y="390" width="333" height="111" rx="22"/><rect x="1078" y="411" width="75" height="70" rx="17" fill="#d9f6f1"/><text x="1097" y="456" font-size="36" fill="#087b70">▥</text><text x="1171" y="457" class="lab">Current state</text>
+<rect class="card" x="1057" y="545" width="333" height="111" rx="22"/><rect x="1078" y="566" width="75" height="70" rx="17" fill="#e9e1ff"/><text x="1097" y="615" font-size="36" fill="#664acb">✧</text><text x="1171" y="597" class="lab">Evidence-qualified</text><text x="1171" y="627" class="lab">answers</text>
+</g>
+<g><circle class="dot" cx="399" cy="265" r="8" fill="#5497fd"/><circle class="dot" cx="399" cy="385" r="8" fill="#27c6b0"/><circle class="dot" cx="399" cy="505" r="8" fill="#9373f8"/><circle class="dot" cx="399" cy="625" r="8" fill="#ffb948"/></g>
+</svg>
