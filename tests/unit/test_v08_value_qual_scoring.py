@@ -371,7 +371,7 @@ def aip_row(consumer: str, topic: str, snapshot: str = "snapshot:a") -> dict:
     )
 
 
-def test_an_aip_row_supports_binding_direction_and_its_own_status_only():
+def test_an_aip_row_supports_binding_direction_and_observed_only():
     answers = fx.perfect_answers()
     for row in answers["q2"]:
         row["evidence"] = [aip_row(row["consumer"], row["topic"])]
@@ -388,9 +388,10 @@ def test_an_aip_row_supports_binding_direction_and_its_own_status_only():
         claim(result, "answers.q3", "observed", fx.CAT, "tenant.tenant.events")["status"]
         == "SUPPORTED"
     )
+    # A promise ref is EventCatalog evidence, not a docs/ citation (spec §5.2).
     assert (
         claim(result, "answers.q3", "documented", fx.PQ, "catalog.product.events")["status"]
-        == "SUPPORTED"
+        == "UNSUPPORTED"
     )
     assert (
         claim(result, "answers.q3", "documented", fx.CAT, "tenant.tenant.events")["status"]

@@ -272,8 +272,8 @@ def support(
                 by_kind["binding"] = by_kind["direction"] = True
                 if r.get("attachment_evidence_refs"):
                     by_kind["observed"] = True
-                if r.get("promise_evidence_refs"):
-                    by_kind["documented"] = True
+                # A promise ref is EventCatalog evidence, not documentation (spec §5.2):
+                # "documented" needs a cited docs/ location.
         else:
             unresolved.append(reference)
 

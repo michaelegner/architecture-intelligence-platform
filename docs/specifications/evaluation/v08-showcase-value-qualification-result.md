@@ -69,6 +69,12 @@ The owner gave the three borderline decisions. The other owner-judged items were
 their cited evidence under the frozen rules, with the owner's conditional go of 2026-10-30. Each verdict
 has its reason and its basis in `owner-verdicts/<session>.json`.
 
+**Owner sign-off (2026-10-30).** The owner reviewed and accepts the complete verdict set: the 12
+files `owner-verdicts/<session>.json` as listed in `SHA256SUMS`, with no amendments. Digest of that set
+(`grep ' ./owner-verdicts/' SHA256SUMS | sha256sum` in `v08-value-qualification-run/`):
+`07165c58efe76ef1430702840a58323c2376364e96f5c376aa843908f731dbc9`. The `basis` values in those files
+are unchanged.
+
 - **K6.2 and K8.6 in F−_r2, F−_r3 and F+_r2: DIFFERENT (owner).** The key requires the comparison with
   the checkpoint's upstream and downstream offsets. A direct comparison of the final Redpanda offsets
   with the installed Kafka offsets does not establish it.
@@ -143,6 +149,13 @@ exact command and denial of each occurrence):
 
   Round 1 was audited and scored again with the corrected harness. The superseded outputs are kept in
   `sessions/*/superseded/`.
+- **Scorer correction after the run** (PR #658 review): an AIP row's promise refs no longer support a
+  `documented` claim; only a cited `docs/` location does (EventCatalog is not documentation, spec
+  §5.2). A regression test fails without it. The scores do not change: of the 17 Q3 `documented: yes`
+  answers, only T+_r2 (product-query, `catalog.product.events`) cites AIP, and its documentation
+  citation `product-update-flow.md:25-35` covers both frozen locations (lines 28 and 34). The run home
+  was removed, so this was checked against the published answers and `matrix.json`, not by re-running
+  the scorer.
 - Four preflight stops of F−_r1 and F+_r1 occurred before an agent started (in `preflight-failed/`):
   in the first attempt, the adaptation rule (corrected); in the second attempt, the operator's own
   pytest trees in `/tmp`.
