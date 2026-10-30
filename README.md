@@ -30,17 +30,21 @@ observed, and unresolved distinct instead of presenting assumptions as facts.
 
 **AIP binding picture brings cross-boundary relationships together**
 
-In [Sokol111](https://github.com/Sokol111/ecommerce-workspace), the architecture documents
-show Catalog Management publishing events to Storefront. But the broker evidence reveals more:
-Catalog and Image are also attached to tenant events from Store Provisioning, and Storefront
-consumers are attached to attribute events. A migration planned from the documentation alone
-could overlook these connections.
+[Sokol111](https://github.com/Sokol111/ecommerce-workspace) is an open-source, event-driven
+e-commerce platform built from independently developed Go microservices. AIP uses it as a
+realistic showcase: when planning a broker migration, understanding one service's documented
+event flows is not enough to know which other services may be affected.
+
+Sokol111's architecture documents show Catalog Management publishing events to Storefront.
+But captured broker attachments reveal more: Catalog and Image also consume tenant events
+from Store Provisioning, and Storefront consumers are attached to attribute events. A migration
+planned from the documentation alone could overlook these relationships.
 
 ![AIP binding picture showing Catalog Management between Store Provisioning and Storefront: documented product events and additional tenant and attribute event consumer attachments revealed by broker evidence.](images/sokol111-binding-picture.svg)
 
-**AIP makes the bigger picture visible before the change starts.** Its binding picture
-brings these cross-boundary relationships together, helping architects and coding agents see
-which other services to investigate and where their existing understanding may be incomplete.
+**AIP makes the bigger picture visible before the change starts.** By combining documented
+event relationships with observed broker attachments, its binding picture helps architects
+and coding agents identify which services to investigate—and where the documented view is incomplete.
 
 [Explore the hosted binding picture](examples/pitstop-demo/TRY_IT_HOSTED.md) ·
 [Follow the v0.8 migration showcase](docs/release-validation/v0.8.0-release-notes.md)
