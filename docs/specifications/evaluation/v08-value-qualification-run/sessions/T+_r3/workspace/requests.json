@@ -1,0 +1,12 @@
+[
+  {
+    "id": "R1-consumer-groups",
+    "kind": "broker_consumer_groups",
+    "reason": "AIP's capture (snapshot aip:snapshot:v1:18d59102...) covers only its configured consumer groups. I need every consumer group on Redpanda with the topics it is attached to, its members, and its committed offsets/lag (rpk group list; rpk group describe <each>). This tells me whether any consumer of catalog.product.events, catalog.category.events, catalog.attribute.events or tenant.tenant.events (or of any *.dlq topic) is missing from AIP, and which groups belong to ecommerce-catalog-service and ecommerce-image-service."
+  },
+  {
+    "id": "R2-helm-values-and-topics",
+    "kind": "other",
+    "reason": "Please send (a) the kafka section of ecommerce-infrastructure/environments/local/values/ for ecommerce-catalog-service and ecommerce-image-service, with exact file paths and line numbers (brokers, consumers-config: group ids, auto-offset-reset, enable-dlq/dlq-topic, producer config), and (b) the output of `docker exec redpanda rpk topic list` and `docker exec redpanda rpk topic describe catalog.product.events catalog.category.events catalog.attribute.events tenant.tenant.events` (partitions, cleanup.policy, retention). I need these to set the broker address the services use, find any DLQ topics that also have to be bridged, and create the Kafka topics with matching partition counts."
+  }
+]

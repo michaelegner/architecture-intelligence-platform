@@ -1,0 +1,360 @@
+{
+  "authored": "2026-10-29, after owner checkpoint 1 (D5), from the Step 1 matrix (v08-showcase-value-qualification-step1.md) and I2 \u00a78.1; frozen before the first session.",
+  "governs": "Q2/Q3 keys, U3/U4 resolution (spec \u00a75.2-\u00a75.3). Locations are relative to the workspace src/ directory; a location matches a cited line within 1 line, or a cited range that overlaps it. A support entry is a list of locations that must all be cited for the claim. A partial location is recorded and never counts as support.",
+  "documented_dir": "ecommerce-workspace/docs/",
+  "rows": [
+    {
+      "row": 1,
+      "consumer": "ecommerce-product-query-service",
+      "topic": "catalog.product.events",
+      "crossing": "OUTBOUND",
+      "cells": {
+        "documents": "Y",
+        "team_source": "P",
+        "infrastructure": "Y",
+        "all_source": "Y",
+        "broker_tools": "Y",
+        "aip": "Y"
+      },
+      "documented": "yes",
+      "support": {
+        "binding": [
+          [
+            "ecommerce-workspace/docs/architecture/product-update-flow.md:28",
+            "ecommerce-catalog-service-api/pkg/events/topics.go:18"
+          ],
+          [
+            "ecommerce-workspace/docs/architecture/product-update-flow.md:34",
+            "ecommerce-image-service-api/pkg/events/topics.go:16"
+          ],
+          [
+            "ecommerce-infrastructure/environments/local/values/ecommerce-product-query-service.yaml:28"
+          ],
+          [
+            "ecommerce-product-query-service/configs/config.standalone.yaml:21"
+          ]
+        ],
+        "documented": [
+          [
+            "ecommerce-workspace/docs/architecture/product-update-flow.md:28"
+          ],
+          [
+            "ecommerce-workspace/docs/architecture/product-update-flow.md:34"
+          ]
+        ]
+      },
+      "partial": [
+        "ecommerce-catalog-service-api/AGENTS.md:13",
+        "ecommerce-catalog-service/AGENTS.md:8",
+        "ecommerce-image-service-api/AGENTS.md:14-16",
+        "ecommerce-workspace/README.md:42",
+        "ecommerce-workspace/docs/architecture/platform-overview.md:43",
+        "ecommerce-workspace/docs/architecture/platform-overview.md:51"
+      ]
+    },
+    {
+      "row": 2,
+      "consumer": "ecommerce-image-service",
+      "topic": "catalog.product.events",
+      "crossing": "INSIDE",
+      "cells": {
+        "documents": "Y",
+        "team_source": "Y",
+        "infrastructure": "Y",
+        "all_source": "Y",
+        "broker_tools": "Y",
+        "aip": "Y"
+      },
+      "documented": "yes",
+      "support": {
+        "binding": [
+          [
+            "ecommerce-workspace/docs/architecture/product-update-flow.md:31",
+            "ecommerce-catalog-service-api/pkg/events/topics.go:18"
+          ],
+          [
+            "ecommerce-image-service/configs/config.standalone.yaml:21"
+          ],
+          [
+            "ecommerce-image-service/AGENTS.md:57"
+          ],
+          [
+            "ecommerce-image-service/internal/infrastructure/inbound/kafka/product_handler.go:22",
+            "ecommerce-catalog-service-api/pkg/events/topics.go:18"
+          ],
+          [
+            "ecommerce-infrastructure/environments/local/values/ecommerce-image-service.yaml:30"
+          ]
+        ],
+        "documented": [
+          [
+            "ecommerce-workspace/docs/architecture/product-update-flow.md:31"
+          ]
+        ]
+      },
+      "partial": []
+    },
+    {
+      "row": 3,
+      "consumer": "ecommerce-catalog-service",
+      "topic": "tenant.tenant.events",
+      "crossing": "INBOUND",
+      "cells": {
+        "documents": "N",
+        "team_source": "Y",
+        "infrastructure": "Y",
+        "all_source": "Y",
+        "broker_tools": "Y",
+        "aip": "Y"
+      },
+      "documented": "no",
+      "support": {
+        "binding": [
+          [
+            "ecommerce-catalog-service/internal/infrastructure/fxconfig/module.go:13",
+            "ecommerce-tenant-service-api/pkg/fxconfig/consumer.go:25"
+          ],
+          [
+            "ecommerce-catalog-service/internal/infrastructure/fxconfig/module.go:13",
+            "ecommerce-tenant-service-api/pkg/events/topics.go:11"
+          ],
+          [
+            "ecommerce-catalog-service/configs/config.e2e.yaml:17"
+          ],
+          [
+            "ecommerce-infrastructure/environments/local/values/ecommerce-catalog-service.yaml:38"
+          ]
+        ],
+        "documented": []
+      },
+      "partial": []
+    },
+    {
+      "row": 4,
+      "consumer": "ecommerce-image-service",
+      "topic": "tenant.tenant.events",
+      "crossing": "INBOUND",
+      "cells": {
+        "documents": "N",
+        "team_source": "Y",
+        "infrastructure": "Y",
+        "all_source": "Y",
+        "broker_tools": "Y",
+        "aip": "Y"
+      },
+      "documented": "no",
+      "support": {
+        "binding": [
+          [
+            "ecommerce-image-service/internal/infrastructure/fxconfig/module.go:36",
+            "ecommerce-tenant-service-api/pkg/fxconfig/consumer.go:25"
+          ],
+          [
+            "ecommerce-image-service/internal/infrastructure/fxconfig/module.go:36",
+            "ecommerce-tenant-service-api/pkg/events/topics.go:11"
+          ],
+          [
+            "ecommerce-infrastructure/environments/local/values/ecommerce-image-service.yaml:32"
+          ]
+        ],
+        "documented": []
+      },
+      "partial": []
+    },
+    {
+      "row": 5,
+      "consumer": "ecommerce-category-query-service",
+      "topic": "catalog.category.events",
+      "crossing": "OUTBOUND",
+      "cells": {
+        "documents": "P",
+        "team_source": "P",
+        "infrastructure": "Y",
+        "all_source": "Y",
+        "broker_tools": "Y",
+        "aip": "Y"
+      },
+      "documented": "partly",
+      "support": {
+        "binding": [
+          [
+            "ecommerce-infrastructure/environments/local/values/ecommerce-category-query-service.yaml:28"
+          ],
+          [
+            "ecommerce-category-query-service/configs/config.standalone.yaml:23"
+          ]
+        ],
+        "documented": []
+      },
+      "partial": [
+        "ecommerce-catalog-service-api/AGENTS.md:13",
+        "ecommerce-catalog-service/AGENTS.md:8",
+        "ecommerce-image-service-api/AGENTS.md:14-16",
+        "ecommerce-workspace/README.md:42",
+        "ecommerce-workspace/docs/architecture/platform-overview.md:43",
+        "ecommerce-workspace/docs/architecture/platform-overview.md:51"
+      ]
+    },
+    {
+      "row": 6,
+      "consumer": "ecommerce-product-query-service",
+      "topic": "catalog.attribute.events",
+      "crossing": "OUTBOUND",
+      "cells": {
+        "documents": "N",
+        "team_source": "P",
+        "infrastructure": "Y",
+        "all_source": "Y",
+        "broker_tools": "Y",
+        "aip": "Y"
+      },
+      "documented": "no",
+      "support": {
+        "binding": [
+          [
+            "ecommerce-infrastructure/environments/local/values/ecommerce-product-query-service.yaml:34"
+          ],
+          [
+            "ecommerce-product-query-service/configs/config.standalone.yaml:23"
+          ]
+        ],
+        "documented": []
+      },
+      "partial": [
+        "ecommerce-catalog-service-api/AGENTS.md:13",
+        "ecommerce-catalog-service/AGENTS.md:8",
+        "ecommerce-image-service-api/AGENTS.md:14-16",
+        "ecommerce-workspace/README.md:42"
+      ]
+    },
+    {
+      "row": 7,
+      "consumer": "ecommerce-category-query-service",
+      "topic": "catalog.attribute.events",
+      "crossing": "OUTBOUND",
+      "cells": {
+        "documents": "N",
+        "team_source": "P",
+        "infrastructure": "Y",
+        "all_source": "Y",
+        "broker_tools": "Y",
+        "aip": "Y"
+      },
+      "documented": "no",
+      "support": {
+        "binding": [
+          [
+            "ecommerce-infrastructure/environments/local/values/ecommerce-category-query-service.yaml:34"
+          ],
+          [
+            "ecommerce-category-query-service/configs/config.standalone.yaml:25"
+          ]
+        ],
+        "documented": []
+      },
+      "partial": [
+        "ecommerce-catalog-service-api/AGENTS.md:13",
+        "ecommerce-catalog-service/AGENTS.md:8",
+        "ecommerce-image-service-api/AGENTS.md:14-16",
+        "ecommerce-workspace/README.md:42"
+      ]
+    },
+    {
+      "row": 8,
+      "consumer": "ecommerce-product-query-service",
+      "topic": "tenant.tenant.events",
+      "crossing": "NONE",
+      "cells": {
+        "documents": "N",
+        "team_source": "P",
+        "infrastructure": "Y",
+        "all_source": "Y",
+        "broker_tools": "Y",
+        "aip": "Y"
+      },
+      "documented": "no",
+      "support": {
+        "binding": [
+          [
+            "ecommerce-product-query-service/internal/infrastructure/fxconfig/module.go:13",
+            "ecommerce-tenant-service-api/pkg/fxconfig/consumer.go:25"
+          ],
+          [
+            "ecommerce-product-query-service/internal/infrastructure/fxconfig/module.go:13",
+            "ecommerce-tenant-service-api/pkg/events/topics.go:11"
+          ],
+          [
+            "ecommerce-infrastructure/environments/local/values/ecommerce-product-query-service.yaml:40"
+          ]
+        ],
+        "documented": []
+      },
+      "partial": [
+        "ecommerce-workspace/README.md:45",
+        "ecommerce-workspace/AGENTS.md:80",
+        "ecommerce-tenant-service-api/AGENTS.md:33-36"
+      ]
+    },
+    {
+      "row": 9,
+      "consumer": "ecommerce-category-query-service",
+      "topic": "tenant.tenant.events",
+      "crossing": "NONE",
+      "cells": {
+        "documents": "N",
+        "team_source": "P",
+        "infrastructure": "Y",
+        "all_source": "Y",
+        "broker_tools": "Y",
+        "aip": "Y"
+      },
+      "documented": "no",
+      "support": {
+        "binding": [
+          [
+            "ecommerce-category-query-service/internal/infrastructure/fxconfig/module.go:13",
+            "ecommerce-tenant-service-api/pkg/fxconfig/consumer.go:25"
+          ],
+          [
+            "ecommerce-category-query-service/internal/infrastructure/fxconfig/module.go:13",
+            "ecommerce-tenant-service-api/pkg/events/topics.go:11"
+          ],
+          [
+            "ecommerce-infrastructure/environments/local/values/ecommerce-category-query-service.yaml:40"
+          ]
+        ],
+        "documented": []
+      },
+      "partial": [
+        "ecommerce-workspace/README.md:45",
+        "ecommerce-workspace/AGENTS.md:80",
+        "ecommerce-tenant-service-api/AGENTS.md:33-36"
+      ]
+    }
+  ],
+  "producers": {
+    "catalog.product.events": [
+      [
+        "ecommerce-catalog-service-api/pkg/events/topics.go:11"
+      ],
+      [
+        "ecommerce-image-service-api/pkg/events/topics.go:11"
+      ]
+    ],
+    "catalog.category.events": [
+      [
+        "ecommerce-catalog-service-api/pkg/events/topics.go:12"
+      ]
+    ],
+    "catalog.attribute.events": [
+      [
+        "ecommerce-catalog-service-api/pkg/events/topics.go:13"
+      ]
+    ],
+    "tenant.tenant.events": [
+      [
+        "ecommerce-tenant-service-api/pkg/events/topics.go:11"
+      ]
+    ]
+  }
+}

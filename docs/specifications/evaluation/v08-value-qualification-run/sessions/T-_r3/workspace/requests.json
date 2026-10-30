@@ -1,0 +1,35 @@
+[
+  {
+    "id": "R1",
+    "kind": "broker_consumer_groups",
+    "reason": "To establish which bindings are observed at runtime: please describe all consumer groups on Redpanda (rpk group list; rpk group describe <each group>), including members, the topics/partitions each group is attached to, committed offsets and lag."
+  },
+  {
+    "id": "R2",
+    "kind": "repository_access",
+    "repository": "ecommerce-product-query-service",
+    "reason": "The docs and READMEs say the product query service builds its read model from catalog Kafka events. I need its consumer configuration (topics, group ids, offset reset) to confirm which catalog topics it consumes across the new boundary."
+  },
+  {
+    "id": "R3",
+    "kind": "repository_access",
+    "repository": "ecommerce-category-query-service",
+    "reason": "The category query service is described as the CQRS read model for categories. I need its consumer configuration to confirm which catalog topics (catalog.category.events, maybe catalog.attribute.events or others) it consumes."
+  },
+  {
+    "id": "R4",
+    "kind": "repository_access",
+    "repository": "ecommerce-tenant-service",
+    "reason": "The tenant service produces tenant.tenant.events, which the catalog and image services consume (inbound). I need to confirm it is the only producer, and check whether it consumes or produces any catalog.* topic."
+  },
+  {
+    "id": "R5",
+    "kind": "other",
+    "reason": "Please send the deployed Kafka settings from the platform repository ecommerce-infrastructure/environments/local/values/ for ecommerce-catalog-service and ecommerce-image-service (and, for comparison, the product-query, category-query and tenant services): the kafka.brokers value, every kafka.consumers-config entry (name, topic, group-id, auto-offset-reset, enable-dlq, dlq-topic), and the file paths/line numbers. The values are not in my workspace and the source configs only cover standalone/e2e."
+  },
+  {
+    "id": "R6",
+    "kind": "other",
+    "reason": "Please list the topics on Redpanda with their configuration (rpk topic list; rpk topic describe <topic> for each catalog.*, tenant.*, *.dlq topic): partitions, replication factor, cleanup.policy, retention, and the current high-water marks. I need this to create matching topics on Kafka and to size the mirror. Also confirm that the Kafka container is still empty (kafka-topics.sh --list against localhost:19092)."
+  }
+]

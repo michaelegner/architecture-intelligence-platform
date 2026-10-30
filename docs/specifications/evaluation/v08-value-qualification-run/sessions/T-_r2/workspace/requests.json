@@ -1,0 +1,30 @@
+[
+  {
+    "id": "R1",
+    "kind": "broker_consumer_groups",
+    "reason": "Need every consumer group on Redpanda with its member topics, partition offsets and lag (rpk group list; rpk group describe <each group>), so I can see which services are attached to catalog.product.events, catalog.category.events, catalog.attribute.events, tenant.tenant.events and any *.dlq topics. These are the runtime bindings that cross the Catalog Management boundary."
+  },
+  {
+    "id": "R2",
+    "kind": "other",
+    "reason": "Need the Redpanda topic list with partition counts and configs (rpk topic list -d; rpk topic describe for catalog.*, tenant.tenant.events and any *.dlq topics), plus the kafka.* settings in ecommerce-infrastructure/environments/local/values/ecommerce-catalog-service.yaml and ecommerce-image-service.yaml (brokers, consumers-config, group-id, enable-dlq). Without these I can't size the MirrorMaker 2 allow-lists or pre-create matching topics on Kafka."
+  },
+  {
+    "id": "R3",
+    "kind": "repository_access",
+    "repository": "ecommerce-product-query-service",
+    "reason": "Docs say the product query service consumes ProductUpdated and ProductImagePromoted events (docs/architecture/product-update-flow.md). I need its consumer config to confirm which catalog topics it consumes and what group ids it uses."
+  },
+  {
+    "id": "R4",
+    "kind": "repository_access",
+    "repository": "ecommerce-category-query-service",
+    "reason": "Docs say the category query service builds projections from catalog events (docs/architecture/platform-overview.md). I need its consumer config to confirm which catalog topics (category, attribute, maybe product) it consumes."
+  },
+  {
+    "id": "R5",
+    "kind": "repository_access",
+    "repository": "ecommerce-tenant-service",
+    "reason": "Need to confirm that tenant-service produces tenant.tenant.events and to check whether it consumes any catalog.* topic. That would be an outbound binding."
+  }
+]
