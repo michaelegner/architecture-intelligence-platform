@@ -1,0 +1,133 @@
+{
+  "session": "F+_r3",
+  "status": "owner decisions applied; remaining items evidence-reviewed under the owner conditional GO of 2026-10-30",
+  "K6_K8": {
+    "K6.1": {
+      "verdict": "DIFFERENT",
+      "plan_items": [
+        "P03-mm2-config"
+      ],
+      "reason": "P03 disables checkpoints and group-offset sync (groups= empty); no hand-off mechanism at all.",
+      "basis": "evidence-reviewed"
+    },
+    "K6.2": {
+      "verdict": "MISSING",
+      "plan_items": [
+        "P08-start-on-kafka"
+      ],
+      "reason": "No offset hand-off: P08 states the tenant history is replayed from earliest and duplicates are expected.",
+      "basis": "evidence-reviewed"
+    },
+    "K8.1": {
+      "verdict": "MATCHED",
+      "plan_items": [
+        "P01-baseline",
+        "P02-create-kafka-topics",
+        "P03-mm2-config"
+      ],
+      "reason": "P01 requires Kafka empty; P02 creates the four topics before MM2 (P04); P03 has disjoint flows.",
+      "basis": "evidence-reviewed"
+    },
+    "K8.2": {
+      "verdict": "DIFFERENT",
+      "plan_items": [
+        "P03-mm2-config",
+        "P05-verify-flows"
+      ],
+      "reason": "P05 checks the tenant mirror caught up before P06 stops Catalog, but without group-offset sync.",
+      "basis": "evidence-reviewed"
+    },
+    "K8.3": {
+      "verdict": "DIFFERENT",
+      "plan_items": [
+        "P06-drain-and-stop"
+      ],
+      "reason": "P06 stops Catalog first and then waits for Image lag 0.",
+      "basis": "evidence-reviewed"
+    },
+    "K8.4": {
+      "verdict": "DIFFERENT",
+      "plan_items": [
+        "P08-start-on-kafka"
+      ],
+      "reason": "Zero attachment on Redpanda is checked only after the restart (P08b).",
+      "basis": "evidence-reviewed"
+    },
+    "K8.5": {
+      "verdict": "MISSING",
+      "plan_items": [],
+      "reason": "No pre-cut-over drain of the query groups.",
+      "basis": "evidence-reviewed"
+    },
+    "K8.6": {
+      "verdict": "MISSING",
+      "plan_items": [],
+      "reason": "There is no K6 hand-off to verify.",
+      "basis": "evidence-reviewed"
+    },
+    "K8.7": {
+      "verdict": "DIFFERENT",
+      "plan_items": [
+        "P04-start-mm2",
+        "P06-drain-and-stop"
+      ],
+      "reason": "P04 starts both flows before P06 stops the producers.",
+      "basis": "evidence-reviewed"
+    },
+    "K8.8": {
+      "verdict": "MATCHED",
+      "plan_items": [
+        "P08-start-on-kafka"
+      ],
+      "reason": "P08 restarts both, groups attached on Kafka and reaching lag 0.",
+      "basis": "evidence-reviewed"
+    },
+    "K8.9": {
+      "verdict": "MATCHED",
+      "plan_items": [
+        "P08-start-on-kafka",
+        "P09-outbound-check"
+      ],
+      "reason": "P09: deltas Kafka vs Redpanda must match once MM2 lag is 0 (catch-up), query groups past E1, functional test, repeated after; P08 lag 0 on Kafka.",
+      "basis": "evidence-reviewed"
+    }
+  },
+  "Q4": {
+    "verdict": "MATCHED",
+    "reason": "Each of the six crossing rows states the delivery the move must preserve and its flow direction (the K1-K4 requirement of the row). Note: the image-service row expects tenant history replayed from earliest, consistent with the missing K6 hand-off.",
+    "basis": "evidence-reviewed"
+  },
+  "Q5": {
+    "verdict": "DIFFERENT",
+    "coverage": {
+      "a: an attachment does not establish event handling": "statement [1]",
+      "b: a capture is one point in time and one broker scope": "statement [1]",
+      "c: a producer is known from source or a declaration, not observed": "statement [2]",
+      "d: a missing document does not mean a missing binding": "not stated"
+    },
+    "reason": "Not stated: d: a missing document does not mean a missing binding. Rule applied: MATCHED only when all four key statements are present (my reading of spec \u00a75.2; the owner decides).",
+    "basis": "evidence-reviewed"
+  },
+  "claims": {
+    "U2:answers.q5[1]:An attachment shows only that a group is assigned a topic, not which event types the service handles.": {
+      "verdict": "NOT_A_CLAIM",
+      "reason": "Negated.",
+      "basis": "evidence-reviewed"
+    },
+    "U2:answers.q5[5]:Tenant-event handlers in the moved services will replay the tenant history on Kafka.": {
+      "verdict": "NOT_A_CLAIM",
+      "reason": "A consequence of the plan (tenant history replayed from earliest); its evidence (product-update-flow.md:43-45, reasoning) is not about tenant handlers, and it states no handled event type.",
+      "basis": "evidence-reviewed"
+    },
+    "U5:plan.md:in AIP: observed, but not declared.": {
+      "verdict": "NOT_A_CLAIM",
+      "reason": "States the AIP status; no conclusion that the binding is not used.",
+      "basis": "evidence-reviewed"
+    },
+    "U5:answers.q5[1]:Also verify that the two Redpanda groups that become idle are not used by anything else.": {
+      "verdict": "NOT_A_CLAIM",
+      "reason": "A check to run.",
+      "basis": "evidence-reviewed"
+    }
+  }
+}

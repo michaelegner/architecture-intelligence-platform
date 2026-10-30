@@ -1,0 +1,491 @@
+{
+  "problems": [],
+  "settings": {
+    "F+ vs F-": {
+      "context": {
+        "F+": {
+          "K1": "MATCHED",
+          "K2": "MATCHED",
+          "K3": "MATCHED",
+          "K4": "MATCHED",
+          "Q3-coverage": "MATCHED"
+        },
+        "F-": {
+          "K1": "MATCHED",
+          "K2": "MATCHED",
+          "K3": "MATCHED",
+          "K4": "MATCHED",
+          "Q3-coverage": "DIFFERENT"
+        }
+      },
+      "counts": {
+        "active_seconds": "NOT_DISTINGUISHABLE",
+        "output_tokens": "NOT_DISTINGUISHABLE",
+        "requests": "NOT_DISTINGUISHABLE",
+        "tool_calls_attempted": "NOT_DISTINGUISHABLE",
+        "tool_calls_received": "NOT_DISTINGUISHABLE",
+        "unsupported_claims": "NOT_DISTINGUISHABLE"
+      },
+      "items": {
+        "K1": "EQUAL",
+        "K2": "EQUAL",
+        "K3": "EQUAL",
+        "K4": "EQUAL",
+        "K5": "EQUAL",
+        "K6": "NOT_DISTINGUISHABLE",
+        "K7": "EQUAL",
+        "K8": "NOT_DISTINGUISHABLE",
+        "Q1": "EQUAL",
+        "Q2": "EQUAL",
+        "Q3-calibration": "EQUAL",
+        "Q3-coverage": "BETTER",
+        "Q4": "NOT_DISTINGUISHABLE",
+        "Q5": "NOT_DISTINGUISHABLE"
+      }
+    },
+    "T+ vs T-": {
+      "context": {
+        "T+": {
+          "K1": "MATCHED",
+          "K2": "MATCHED",
+          "K3": "MATCHED",
+          "K4": "MATCHED",
+          "Q3-coverage": "MATCHED"
+        },
+        "T-": {
+          "K1": "MATCHED",
+          "K2": "MATCHED",
+          "K3": "MATCHED",
+          "K4": "MATCHED",
+          "Q3-coverage": "MATCHED"
+        }
+      },
+      "counts": {
+        "active_seconds": "NOT_DISTINGUISHABLE",
+        "output_tokens": "NOT_DISTINGUISHABLE",
+        "requests": "BETTER",
+        "tool_calls_attempted": "NOT_DISTINGUISHABLE",
+        "tool_calls_received": "NOT_DISTINGUISHABLE",
+        "unsupported_claims": "NOT_DISTINGUISHABLE"
+      },
+      "items": {
+        "K1": "EQUAL",
+        "K2": "EQUAL",
+        "K3": "EQUAL",
+        "K4": "EQUAL",
+        "K5": "EQUAL",
+        "K6": "NOT_DISTINGUISHABLE",
+        "K7": "NOT_DISTINGUISHABLE",
+        "K8": "NOT_DISTINGUISHABLE",
+        "Q1": "EQUAL",
+        "Q2": "EQUAL",
+        "Q3-calibration": "EQUAL",
+        "Q3-coverage": "EQUAL",
+        "Q4": "NOT_DISTINGUISHABLE",
+        "Q5": "NOT_DISTINGUISHABLE"
+      }
+    }
+  },
+  "types": {
+    "F+": {
+      "counts": {
+        "active_seconds": [
+          326,
+          460,
+          380
+        ],
+        "output_tokens": [
+          34095,
+          41635,
+          34519
+        ],
+        "requests": [
+          null,
+          null,
+          null
+        ],
+        "tool_calls_attempted": [
+          26,
+          36,
+          29
+        ],
+        "tool_calls_received": [
+          23,
+          33,
+          25
+        ],
+        "unsupported_claims": [
+          1,
+          1,
+          1
+        ]
+      },
+      "items": {
+        "K1": "MATCHED",
+        "K2": "MATCHED",
+        "K3": "MATCHED",
+        "K4": "MATCHED",
+        "K5": "MATCHED",
+        "K6": "PENDING_OWNER",
+        "K7": "MATCHED",
+        "K8": "PENDING_OWNER",
+        "Q1": "MATCHED",
+        "Q2": "MATCHED",
+        "Q3-calibration": "MATCHED",
+        "Q3-coverage": "MATCHED",
+        "Q4": "PENDING_OWNER",
+        "Q5": "PENDING_OWNER"
+      },
+      "runs": [
+        {
+          "K1": "MATCHED",
+          "K2": "MATCHED",
+          "K3": "MATCHED",
+          "K4": "MATCHED",
+          "K5": "MATCHED",
+          "K6": "PENDING_OWNER",
+          "K7": "MATCHED",
+          "K8": "PENDING_OWNER",
+          "Q1": "MATCHED",
+          "Q2": "MATCHED",
+          "Q3-calibration": "MATCHED",
+          "Q3-coverage": "DIFFERENT",
+          "Q4": "PENDING_OWNER",
+          "Q5": "PENDING_OWNER"
+        },
+        {
+          "K1": "MATCHED",
+          "K2": "MATCHED",
+          "K3": "MATCHED",
+          "K4": "MATCHED",
+          "K5": "MATCHED",
+          "K6": "PENDING_OWNER",
+          "K7": "MATCHED",
+          "K8": "PENDING_OWNER",
+          "Q1": "MATCHED",
+          "Q2": "MATCHED",
+          "Q3-calibration": "MATCHED",
+          "Q3-coverage": "MATCHED",
+          "Q4": "PENDING_OWNER",
+          "Q5": "PENDING_OWNER"
+        },
+        {
+          "K1": "MATCHED",
+          "K2": "MATCHED",
+          "K3": "MATCHED",
+          "K4": "MATCHED",
+          "K5": "MATCHED",
+          "K6": "PENDING_OWNER",
+          "K7": "MATCHED",
+          "K8": "PENDING_OWNER",
+          "Q1": "MATCHED",
+          "Q2": "MATCHED",
+          "Q3-calibration": "MATCHED",
+          "Q3-coverage": "MATCHED",
+          "Q4": "PENDING_OWNER",
+          "Q5": "PENDING_OWNER"
+        }
+      ]
+    },
+    "F-": {
+      "counts": {
+        "active_seconds": [
+          383,
+          380,
+          375
+        ],
+        "output_tokens": [
+          36911,
+          35119,
+          38115
+        ],
+        "requests": [
+          null,
+          null,
+          null
+        ],
+        "tool_calls_attempted": [
+          35,
+          34,
+          31
+        ],
+        "tool_calls_received": [
+          31,
+          29,
+          28
+        ],
+        "unsupported_claims": [
+          2,
+          4,
+          0
+        ]
+      },
+      "items": {
+        "K1": "MATCHED",
+        "K2": "MATCHED",
+        "K3": "MATCHED",
+        "K4": "MATCHED",
+        "K5": "MATCHED",
+        "K6": "PENDING_OWNER",
+        "K7": "MATCHED",
+        "K8": "PENDING_OWNER",
+        "Q1": "MATCHED",
+        "Q2": "MATCHED",
+        "Q3-calibration": "MATCHED",
+        "Q3-coverage": "DIFFERENT",
+        "Q4": "PENDING_OWNER",
+        "Q5": "PENDING_OWNER"
+      },
+      "runs": [
+        {
+          "K1": "MATCHED",
+          "K2": "MATCHED",
+          "K3": "MATCHED",
+          "K4": "MATCHED",
+          "K5": "MATCHED",
+          "K6": "PENDING_OWNER",
+          "K7": "MATCHED",
+          "K8": "PENDING_OWNER",
+          "Q1": "MATCHED",
+          "Q2": "MATCHED",
+          "Q3-calibration": "MATCHED",
+          "Q3-coverage": "DIFFERENT",
+          "Q4": "PENDING_OWNER",
+          "Q5": "PENDING_OWNER"
+        },
+        {
+          "K1": "MATCHED",
+          "K2": "MATCHED",
+          "K3": "MATCHED",
+          "K4": "MATCHED",
+          "K5": "MATCHED",
+          "K6": "PENDING_OWNER",
+          "K7": "MATCHED",
+          "K8": "PENDING_OWNER",
+          "Q1": "MATCHED",
+          "Q2": "MATCHED",
+          "Q3-calibration": "MATCHED",
+          "Q3-coverage": "DIFFERENT",
+          "Q4": "PENDING_OWNER",
+          "Q5": "PENDING_OWNER"
+        },
+        {
+          "K1": "MATCHED",
+          "K2": "MATCHED",
+          "K3": "MATCHED",
+          "K4": "MATCHED",
+          "K5": "MATCHED",
+          "K6": "PENDING_OWNER",
+          "K7": "MATCHED",
+          "K8": "PENDING_OWNER",
+          "Q1": "MATCHED",
+          "Q2": "MATCHED",
+          "Q3-calibration": "DIFFERENT",
+          "Q3-coverage": "DIFFERENT",
+          "Q4": "PENDING_OWNER",
+          "Q5": "PENDING_OWNER"
+        }
+      ]
+    },
+    "T+": {
+      "counts": {
+        "active_seconds": [
+          432,
+          281,
+          370
+        ],
+        "output_tokens": [
+          37852,
+          28740,
+          34582
+        ],
+        "requests": [
+          2,
+          0,
+          2
+        ],
+        "tool_calls_attempted": [
+          38,
+          14,
+          29
+        ],
+        "tool_calls_received": [
+          34,
+          13,
+          25
+        ],
+        "unsupported_claims": [
+          0,
+          1,
+          4
+        ]
+      },
+      "items": {
+        "K1": "MATCHED",
+        "K2": "MATCHED",
+        "K3": "MATCHED",
+        "K4": "MATCHED",
+        "K5": "MATCHED",
+        "K6": "PENDING_OWNER",
+        "K7": "NOT_SCORED",
+        "K8": "PENDING_OWNER",
+        "Q1": "MATCHED",
+        "Q2": "MATCHED",
+        "Q3-calibration": "MATCHED",
+        "Q3-coverage": "MATCHED",
+        "Q4": "PENDING_OWNER",
+        "Q5": "PENDING_OWNER"
+      },
+      "runs": [
+        {
+          "K1": "MATCHED",
+          "K2": "MATCHED",
+          "K3": "MATCHED",
+          "K4": "MATCHED",
+          "K5": "MATCHED",
+          "K6": "PENDING_OWNER",
+          "K7": "NOT_SCORED",
+          "K8": "PENDING_OWNER",
+          "Q1": "MATCHED",
+          "Q2": "MATCHED",
+          "Q3-calibration": "MATCHED",
+          "Q3-coverage": "MATCHED",
+          "Q4": "PENDING_OWNER",
+          "Q5": "PENDING_OWNER"
+        },
+        {
+          "K1": "MATCHED",
+          "K2": "MATCHED",
+          "K3": "MATCHED",
+          "K4": "MATCHED",
+          "K5": "MATCHED",
+          "K6": "PENDING_OWNER",
+          "K7": "NOT_SCORED",
+          "K8": "PENDING_OWNER",
+          "Q1": "MATCHED",
+          "Q2": "MATCHED",
+          "Q3-calibration": "MATCHED",
+          "Q3-coverage": "DIFFERENT",
+          "Q4": "PENDING_OWNER",
+          "Q5": "PENDING_OWNER"
+        },
+        {
+          "K1": "MATCHED",
+          "K2": "MATCHED",
+          "K3": "MATCHED",
+          "K4": "MATCHED",
+          "K5": "MATCHED",
+          "K6": "PENDING_OWNER",
+          "K7": "NOT_SCORED",
+          "K8": "PENDING_OWNER",
+          "Q1": "MATCHED",
+          "Q2": "MATCHED",
+          "Q3-calibration": "MATCHED",
+          "Q3-coverage": "MATCHED",
+          "Q4": "PENDING_OWNER",
+          "Q5": "PENDING_OWNER"
+        }
+      ]
+    },
+    "T-": {
+      "counts": {
+        "active_seconds": [
+          452,
+          283,
+          330
+        ],
+        "output_tokens": [
+          17869,
+          27919,
+          34825
+        ],
+        "requests": [
+          5,
+          5,
+          6
+        ],
+        "tool_calls_attempted": [
+          32,
+          29,
+          43
+        ],
+        "tool_calls_received": [
+          29,
+          26,
+          39
+        ],
+        "unsupported_claims": [
+          4,
+          5,
+          3
+        ]
+      },
+      "items": {
+        "K1": "MATCHED",
+        "K2": "MATCHED",
+        "K3": "MATCHED",
+        "K4": "MATCHED",
+        "K5": "MATCHED",
+        "K6": "PENDING_OWNER",
+        "K7": "NOT_SCORED",
+        "K8": "PENDING_OWNER",
+        "Q1": "MATCHED",
+        "Q2": "MATCHED",
+        "Q3-calibration": "MATCHED",
+        "Q3-coverage": "MATCHED",
+        "Q4": "PENDING_OWNER",
+        "Q5": "PENDING_OWNER"
+      },
+      "runs": [
+        {
+          "K1": "MATCHED",
+          "K2": "MATCHED",
+          "K3": "MATCHED",
+          "K4": "MATCHED",
+          "K5": "MATCHED",
+          "K6": "PENDING_OWNER",
+          "K7": "NOT_SCORED",
+          "K8": "PENDING_OWNER",
+          "Q1": "MATCHED",
+          "Q2": "MATCHED",
+          "Q3-calibration": "MATCHED",
+          "Q3-coverage": "MATCHED",
+          "Q4": "PENDING_OWNER",
+          "Q5": "PENDING_OWNER"
+        },
+        {
+          "K1": "MATCHED",
+          "K2": "MATCHED",
+          "K3": "MATCHED",
+          "K4": "MATCHED",
+          "K5": "MATCHED",
+          "K6": "PENDING_OWNER",
+          "K7": "NOT_SCORED",
+          "K8": "PENDING_OWNER",
+          "Q1": "MATCHED",
+          "Q2": "MATCHED",
+          "Q3-calibration": "MATCHED",
+          "Q3-coverage": "DIFFERENT",
+          "Q4": "PENDING_OWNER",
+          "Q5": "PENDING_OWNER"
+        },
+        {
+          "K1": "MATCHED",
+          "K2": "MATCHED",
+          "K3": "MATCHED",
+          "K4": "MATCHED",
+          "K5": "MATCHED",
+          "K6": "PENDING_OWNER",
+          "K7": "NOT_SCORED",
+          "K8": "PENDING_OWNER",
+          "Q1": "MATCHED",
+          "Q2": "MATCHED",
+          "Q3-calibration": "MATCHED",
+          "Q3-coverage": "MATCHED",
+          "Q4": "PENDING_OWNER",
+          "Q5": "PENDING_OWNER"
+        }
+      ]
+    }
+  }
+}

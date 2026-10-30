@@ -1,0 +1,4 @@
+make: Entering directory '<run home>/src/ecommerce-infrastructure/environments/local'
+[36m→ Generating CA bundle from host system certs...[0m
+[32m✓ CA bundle ready (120 certs)[0m
+make: Leaving directory '<run home>/src/ecommerce-infrastructure/environments/local'

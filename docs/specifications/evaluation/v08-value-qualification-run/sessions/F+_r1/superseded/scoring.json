@@ -1,0 +1,845 @@
+{
+  "claims": {
+    "candidates": [
+      {
+        "id": "U2:plan.md:Handler",
+        "keyword": "handler",
+        "proposal": {
+          "reason": "`handler`: Does the text state which events a consumer handles, or how, with no source reference?",
+          "verdict": "UNSUPPORTED"
+        },
+        "rule": "U2",
+        "statement": "Handler",
+        "where": "plan.md"
+      },
+      {
+        "id": "U2:answers.q5[0]:The broker evidence shows that groups are assigned to topics, not which event types each handler processes or whether handlers are idempotent.",
+        "keyword": "processes",
+        "proposal": {
+          "reason": "a negated statement",
+          "verdict": "NOT_A_CLAIM"
+        },
+        "rule": "U2",
+        "statement": "The broker evidence shows that groups are assigned to topics, not which event types each handler processes or whether handlers are idempotent.",
+        "where": "answers.q5[0]"
+      },
+      {
+        "id": "U5:answers.q4[3]:The binding is undeclared in the event catalog and absent from the docs, so a plan built from documentation alone would drop it.",
+        "keyword": "undeclared",
+        "proposal": {
+          "reason": "`undeclared`: Does the text conclude from a missing declaration that a binding is not promised or not used?",
+          "verdict": "UNSUPPORTED"
+        },
+        "rule": "U5",
+        "statement": "The binding is undeclared in the event catalog and absent from the docs, so a plan built from documentation alone would drop it.",
+        "where": "answers.q4[3]"
+      },
+      {
+        "id": "U5:answers.q4[5]:The binding is undocumented and undeclared, observed only on the broker.",
+        "keyword": "undeclared",
+        "proposal": {
+          "reason": "`undeclared`: Does the text conclude from a missing declaration that a binding is not promised or not used?",
+          "verdict": "UNSUPPORTED"
+        },
+        "rule": "U5",
+        "statement": "The binding is undocumented and undeclared, observed only on the broker.",
+        "where": "answers.q4[5]"
+      }
+    ],
+    "claims": [
+      {
+        "id": "answers.q2:binding:ecommerce-catalog-service|tenant.tenant.events",
+        "pair": [
+          "ecommerce-catalog-service",
+          "tenant.tenant.events"
+        ],
+        "partial": [],
+        "proposal": null,
+        "status": "SUPPORTED",
+        "type": "binding",
+        "unresolved": [],
+        "where": "answers.q2"
+      },
+      {
+        "id": "answers.q2:direction:ecommerce-catalog-service|tenant.tenant.events",
+        "pair": [
+          "ecommerce-catalog-service",
+          "tenant.tenant.events"
+        ],
+        "partial": [],
+        "proposal": null,
+        "status": "SUPPORTED",
+        "type": "direction",
+        "unresolved": [],
+        "where": "answers.q2"
+      },
+      {
+        "id": "answers.q2:binding:ecommerce-image-service|tenant.tenant.events",
+        "pair": [
+          "ecommerce-image-service",
+          "tenant.tenant.events"
+        ],
+        "partial": [],
+        "proposal": null,
+        "status": "SUPPORTED",
+        "type": "binding",
+        "unresolved": [],
+        "where": "answers.q2"
+      },
+      {
+        "id": "answers.q2:direction:ecommerce-image-service|tenant.tenant.events",
+        "pair": [
+          "ecommerce-image-service",
+          "tenant.tenant.events"
+        ],
+        "partial": [],
+        "proposal": null,
+        "status": "SUPPORTED",
+        "type": "direction",
+        "unresolved": [],
+        "where": "answers.q2"
+      },
+      {
+        "id": "answers.q2:binding:ecommerce-product-query-service|catalog.product.events",
+        "pair": [
+          "ecommerce-product-query-service",
+          "catalog.product.events"
+        ],
+        "partial": [],
+        "proposal": null,
+        "status": "SUPPORTED",
+        "type": "binding",
+        "unresolved": [],
+        "where": "answers.q2"
+      },
+      {
+        "id": "answers.q2:direction:ecommerce-product-query-service|catalog.product.events",
+        "pair": [
+          "ecommerce-product-query-service",
+          "catalog.product.events"
+        ],
+        "partial": [],
+        "proposal": null,
+        "status": "SUPPORTED",
+        "type": "direction",
+        "unresolved": [],
+        "where": "answers.q2"
+      },
+      {
+        "id": "answers.q2:binding:ecommerce-product-query-service|catalog.attribute.events",
+        "pair": [
+          "ecommerce-product-query-service",
+          "catalog.attribute.events"
+        ],
+        "partial": [],
+        "proposal": null,
+        "status": "SUPPORTED",
+        "type": "binding",
+        "unresolved": [],
+        "where": "answers.q2"
+      },
+      {
+        "id": "answers.q2:direction:ecommerce-product-query-service|catalog.attribute.events",
+        "pair": [
+          "ecommerce-product-query-service",
+          "catalog.attribute.events"
+        ],
+        "partial": [],
+        "proposal": null,
+        "status": "SUPPORTED",
+        "type": "direction",
+        "unresolved": [],
+        "where": "answers.q2"
+      },
+      {
+        "id": "answers.q2:binding:ecommerce-category-query-service|catalog.category.events",
+        "pair": [
+          "ecommerce-category-query-service",
+          "catalog.category.events"
+        ],
+        "partial": [],
+        "proposal": null,
+        "status": "SUPPORTED",
+        "type": "binding",
+        "unresolved": [],
+        "where": "answers.q2"
+      },
+      {
+        "id": "answers.q2:direction:ecommerce-category-query-service|catalog.category.events",
+        "pair": [
+          "ecommerce-category-query-service",
+          "catalog.category.events"
+        ],
+        "partial": [],
+        "proposal": null,
+        "status": "SUPPORTED",
+        "type": "direction",
+        "unresolved": [],
+        "where": "answers.q2"
+      },
+      {
+        "id": "answers.q2:binding:ecommerce-category-query-service|catalog.attribute.events",
+        "pair": [
+          "ecommerce-category-query-service",
+          "catalog.attribute.events"
+        ],
+        "partial": [],
+        "proposal": null,
+        "status": "SUPPORTED",
+        "type": "binding",
+        "unresolved": [],
+        "where": "answers.q2"
+      },
+      {
+        "id": "answers.q2:direction:ecommerce-category-query-service|catalog.attribute.events",
+        "pair": [
+          "ecommerce-category-query-service",
+          "catalog.attribute.events"
+        ],
+        "partial": [],
+        "proposal": null,
+        "status": "SUPPORTED",
+        "type": "direction",
+        "unresolved": [],
+        "where": "answers.q2"
+      },
+      {
+        "id": "answers.q3:observed:ecommerce-catalog-service|tenant.tenant.events",
+        "pair": [
+          "ecommerce-catalog-service",
+          "tenant.tenant.events"
+        ],
+        "partial": [],
+        "proposal": null,
+        "status": "SUPPORTED",
+        "type": "observed",
+        "unresolved": [],
+        "where": "answers.q3"
+      },
+      {
+        "id": "answers.q3:observed:ecommerce-image-service|tenant.tenant.events",
+        "pair": [
+          "ecommerce-image-service",
+          "tenant.tenant.events"
+        ],
+        "partial": [],
+        "proposal": null,
+        "status": "SUPPORTED",
+        "type": "observed",
+        "unresolved": [],
+        "where": "answers.q3"
+      },
+      {
+        "id": "answers.q3:documented:ecommerce-product-query-service|catalog.product.events",
+        "pair": [
+          "ecommerce-product-query-service",
+          "catalog.product.events"
+        ],
+        "partial": [],
+        "proposal": null,
+        "status": "SUPPORTED",
+        "type": "documented",
+        "unresolved": [],
+        "where": "answers.q3"
+      },
+      {
+        "id": "answers.q3:observed:ecommerce-product-query-service|catalog.product.events",
+        "pair": [
+          "ecommerce-product-query-service",
+          "catalog.product.events"
+        ],
+        "partial": [],
+        "proposal": null,
+        "status": "SUPPORTED",
+        "type": "observed",
+        "unresolved": [],
+        "where": "answers.q3"
+      },
+      {
+        "id": "answers.q3:observed:ecommerce-product-query-service|catalog.attribute.events",
+        "pair": [
+          "ecommerce-product-query-service",
+          "catalog.attribute.events"
+        ],
+        "partial": [],
+        "proposal": null,
+        "status": "SUPPORTED",
+        "type": "observed",
+        "unresolved": [],
+        "where": "answers.q3"
+      },
+      {
+        "id": "answers.q3:documented:ecommerce-category-query-service|catalog.category.events",
+        "pair": [
+          "ecommerce-category-query-service",
+          "catalog.category.events"
+        ],
+        "partial": [
+          "ecommerce-workspace/docs/architecture/platform-overview.md:41-43",
+          "ecommerce-workspace/docs/architecture/platform-overview.md:51-51"
+        ],
+        "proposal": null,
+        "status": "PARTIAL",
+        "type": "documented",
+        "unresolved": [],
+        "where": "answers.q3"
+      },
+      {
+        "id": "answers.q3:observed:ecommerce-category-query-service|catalog.category.events",
+        "pair": [
+          "ecommerce-category-query-service",
+          "catalog.category.events"
+        ],
+        "partial": [],
+        "proposal": null,
+        "status": "SUPPORTED",
+        "type": "observed",
+        "unresolved": [],
+        "where": "answers.q3"
+      },
+      {
+        "id": "answers.q3:observed:ecommerce-category-query-service|catalog.attribute.events",
+        "pair": [
+          "ecommerce-category-query-service",
+          "catalog.attribute.events"
+        ],
+        "partial": [],
+        "proposal": null,
+        "status": "SUPPORTED",
+        "type": "observed",
+        "unresolved": [],
+        "where": "answers.q3"
+      },
+      {
+        "id": "plan.P05-start-mm2-inbound-flow:direction:*|tenant.tenant.events",
+        "pair": [
+          "*",
+          "tenant.tenant.events"
+        ],
+        "partial": [],
+        "proposal": null,
+        "status": "SUPPORTED",
+        "type": "direction",
+        "unresolved": [],
+        "where": "plan.P05-start-mm2-inbound-flow"
+      },
+      {
+        "id": "plan.P06-mm2-outbound-flow:direction:*|catalog.product.events",
+        "pair": [
+          "*",
+          "catalog.product.events"
+        ],
+        "partial": [],
+        "proposal": null,
+        "status": "SUPPORTED",
+        "type": "direction",
+        "unresolved": [
+          "catalog.category.events -> ecommerce-category-query-service, OUTBOUND, UNRESOLVED/PROMISE_COVERAGE_MISSING (attached, not declared in the catalog)",
+          "catalog.attribute.events -> ecommerce-category-query-service and ecommerce-product-query-service, OUTBOUND, UNRESOLVED/PROMISE_COVERAGE_MISSING"
+        ],
+        "where": "plan.P06-mm2-outbound-flow"
+      },
+      {
+        "id": "plan.P06-mm2-outbound-flow:direction:*|catalog.category.events",
+        "pair": [
+          "*",
+          "catalog.category.events"
+        ],
+        "partial": [],
+        "proposal": null,
+        "status": "SUPPORTED",
+        "type": "direction",
+        "unresolved": [
+          "catalog.product.events -> ecommerce-product-query-service, OUTBOUND, PROMISED_AND_OBSERVED",
+          "catalog.attribute.events -> ecommerce-category-query-service and ecommerce-product-query-service, OUTBOUND, UNRESOLVED/PROMISE_COVERAGE_MISSING"
+        ],
+        "where": "plan.P06-mm2-outbound-flow"
+      },
+      {
+        "id": "plan.P06-mm2-outbound-flow:direction:*|catalog.attribute.events",
+        "pair": [
+          "*",
+          "catalog.attribute.events"
+        ],
+        "partial": [],
+        "proposal": null,
+        "status": "SUPPORTED",
+        "type": "direction",
+        "unresolved": [
+          "catalog.product.events -> ecommerce-product-query-service, OUTBOUND, PROMISED_AND_OBSERVED",
+          "catalog.category.events -> ecommerce-category-query-service, OUTBOUND, UNRESOLVED/PROMISE_COVERAGE_MISSING (attached, not declared in the catalog)"
+        ],
+        "where": "plan.P06-mm2-outbound-flow"
+      }
+    ],
+    "count": 1,
+    "pending_owner": [
+      "U2:answers.q5[0]:The broker evidence shows that groups are assigned to topics, not which event types each handler processes or whether handlers are idempotent.",
+      "U2:plan.md:Handler",
+      "U5:answers.q4[3]:The binding is undeclared in the event catalog and absent from the docs, so a plan built from documentation alone would drop it.",
+      "U5:answers.q4[5]:The binding is undocumented and undeclared, observed only on the broker."
+    ],
+    "subjects": {
+      "ecommerce-category-query-service|catalog.category.events": [
+        "U3"
+      ]
+    },
+    "u4": []
+  },
+  "counts": {
+    "active_seconds": 326,
+    "output_tokens": 34095,
+    "requests": null,
+    "tool_calls_attempted": 26,
+    "tool_calls_received": 23,
+    "unsupported_claims": 1
+  },
+  "pending_owner": [
+    "K6.1",
+    "K6.2",
+    "K8.1",
+    "K8.2",
+    "K8.3",
+    "K8.4",
+    "K8.5",
+    "K8.6",
+    "K8.7",
+    "K8.8",
+    "K8.9",
+    "Q4",
+    "Q5",
+    "U2:answers.q5[0]:The broker evidence shows that groups are assigned to topics, not which event types each handler processes or whether handlers are idempotent.",
+    "U2:plan.md:Handler",
+    "U5:answers.q4[3]:The binding is undeclared in the event catalog and absent from the docs, so a plan built from documentation alone would drop it.",
+    "U5:answers.q4[5]:The binding is undocumented and undeclared, observed only on the broker."
+  ],
+  "plan": {
+    "extra": [
+      "P00-preflight",
+      "P01-record-live-state",
+      "P02-quiesce-moving-services",
+      "P03-create-kafka-topics",
+      "P04-mm2-config",
+      "P07-seed-kafka-group-offsets",
+      "P09-verify-attachments",
+      "P10-functional-check",
+      "P12-steady-state"
+    ],
+    "key_items": [
+      {
+        "id": "K1",
+        "in_allow_list": true,
+        "plan_items": [
+          "P05-start-mm2-inbound-flow"
+        ],
+        "verdict": "MATCHED"
+      },
+      {
+        "id": "K2",
+        "in_allow_list": true,
+        "plan_items": [
+          "P06-mm2-outbound-flow"
+        ],
+        "verdict": "MATCHED"
+      },
+      {
+        "id": "K3",
+        "in_allow_list": true,
+        "plan_items": [
+          "P06-mm2-outbound-flow"
+        ],
+        "verdict": "MATCHED"
+      },
+      {
+        "id": "K4",
+        "in_allow_list": true,
+        "plan_items": [
+          "P06-mm2-outbound-flow"
+        ],
+        "verdict": "MATCHED"
+      },
+      {
+        "basis": "PLAN_ONLY",
+        "id": "K5",
+        "plan_items": [],
+        "planned": {
+          "kafka->redpanda": [
+            "catalog.attribute.events",
+            "catalog.category.events",
+            "catalog.product.events"
+          ],
+          "redpanda->kafka": [
+            "tenant.tenant.events"
+          ]
+        },
+        "problems": [],
+        "verdict": "MATCHED"
+      },
+      {
+        "basis": "PLAN_ONLY",
+        "id": "K7",
+        "plan_items": [
+          "P08-switch-broker-config",
+          "P11-rollback"
+        ],
+        "problems": [],
+        "verdict": "MATCHED"
+      }
+    ],
+    "owner_judged": [
+      {
+        "candidates": [
+          "P00-preflight",
+          "P01-record-live-state",
+          "P02-quiesce-moving-services",
+          "P03-create-kafka-topics",
+          "P04-mm2-config",
+          "P07-seed-kafka-group-offsets",
+          "P09-verify-attachments",
+          "P10-functional-check",
+          "P12-steady-state"
+        ],
+        "check": "group-offset translation is configured for the two groups (MirrorMaker 2 checkpoints and group-offset sync)",
+        "id": "K6.1",
+        "plan_items": [],
+        "reason": null,
+        "verdict": "PENDING_OWNER"
+      },
+      {
+        "candidates": [
+          "P00-preflight",
+          "P01-record-live-state",
+          "P02-quiesce-moving-services",
+          "P03-create-kafka-topics",
+          "P04-mm2-config",
+          "P07-seed-kafka-group-offsets",
+          "P09-verify-attachments",
+          "P10-functional-check",
+          "P12-steady-state"
+        ],
+        "check": "per group and partition: the final committed offset on Redpanda equals a checkpoint's upstream offset, and the offset installed on Kafka equals that checkpoint's downstream offset, before the moved services start",
+        "id": "K6.2",
+        "plan_items": [],
+        "reason": null,
+        "verdict": "PENDING_OWNER"
+      },
+      {
+        "candidates": [
+          "P00-preflight",
+          "P01-record-live-state",
+          "P02-quiesce-moving-services",
+          "P03-create-kafka-topics",
+          "P04-mm2-config",
+          "P07-seed-kafka-group-offsets",
+          "P09-verify-attachments",
+          "P10-functional-check",
+          "P12-steady-state"
+        ],
+        "check": "before any mirror starts: the catalog topics exist empty on Kafka, and the allow-lists are disjoint",
+        "id": "K8.1",
+        "plan_items": [],
+        "reason": null,
+        "verdict": "PENDING_OWNER"
+      },
+      {
+        "candidates": [
+          "P00-preflight",
+          "P01-record-live-state",
+          "P02-quiesce-moving-services",
+          "P03-create-kafka-topics",
+          "P04-mm2-config",
+          "P07-seed-kafka-group-offsets",
+          "P09-verify-attachments",
+          "P10-functional-check",
+          "P12-steady-state"
+        ],
+        "check": "the Redpanda to Kafka mirror for the tenant topic is started, with group-offset sync for Catalog and Image, and replication is caught up before Catalog stops",
+        "id": "K8.2",
+        "plan_items": [],
+        "reason": null,
+        "verdict": "PENDING_OWNER"
+      },
+      {
+        "candidates": [
+          "P00-preflight",
+          "P01-record-live-state",
+          "P02-quiesce-moving-services",
+          "P03-create-kafka-topics",
+          "P04-mm2-config",
+          "P07-seed-kafka-group-offsets",
+          "P09-verify-attachments",
+          "P10-functional-check",
+          "P12-steady-state"
+        ],
+        "check": "Catalog stops only after Image has lag 0 on catalog.product.events",
+        "id": "K8.3",
+        "plan_items": [],
+        "reason": null,
+        "verdict": "PENDING_OWNER"
+      },
+      {
+        "candidates": [
+          "P00-preflight",
+          "P01-record-live-state",
+          "P02-quiesce-moving-services",
+          "P03-create-kafka-topics",
+          "P04-mm2-config",
+          "P07-seed-kafka-group-offsets",
+          "P09-verify-attachments",
+          "P10-functional-check",
+          "P12-steady-state"
+        ],
+        "check": "Image stops; both moved groups show zero live attachment on Redpanda",
+        "id": "K8.4",
+        "plan_items": [],
+        "reason": null,
+        "verdict": "PENDING_OWNER"
+      },
+      {
+        "candidates": [
+          "P00-preflight",
+          "P01-record-live-state",
+          "P02-quiesce-moving-services",
+          "P03-create-kafka-topics",
+          "P04-mm2-config",
+          "P07-seed-kafka-group-offsets",
+          "P09-verify-attachments",
+          "P10-functional-check",
+          "P12-steady-state"
+        ],
+        "check": "the remaining Redpanda consumers (Product Query, Category Query) are drained to lag 0 on the catalog topics",
+        "id": "K8.5",
+        "plan_items": [],
+        "reason": null,
+        "verdict": "PENDING_OWNER"
+      },
+      {
+        "candidates": [
+          "P00-preflight",
+          "P01-record-live-state",
+          "P02-quiesce-moving-services",
+          "P03-create-kafka-topics",
+          "P04-mm2-config",
+          "P07-seed-kafka-group-offsets",
+          "P09-verify-attachments",
+          "P10-functional-check",
+          "P12-steady-state"
+        ],
+        "check": "the offset hand-off of K6 is verified",
+        "id": "K8.6",
+        "plan_items": [],
+        "reason": null,
+        "verdict": "PENDING_OWNER"
+      },
+      {
+        "candidates": [
+          "P00-preflight",
+          "P01-record-live-state",
+          "P02-quiesce-moving-services",
+          "P03-create-kafka-topics",
+          "P04-mm2-config",
+          "P07-seed-kafka-group-offsets",
+          "P09-verify-attachments",
+          "P10-functional-check",
+          "P12-steady-state"
+        ],
+        "check": "the Kafka to Redpanda mirror for the catalog topics starts only after the producers have stopped and the drain is done",
+        "id": "K8.7",
+        "plan_items": [],
+        "reason": null,
+        "verdict": "PENDING_OWNER"
+      },
+      {
+        "candidates": [
+          "P00-preflight",
+          "P01-record-live-state",
+          "P02-quiesce-moving-services",
+          "P03-create-kafka-topics",
+          "P04-mm2-config",
+          "P07-seed-kafka-group-offsets",
+          "P09-verify-attachments",
+          "P10-functional-check",
+          "P12-steady-state"
+        ],
+        "check": "Catalog and Image start on Kafka, and both groups are Stable there",
+        "id": "K8.8",
+        "plan_items": [],
+        "reason": null,
+        "verdict": "PENDING_OWNER"
+      },
+      {
+        "candidates": [
+          "P00-preflight",
+          "P01-record-live-state",
+          "P02-quiesce-moving-services",
+          "P03-create-kafka-topics",
+          "P04-mm2-config",
+          "P07-seed-kafka-group-offsets",
+          "P09-verify-attachments",
+          "P10-functional-check",
+          "P12-steady-state"
+        ],
+        "check": "restart checks: replication caught up on the catalog mirror after new traffic; lag 0 for the consumers on both brokers; the functional test passes",
+        "id": "K8.9",
+        "plan_items": [],
+        "reason": null,
+        "verdict": "PENDING_OWNER"
+      }
+    ]
+  },
+  "questions": [
+    {
+      "boundary": "The Catalog Management bounded context (catalog-management) becomes a broker boundary. Its two services move to Apache Kafka. The query services and ecommerce-tenant-service stay on Redpanda. Every consumer x topic binding that crosses the context edge now also crosses brokers, and MirrorMaker 2 must carry it.",
+      "id": "Q1",
+      "services": [
+        "ecommerce-catalog-service",
+        "ecommerce-image-service"
+      ],
+      "verdict": "MATCHED"
+    },
+    {
+      "id": "Q2",
+      "missing": [],
+      "not_crossing_listed": [],
+      "verdict": "MATCHED",
+      "wrong_direction": []
+    },
+    {
+      "id": "Q3-calibration",
+      "observed_reach": true,
+      "rows": [
+        {
+          "calibrated": true,
+          "pair": [
+            "ecommerce-catalog-service",
+            "tenant.tenant.events"
+          ]
+        },
+        {
+          "calibrated": true,
+          "pair": [
+            "ecommerce-category-query-service",
+            "catalog.attribute.events"
+          ]
+        },
+        {
+          "calibrated": true,
+          "pair": [
+            "ecommerce-category-query-service",
+            "catalog.category.events"
+          ]
+        },
+        {
+          "calibrated": true,
+          "pair": [
+            "ecommerce-image-service",
+            "tenant.tenant.events"
+          ]
+        },
+        {
+          "calibrated": true,
+          "pair": [
+            "ecommerce-product-query-service",
+            "catalog.attribute.events"
+          ]
+        },
+        {
+          "calibrated": true,
+          "pair": [
+            "ecommerce-product-query-service",
+            "catalog.product.events"
+          ]
+        }
+      ],
+      "verdict": "MATCHED"
+    },
+    {
+      "covered": 5,
+      "id": "Q3-coverage",
+      "of": 6,
+      "rows": [
+        {
+          "covered": true,
+          "pair": [
+            "ecommerce-catalog-service",
+            "tenant.tenant.events"
+          ]
+        },
+        {
+          "covered": true,
+          "pair": [
+            "ecommerce-category-query-service",
+            "catalog.attribute.events"
+          ]
+        },
+        {
+          "covered": false,
+          "pair": [
+            "ecommerce-category-query-service",
+            "catalog.category.events"
+          ]
+        },
+        {
+          "covered": true,
+          "pair": [
+            "ecommerce-image-service",
+            "tenant.tenant.events"
+          ]
+        },
+        {
+          "covered": true,
+          "pair": [
+            "ecommerce-product-query-service",
+            "catalog.attribute.events"
+          ]
+        },
+        {
+          "covered": true,
+          "pair": [
+            "ecommerce-product-query-service",
+            "catalog.product.events"
+          ]
+        }
+      ],
+      "verdict": "DIFFERENT"
+    },
+    {
+      "id": "Q4",
+      "proposal": {
+        "candidates": {
+          "ecommerce-catalog-service|tenant.tenant.events": "TenantUpdated/TenantDeleted from ecommerce-tenant-service, which stays on Redpanda, must still reach catalog-service on Kafka. The move must keep mirroring redpanda->kafka in the same partition order and resume at the committed offset (1). Otherwise tenant events are either missed or replayed from earliest.",
+          "ecommerce-category-query-service|catalog.attribute.events": "AttributeUpdated events must still reach category-query on Redpanda through kafka->redpanda. The binding is undocumented and undeclared, observed only on the broker.",
+          "ecommerce-category-query-service|catalog.category.events": "CategoryUpdated events must still reach the category read model on Redpanda through kafka->redpanda, in order.",
+          "ecommerce-image-service|tenant.tenant.events": "The same as for catalog-service: tenant lifecycle events must still reach image-service on Kafka through the redpanda->kafka flow, and its group must resume at offset 1 instead of replaying.",
+          "ecommerce-product-query-service|catalog.attribute.events": "AttributeUpdated events must still reach product-query on Redpanda through kafka->redpanda. The binding is undeclared in the event catalog and absent from the docs, so a plan built from documentation alone would drop it.",
+          "ecommerce-product-query-service|catalog.product.events": "Both ProductUpdated (catalog-service) and ProductImagePromoted (image-service) must still reach the product read model on Redpanda through the kafka->redpanda flow, keeping per-key order from the single partition. Both producers must move together, so the topic never has producers on both brokers and never needs two-way mirroring. This is the documented storefront freshness path."
+        },
+        "reason": "a reason is given for every crossing row",
+        "verdict": "MATCHED"
+      },
+      "reason": null,
+      "verdict": "PENDING_OWNER"
+    },
+    {
+      "id": "Q5",
+      "proposal": {
+        "candidates": [
+          "An attachment is not event handling. The broker evidence shows that groups are assigned to topics, not which event types each handler processes or whether handlers are idempotent. Offset seeding avoids planned replays, but duplicates (MM2 is at-least-once) and gaps are not excluded. The move is not claimed to be lossless or exactly-once.",
+          "Producers are declared, never observed. That catalog-service and image-service are the only producers of the catalog.* topics comes from source and the AIP catalog, not from broker evidence. An unknown producer still writing catalog.* on Redpanda after the move would put producers on both brokers. Check Redpanda end offsets while catalog and image are scaled to 0.",
+          "The capture covers only its configured consumer groups at 2026-10-29T20:02:22Z. A consumer outside those groups (another tool, a non-service group) would not appear. rpk group list showed only the four service groups at planning time. Re-list the groups right before cutover.",
+          "Delivery between brokers is not established by any evidence yet. It must be verified after the move: Redpanda catalog.* log-end offsets advance when the functional test writes, product-query and category-query lag returns to 0, and tenant.tenant.events on Kafka keeps up with Redpanda.",
+          "The planning session could not list topics or images on the Kafka side (the command was denied). That Kafka is empty and that the apache/kafka image is present come from TASK.md only, and must be checked in preflight. MM2 behaviour with IdentityReplicationPolicy and heartbeats disabled on Kafka 4.1.2 is also not verified. Check that no heartbeats topic appears and that no topic flows in both directions.",
+          "Dead-letter topics are not covered. Consumers with enable-dlq write {topic}.dlq on their own broker. After the move, catalog and image would write tenant.tenant.events.dlq on Kafka, while the Redpanda services write it on Redpanda. No *.dlq topic exists today, and no consumer of DLQs was found. Mirroring the DLQ is left out deliberately. Confirm that nobody reads DLQs from one place.",
+          "Five of the six crossing bindings (both attribute bindings, the category binding and both tenant bindings; only product-query x catalog.product.events is promised) are attached but carry no promise in the event catalog (PROMISE_COVERAGE_MISSING). Catalog promises themselves are treated as confirmed only by an assumption. The documentation coverage in q3 is a reading of diagrams that name events, not topic strings.",
+          "Offsets on Redpanda catalog.* and on Kafka catalog.* diverge after the move: Kafka starts at 0, while mirrored records land on Redpanda after 120/4/20. Old Redpanda groups for catalog and image stay with stale offsets. Rollback relies on the image group on Redpanda re-reading the mirrored tail, so duplicates are possible."
+        ],
+        "reason": "keywords found for ['Q5.1', 'Q5.3']",
+        "verdict": "DIFFERENT"
+      },
+      "reason": null,
+      "verdict": "PENDING_OWNER"
+    }
+  ],
+  "requests": [],
+  "type": "F+"
+}

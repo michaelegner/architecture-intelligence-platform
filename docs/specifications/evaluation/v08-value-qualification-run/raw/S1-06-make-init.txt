@@ -1,0 +1,80 @@
+make: Entering directory '<run home>/src/ecommerce-infrastructure/environments/local'
+[36m→ Checking required tools...[0m
+  [32m✓ k3d[0m
+  [32m✓ kubectl[0m
+  [32m✓ tilt[0m
+  [32m✓ helm[0m
+  [32m✓ docker[0m
+  [32m✓ docker compose[0m
+[32m✓ All required tools are installed[0m
+[36m→ Creating cluster 'dev-cluster' from <run home>/src/ecommerce-infrastructure/environments/local/k3d-cluster.yaml[0m
+[36mINFO[0m[0000] Using config file <run home>/src/ecommerce-infrastructure/environments/local/k3d-cluster.yaml (k3d.io/v1alpha5#simple) 
+[36mINFO[0m[0000] portmapping '80:80' targets the loadbalancer: defaulting to [servers:*:proxy agents:*:proxy] 
+[36mINFO[0m[0000] portmapping '443:443' targets the loadbalancer: defaulting to [servers:*:proxy agents:*:proxy] 
+[36mINFO[0m[0000] Prep: Network                                
+[36mINFO[0m[0000] Created network 'shared-network'             
+[36mINFO[0m[0000] Created image volume k3d-dev-cluster-images  
+[36mINFO[0m[0000] Creating node 'dev-registry'                 
+[36mINFO[0m[0000] Successfully created registry 'dev-registry' 
+[36mINFO[0m[0000] Starting new tools node...                   
+[36mINFO[0m[0000] Starting node 'k3d-dev-cluster-tools'        
+[36mINFO[0m[0001] Creating node 'k3d-dev-cluster-server-0'     
+[36mINFO[0m[0001] Creating node 'k3d-dev-cluster-agent-0'      
+[36mINFO[0m[0001] Creating LoadBalancer 'k3d-dev-cluster-serverlb' 
+[36mINFO[0m[0001] Using the k3d-tools node to gather environment information 
+[36mINFO[0m[0002] Starting new tools node...                   
+[36mINFO[0m[0002] Starting node 'k3d-dev-cluster-tools'        
+[36mINFO[0m[0003] Starting cluster 'dev-cluster'               
+[36mINFO[0m[0003] Starting servers...                          
+[36mINFO[0m[0003] Starting node 'k3d-dev-cluster-server-0'     
+[36mINFO[0m[0009] Starting agents...                           
+[36mINFO[0m[0009] Starting node 'k3d-dev-cluster-agent-0'      
+[36mINFO[0m[0012] Starting helpers...                          
+[36mINFO[0m[0012] Starting node 'dev-registry'                 
+[36mINFO[0m[0012] Starting node 'k3d-dev-cluster-serverlb'     
+[36mINFO[0m[0019] Injecting records for hostAliases (incl. host.k3d.internal) and for 5 network members into CoreDNS configmap... 
+[36mINFO[0m[0022] Cluster 'dev-cluster' created successfully!  
+[36mINFO[0m[0022] You can now use it like this:                
+kubectl cluster-info
+[32m✓ Cluster created[0m
+Switched to context "k3d-dev-cluster".
+[32m✓ Local MCP kubeconfig written to <run home>/kube/mcp-local.kubeconfig[0m
+[36m→ Generating CA bundle from host system certs...[0m
+[32m✓ CA bundle ready (120 certs)[0m
+[36m→ Installing Traefik CRDs[0m
+Release "traefik-crds" does not exist. Installing it now.
+NAME: traefik-crds
+LAST DEPLOYED: Thu Oct 29 20:57:13 2026
+NAMESPACE: traefik
+STATUS: deployed
+REVISION: 1
+TEST SUITE: None
+[36m→ Installing Traefik[0m
+Release "traefik" does not exist. Installing it now.
+NAME: traefik
+LAST DEPLOYED: Thu Oct 29 20:57:17 2026
+NAMESPACE: traefik
+STATUS: deployed
+REVISION: 1
+TEST SUITE: None
+NOTES:
+traefik with docker.io/traefik:v3.5.1 has been deployed successfully on traefik namespace !
+[32m✓ Traefik installed[0m
+[36m→ Installing Grafana Alloy[0m
+Release "alloy" does not exist. Installing it now.
+NAME: alloy
+LAST DEPLOYED: Thu Oct 29 20:57:54 2026
+NAMESPACE: observability
+STATUS: deployed
+REVISION: 1
+TEST SUITE: None
+NOTES:
+Welcome to Grafana Alloy!
+[32m✓ Grafana Alloy installed[0m
+
+[32m✓ Development environment ready![0m
+
+[36mNext steps:[0m
+  - Run [32mmake dev[0m to start Tilt (services + infrastructure)
+  - Run [32mmake urls[0m to see all available service URLs
+make: Leaving directory '<run home>/src/ecommerce-infrastructure/environments/local'

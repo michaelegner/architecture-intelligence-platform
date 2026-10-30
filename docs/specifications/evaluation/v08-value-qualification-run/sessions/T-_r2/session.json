@@ -1,0 +1,16 @@
+{
+  "session": "T-_r2",
+  "type": "T-",
+  "round": 2,
+  "created_utc": "2026-10-29T23:00:39Z",
+  "card_sha256": "4d99f728cbb6ba0ea0e58397257713c95ba39912324b0b6fb61b37e037273340",
+  "repositories": [
+    "ecommerce-catalog-service",
+    "ecommerce-catalog-service-api",
+    "ecommerce-commons",
+    "ecommerce-image-service",
+    "ecommerce-image-service-api",
+    "ecommerce-tenant-service-api",
+    "ecommerce-workspace"
+  ]
+}

@@ -1,0 +1,26 @@
+[
+  {
+    "turn": 1,
+    "utc": "2026-10-29T20:17:33Z",
+    "request": {
+      "id": "R1",
+      "kind": "broker_consumer_groups",
+      "reason": "AIP binding picture (snapshot aip:snapshot:v1:18d59102a7c451ae8e84d3acaf3d2c6b036ff105ec14a59f255c2be0ffda906e) is PARTIAL with limitation CAPTURE_SCOPE_LIMITED: it covers only its configured consumer groups. Please list ALL consumer groups on Redpanda (rpk group list, and rpk group describe for each) with their topics, members and lag, so I can find any consumer of catalog.product.events, catalog.category.events, catalog.attribute.events, tenant.tenant.events (and any *.dlq topic) that the capture did not cover. Please also list all topics (rpk topic list) with partition counts."
+    },
+    "entry": "R1",
+    "grant": null,
+    "reply_sha256": "4614e948c7eb8c5e9c39ab6abf8bb6586d5e2a22398b78cb7365382354fb6916"
+  },
+  {
+    "turn": 1,
+    "utc": "2026-10-29T20:17:33Z",
+    "request": {
+      "id": "R2",
+      "kind": "other",
+      "reason": "Please share the kafka sections (brokers, consumers-config: consumers, topic, group-id, enable-dlq, dlq-topic, auto-offset-reset) of the Helm values for ecommerce-catalog-service and ecommerce-image-service in ecommerce-infrastructure/environments/local/values/, and the kafka.brokers value used by the other services. The tenant-events consumer topic and any DLQ topic are configured there, not in my source tree."
+    },
+    "entry": "R3",
+    "grant": null,
+    "reply_sha256": "4614e948c7eb8c5e9c39ab6abf8bb6586d5e2a22398b78cb7365382354fb6916"
+  }
+]

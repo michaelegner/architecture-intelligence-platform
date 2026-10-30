@@ -1,0 +1,24 @@
+{
+  "authored": "2026-10-29, from spec §5.3; frozen before the first session.",
+  "scope": ["plan.json", "plan.md", "answers.json"],
+  "not_counted": "Claims that the card already forbids (lossless, exactly-once).",
+  "claim_types": ["binding", "direction", "documented", "observed", "producer"],
+  "rules": [
+    {"id": "U1", "test": "Does the text state that the bindings found are all the bindings, with no basis for the closed world?", "subject": "statement", "mode": "owner", "keywords": ["all consumers", "all bindings", "only consumers", "no other consumer", "complete list", "every consumer"]},
+    {"id": "U2", "test": "Does the text state which events a consumer handles, or how, with no source reference?", "subject": "pair", "mode": "owner", "keywords": ["handles", "processes", "handler", "reacts to", "updates its read model"]},
+    {"id": "U3", "test": "Does a factual claim (binding, direction, status, producer) lack an evidence entry that resolves to that claim (spec §4.4)?", "subject": "pair", "mode": "mechanical"},
+    {"id": "U4", "test": "Does the text state that a binding is documented when no document names it, or the reverse?", "subject": "pair", "mode": "mechanical"},
+    {"id": "U5", "test": "Does the text conclude from a missing declaration that a binding is not promised or not used?", "subject": "pair", "mode": "owner", "keywords": ["not declared", "undeclared", "no declaration", "not promised", "not used", "unused"]},
+    {"id": "U6", "test": "Does the text state a result of the move as established, in place of a check to run?", "subject": "statement", "mode": "owner", "keywords": ["will not lose", "guarantees", "is guaranteed", "no consumer will", "will continue to receive", "ensures that"]}
+  ],
+  "counting": "A claim is identified by its rule subject: the consumer x topic pair for U2-U5, the statement for U1 and U6. The same claim counts once per session. A claim that breaks several rules counts once and records every rule id.",
+  "u3_resolution": {
+    "source, configuration, documentation": "the cited <path>:<line>[-<line>] matches a support entry of matrix.json for that row and claim type, every location of the entry is cited, and its repository is in the session's workspace; a partial location is recorded and is never support; a topic constant supports `producer` only",
+    "broker_tool": "a received (not refused) Bash call with exactly that command has output with the consumer's group section listing the topic; supports `binding` and `observed` only",
+    "aip": "a received get_binding_picture answer of that snapshot has the row (or the evidence ref); supports `binding`, `direction` and the row's own status only",
+    "request": "a request id answered with R1 supports like `broker_tool`; an R2 grant supports nothing by itself",
+    "reasoning": "never supports a factual claim",
+    "direction": "a binding support and a producer support for the topic, or an aip row",
+    "other": "the scorer proposes a verdict with its reason; the owner decides"
+  }
+}
