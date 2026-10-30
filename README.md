@@ -28,35 +28,22 @@ observed, and unresolved distinct instead of presenting assumptions as facts.
 
 ## The binding picture
 
-The [v0.8.0 showcase](docs/release-validation/v0.8.0-release-notes.md) uses
-[Sokol111](https://github.com/Sokol111/ecommerce-workspace), a distributed e-commerce system.
-Suppose a team moves **Catalog Management** from Redpanda to Apache Kafka. Which event
-relationships need examination before the move?
+**Before moving Catalog Management to Kafka, what else must keep working?**
 
-Sokol111's documents describe Catalog Management publishing events to Storefront. A frozen
-broker capture also shows Catalog consuming tenant events from Store Provisioning, which the
-generated EventCatalog does not cover. AIP combines the captured attachments, authored
-declarations, and context membership into a **nine-row binding picture**:
+In [Sokol111](https://github.com/Sokol111/ecommerce-workspace), the architecture documents
+show Catalog Management publishing events to Storefront. But the broker evidence reveals more:
+Catalog and Image are also attached to tenant events from Store Provisioning, and Storefront
+consumers are attached to attribute events. A migration planned from the documentation alone
+could overlook these connections.
 
-| Boundary view | Consumer attachment observed at T | AIP assessment |
-|---|---|---|
-| **Catalog Management → Storefront** | Product Query attached to `catalog.product.events` | `PROMISED_AND_OBSERVED` — matching demo catalog promise (`OUTBOUND`). |
-| **Store Provisioning → Catalog Management** | Catalog attached to `tenant.tenant.events` | `UNRESOLVED` — no matching catalog promise (`INBOUND`). |
+![AIP binding picture showing Catalog Management between Store Provisioning and Storefront: documented product events and additional tenant and attribute event consumer attachments revealed by broker evidence.](images/sokol111-binding-picture.svg)
 
-Across all nine rows, **2 are `PROMISED_AND_OBSERVED` and 7 are `UNRESOLVED`** for missing
-promise coverage. Not every row crosses the boundary: other rows are classified `INSIDE` or
-`NONE`. The answer is `PARTIAL` and its supporting evidence can be resolved at the same snapshot.
+**AIP makes the bigger picture visible before the change starts.** Its binding picture
+brings these cross-boundary relationships together, helping architects and coding agents see
+which other services to investigate and where their existing understanding may be incomplete.
 
-The [showcase report](docs/specifications/0.8.0/i4-evidence/report.html) records the
-before/after migration evidence. The [frozen input package](docs/specifications/0.8.0/i1-evidence/README.md)
-distinguishes real captures, authored declarations, and generated catalog entries.
-
-**Limits:** Boundary directions use authored producer declarations and context membership;
-producer traffic was not observed. Catalog entries count as confirmed owner promises only by an
-explicit *demonstration assumption*; owners are illustrative. A frozen consumer-group attachment
-does not prove event handling or delivery. The showcase demonstrates a binding picture,
-**not improved migration-planning quality**.
-
+[Explore the hosted binding picture](examples/pitstop-demo/TRY_IT_HOSTED.md) ·
+[Follow the v0.8 migration showcase](docs/release-validation/v0.8.0-release-notes.md)
 ## Try AIP
 
 <a id="connect-aip-to-your-coding-agent"></a>
