@@ -59,6 +59,9 @@ class Guards:
         self.second_page = disabled.get("second_page", False)
         self.binding_later_capture = disabled.get("binding_later_capture", False)
         self.binding_missing_entry = disabled.get("binding_missing_entry", False)
+        self.row_without_mapping = disabled.get("row_without_mapping", False)
+        self.row_without_time = disabled.get("row_without_time", False)
+        self.promise_on_unresolved = disabled.get("promise_on_unresolved", False)
         self.tools: frozenset[str] = verify.PUBLIC_TOOL_ALLOWLIST
         self.evidence_batches: list[list[str]] = []
         self.mcp_requests = 0
@@ -200,13 +203,17 @@ def _binding_picture_answer(request: dict, guards: Guards) -> dict:
             "outcome": "ANSWERED",
             "data": {"entries": entries[1:] if guards.binding_missing_entry else entries},
         }
+    # The real C1 shape: every row has one attachment and one mapping ref at T; only the two
+    # PROMISED_AND_OBSERVED rows (3 and 4) carry promise refs.
     rows = [
         {
             **row,
             "captured_at": verify.SOKOL111_CAPTURED_AT,
-            "promise_evidence_refs": [f"binding-evidence:p{i}"],
+            "promise_evidence_refs": (
+                [f"binding-evidence:p{i}"] if row["status"] == "PROMISED_AND_OBSERVED" else []
+            ),
             "attachment_evidence_refs": [f"binding-evidence:a{i}"],
-            "mapping_evidence_refs": [],
+            "mapping_evidence_refs": [f"binding-evidence:m{i}"],
         }
         for i, row in enumerate(verify.BINDING_PICTURE_ROWS)
     ]
@@ -214,6 +221,12 @@ def _binding_picture_answer(request: dict, guards: Guards) -> dict:
         rows[0]["crossing"] = "INSIDE"
     if guards.binding_later_capture:
         rows[3]["captured_at"] = "2026-10-21T17:56:03Z"
+    if guards.row_without_mapping:
+        rows[5]["mapping_evidence_refs"] = []
+    if guards.row_without_time:
+        del rows[5]["captured_at"]
+    if guards.promise_on_unresolved:
+        rows[0]["promise_evidence_refs"] = ["binding-evidence:p0"]
     codes = list(verify.BINDING_PICTURE_LIMITATIONS)
     if guards.missing_limitation:
         codes.remove("PROMISES_ASSUMED_CONFIRMED")
@@ -402,6 +415,10 @@ def test_the_sokol111_v08_profile_passes_on_a_correctly_gated_edge():
         ("second_page", "binding picture + evidence drill-down"),
         ("binding_later_capture", "binding picture + evidence drill-down"),
         ("binding_missing_entry", "binding picture + evidence drill-down"),
+        # per row, not as a union across rows (owner review of #668)
+        ("row_without_mapping", "binding picture + evidence drill-down"),
+        ("row_without_time", "binding picture + evidence drill-down"),
+        ("promise_on_unresolved", "binding picture + evidence drill-down"),
     ],
 )
 def test_the_sokol111_v08_profile_fails_when_its_guard_is_removed(guard, failing_check):
@@ -420,3 +437,10 @@ def test_local_app_skips_exactly_the_edge_checks():
 def test_local_app_still_runs_the_answer_checks():
     results = _run(Guards(wrong_crossing=True), profile="sokol111-v08", local_app=True)
     assert results["binding picture + evidence drill-down"] == verify.FAIL
+
+
+@pytest.mark.parametrize("url", ["https://mcp.daip.io/mcp", "http://10.0.0.5:8000/mcp"])
+def test_local_app_refuses_a_non_loopback_url(url):
+    with pytest.raises(SystemExit) as raised:
+        verify.main(["--url", url, "--profile", "sokol111-v08", "--local-app"])
+    assert raised.value.code == 2

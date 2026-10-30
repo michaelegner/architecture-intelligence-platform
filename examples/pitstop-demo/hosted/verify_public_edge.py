@@ -21,8 +21,9 @@ deployment edge. This script is the evidence that the edge does its job. Checks:
   `RESOLVED` with its `kind` and `evidence` (a frozen observation at T, not live use);
 - `--profile sokol111-v08`: the `sokol111` check, and `get_binding_picture` for the Catalog Management
   boundary answers `PARTIAL` with exactly the four frozen limitations and the nine frozen C1 rows
-  (docs/specifications/0.8.0/i2-vectors/c1-expected.json), one capture at T, and the same-snapshot
-  evidence drill-down resolves every ref;
+  (docs/specifications/0.8.0/i2-vectors/c1-expected.json), one capture at T; each row is observed at T
+  with its own attachment and mapping refs, and promise refs exactly on the `PROMISED_AND_OBSERVED` rows;
+  the same-snapshot evidence drill-down resolves every ref;
 - `get_api_consumer_usage` (no gateway source on either demo) and `get_destination_consumers` for an
   unknown Topic answer with a typed refusal; any evaluated answer there would be invented;
 - the import, ingest, query and unrelated routes are not reachable (any non-2xx, or a connection
@@ -32,8 +33,8 @@ deployment edge. This script is the evidence that the edge does its job. Checks:
   without it the check is SKIPPED, never inferred.
 
 `--local-app` is for a rehearsal against AIP itself, without the edge: the four edge checks (routes,
-Host, body size, rate limit) are SKIPPED, and every other check still runs. It never accepts a public
-deployment.
+Host, body size, rate limit) are SKIPPED, and every other check still runs. It accepts only a loopback
+`--url`, so it can never accept a public deployment.
 
 Exit code 0 only if no check FAILED. Stdlib only.
 """
@@ -426,9 +427,23 @@ def check_binding_picture_and_drilldown(url: str) -> tuple[str, str]:
     captures = [
         (c.get("broker_id"), c.get("captured_at")) for c in data.get("capture_sources") or []
     ]
-    times = {row["captured_at"] for row in rows if row.get("captured_at") is not None}
-    if captures != [(SOKOL111_BROKER, SOKOL111_CAPTURED_AT)] or times != {SOKOL111_CAPTURED_AT}:
-        return FAIL, f"captures {captures}, row capture times {sorted(times)}"
+    if captures != [(SOKOL111_BROKER, SOKOL111_CAPTURED_AT)]:
+        return FAIL, f"captures {captures}"
+    # Per row, not as a union: every frozen C1 row is an attachment observed at T with its mapping,
+    # and only the PROMISED_AND_OBSERVED rows carry promise evidence.
+    for row in rows:
+        promised = row["status"] == "PROMISED_AND_OBSERVED"
+        if (
+            row.get("captured_at") != SOKOL111_CAPTURED_AT
+            or not row.get("attachment_evidence_refs")
+            or not row.get("mapping_evidence_refs")
+            or bool(row.get("promise_evidence_refs")) != promised
+        ):
+            return FAIL, (
+                f"row {row['topic_name']} x {row['consumer_service_id']}: captured_at "
+                f"{row.get('captured_at')}, refs promise/attachment/mapping "
+                + "/".join(str(len(row.get(key) or [])) for key in _ROW_REF_FIELDS)
+            )
     refs = sorted({r for row in rows for key in _ROW_REF_FIELDS for r in row.get(key) or []})
     snapshot_id = (answer.get("snapshot") or {}).get("snapshot_id")
     if not refs or not snapshot_id:
@@ -513,6 +528,7 @@ def check_rate_limit(url: str, within: int | None) -> tuple[str, str]:
     return FAIL, f"no 429 within {within} requests"
 
 
+LOOPBACK_HOSTS = frozenset({"localhost", "127.0.0.1", "::1"})
 EDGE_CHECKS = frozenset(
     {
         "non-MCP routes closed",
@@ -598,7 +614,10 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
-    args = build_parser().parse_args(argv)
+    parser = build_parser()
+    args = parser.parse_args(argv)
+    if args.local_app and urllib.parse.urlsplit(args.url).hostname not in LOOPBACK_HOSTS:
+        parser.error("--local-app skips the edge checks, so it only accepts a loopback --url")
 
     results = run(args)
     for name, status, detail in results:
