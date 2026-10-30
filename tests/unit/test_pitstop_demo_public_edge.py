@@ -19,11 +19,12 @@ import pytest
 
 from app.architecture_intelligence.api_usage_contracts import REFUSAL_CODES_QUERY
 from app.architecture_intelligence.destination_consumer_contracts import REFUSAL_CODES
-from app.mcp.server import mcp_server
+from app.mcp.server import build_mcp_server, mcp_server
 from app.sources.owner_ids import topic_owned_id
 
 REPO = Path(__file__).resolve().parents[2]
 DEMO_DIR = REPO / "examples" / "pitstop-demo"
+C1_BINDING_PICTURE = REPO / "docs" / "specifications" / "0.8.0" / "i2-vectors" / "c1-expected.json"
 _spec = importlib.util.spec_from_file_location(
     "verify_public_edge", DEMO_DIR / "hosted" / "verify_public_edge.py"
 )
@@ -33,7 +34,7 @@ _spec.loader.exec_module(verify)
 
 HOST = "demo.example"
 BODY_CAP = 64 * 1024
-RATE_LIMIT = 8  # above the six MCP requests the earlier checks make
+RATE_LIMIT = 12  # above the MCP requests the earlier checks make (ten for sokol111-v08)
 
 
 class Guards:
@@ -51,6 +52,14 @@ class Guards:
         self.missing_entry = disabled.get("missing_entry", False)
         self.empty_evidence = disabled.get("empty_evidence", False)
         self.many_refs = disabled.get("many_refs", False)
+        self.no_binding_tool = disabled.get("no_binding_tool", False)
+        self.open_binding_route = disabled.get("open_binding_route", False)
+        self.wrong_crossing = disabled.get("wrong_crossing", False)
+        self.missing_limitation = disabled.get("missing_limitation", False)
+        self.second_page = disabled.get("second_page", False)
+        self.binding_later_capture = disabled.get("binding_later_capture", False)
+        self.binding_missing_entry = disabled.get("binding_missing_entry", False)
+        self.tools: frozenset[str] = verify.PUBLIC_TOOL_ALLOWLIST
         self.evidence_batches: list[list[str]] = []
         self.mcp_requests = 0
 
@@ -77,6 +86,8 @@ def _edge(guards: Guards) -> ThreadingHTTPServer:
             raw = self.rfile.read(length)
             if self.path.startswith("/api/import") and guards.open_import:
                 return self._send(200, {"runs": []})
+            if self.path.startswith("/api/binding-picture") and guards.open_binding_route:
+                return self._send(200, {})
             if self.path != "/mcp" or self.command != "POST":
                 return self._send(404)
             if not guards.any_host and self.headers.get("Host") != f"{HOST}":
@@ -93,10 +104,12 @@ def _edge(guards: Guards) -> ThreadingHTTPServer:
             if method == "initialize":
                 result: dict = {"protocolVersion": verify.PROTOCOL_VERSION}
             elif method == "tools/list":
-                names = set(verify.PUBLIC_TOOL_ALLOWLIST) | (
-                    {"import_graph"} if guards.extra_tool else set()
-                )
+                names = set(guards.tools) | ({"import_graph"} if guards.extra_tool else set())
+                if guards.no_binding_tool:
+                    names.discard("get_binding_picture")
                 result = {"tools": [{"name": name} for name in sorted(names)]}
+            elif message["params"]["name"] == "get_binding_picture":
+                result = {"structuredContent": _binding_picture_answer(args["request"], guards)}
             elif (
                 message["params"]["name"] == "get_destination_consumers"
                 and args["request"]["destination_id"] == verify.SOKOL111_TOPIC_ID
@@ -173,9 +186,59 @@ def _sokol111_answer(request: dict, guards: Guards) -> dict:
     }
 
 
+def _binding_picture_answer(request: dict, guards: Guards) -> dict:
+    """The frozen v0.8 C1 binding picture, as the hosted v0.8 instance answers it."""
+    if request["mode"] == "evidence":
+        refs = request["evidence_refs"]
+        assert len(refs) <= verify.MAX_EVIDENCE_REFS
+        assert request["snapshot_id"] == "aip:snapshot:v1:" + "2" * 64
+        entries = [
+            {"ref": ref, "status": "RESOLVED", "kind": "ATTACHMENT", "evidence": {"kind": "A"}}
+            for ref in refs
+        ]
+        return {
+            "outcome": "ANSWERED",
+            "data": {"entries": entries[1:] if guards.binding_missing_entry else entries},
+        }
+    rows = [
+        {
+            **row,
+            "captured_at": verify.SOKOL111_CAPTURED_AT,
+            "promise_evidence_refs": [f"binding-evidence:p{i}"],
+            "attachment_evidence_refs": [f"binding-evidence:a{i}"],
+            "mapping_evidence_refs": [],
+        }
+        for i, row in enumerate(verify.BINDING_PICTURE_ROWS)
+    ]
+    if guards.wrong_crossing:
+        rows[0]["crossing"] = "INSIDE"
+    if guards.binding_later_capture:
+        rows[3]["captured_at"] = "2026-10-21T17:56:03Z"
+    codes = list(verify.BINDING_PICTURE_LIMITATIONS)
+    if guards.missing_limitation:
+        codes.remove("PROMISES_ASSUMED_CONFIRMED")
+    return {
+        "outcome": "PARTIAL",
+        "snapshot": {"snapshot_id": "aip:snapshot:v1:" + "2" * 64},
+        "data": {
+            "capture_sources": [
+                {"broker_id": verify.SOKOL111_BROKER, "captured_at": verify.SOKOL111_CAPTURED_AT}
+            ],
+            "rows": rows,
+            "page": {"next_cursor": "next" if guards.second_page else None},
+        },
+        "limitations": [{"code": code} for code in codes],
+    }
+
+
 def _run(
-    guards: Guards, *, rate_limit: int | None = RATE_LIMIT + 1, profile: str = "pitstop"
+    guards: Guards,
+    *,
+    rate_limit: int | None = RATE_LIMIT + 1,
+    profile: str = "pitstop",
+    local_app: bool = False,
 ) -> dict[str, str]:
+    guards.tools = verify.PROFILE_TOOL_ALLOWLISTS[profile]
     server = _edge(guards)
     threading.Thread(target=server.serve_forever, daemon=True).start()
     try:
@@ -190,6 +253,8 @@ def _run(
         ]
         if rate_limit is not None:
             argv += ["--expect-429-within", str(rate_limit)]
+        if local_app:
+            argv.append("--local-app")
         args = verify.build_parser().parse_args(argv)
         # Host header: the stub only serves its own public name, as the real edge does.
         verify_host = HOST
@@ -210,6 +275,12 @@ def _run(
 def test_frozen_allowlist_is_the_live_registry():
     registered = {tool.name for tool in asyncio.run(mcp_server.list_tools())}
     assert verify.PUBLIC_TOOL_ALLOWLIST == registered
+
+
+def test_the_v08_allowlist_is_the_registry_with_the_binding_picture_flag():
+    flagged = build_mcp_server(binding_picture=True)
+    registered = {tool.name for tool in asyncio.run(flagged.list_tools())}
+    assert verify.PROFILE_TOOL_ALLOWLISTS["sokol111-v08"] == registered
 
 
 def test_copied_refusal_codes_match_the_contracts():
@@ -300,3 +371,52 @@ def test_the_sokol111_drilldown_resolves_more_than_twenty_refs_in_batches():
     results = _run(guards, rate_limit=None, profile="sokol111")
     assert results["Sokol111 consumers + evidence drill-down"] == verify.PASS, results
     assert [len(batch) for batch in guards.evidence_batches] == [20, 9]
+
+
+def test_the_binding_picture_constants_are_the_frozen_c1_vector():
+    expected = json.loads(C1_BINDING_PICTURE.read_text())
+    assert expected["request"] == verify.BINDING_PICTURE_CONTEXT
+    assert list(verify.BINDING_PICTURE_LIMITATIONS) == sorted(expected["limitations"])
+    rows = sorted(
+        expected["rows"],
+        key=lambda r: (r["broker_id"], r["topic_name"], r["consumer_service_id"]),
+    )
+    assert list(verify.BINDING_PICTURE_ROWS) == rows
+
+
+def test_the_sokol111_v08_profile_passes_on_a_correctly_gated_edge():
+    results = _run(Guards(), profile="sokol111-v08")
+    assert "Sokol111 consumers + evidence drill-down" in results
+    assert set(results.values()) == {verify.PASS}, results
+
+
+@pytest.mark.parametrize(
+    ("guard", "failing_check"),
+    [
+        # the v0.7.2 deployment: six tools, no binding picture (the before state)
+        ("no_binding_tool", "tool inventory (frozen allowlist)"),
+        ("extra_tool", "tool inventory (frozen allowlist)"),
+        ("open_binding_route", "non-MCP routes closed"),
+        ("wrong_crossing", "binding picture + evidence drill-down"),
+        ("missing_limitation", "binding picture + evidence drill-down"),
+        ("second_page", "binding picture + evidence drill-down"),
+        ("binding_later_capture", "binding picture + evidence drill-down"),
+        ("binding_missing_entry", "binding picture + evidence drill-down"),
+    ],
+)
+def test_the_sokol111_v08_profile_fails_when_its_guard_is_removed(guard, failing_check):
+    results = _run(Guards(**{guard: True}), profile="sokol111-v08")
+    assert {k for k, v in results.items() if v == verify.FAIL} == {failing_check}, results
+
+
+def test_local_app_skips_exactly_the_edge_checks():
+    """Without an edge every edge guard is absent; only the edge checks are skipped, never passed."""
+    guards = Guards(open_import=True, open_binding_route=True, any_host=True, no_body_cap=True)
+    results = _run(guards, profile="sokol111-v08", local_app=True)
+    assert {k for k, v in results.items() if v == verify.SKIPPED} == verify.EDGE_CHECKS
+    assert {v for k, v in results.items() if k not in verify.EDGE_CHECKS} == {verify.PASS}
+
+
+def test_local_app_still_runs_the_answer_checks():
+    results = _run(Guards(wrong_crossing=True), profile="sokol111-v08", local_app=True)
+    assert results["binding picture + evidence drill-down"] == verify.FAIL

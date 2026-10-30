@@ -9,6 +9,13 @@ aren't yet guaranteed stable pre-1.0.
 
 ## [Unreleased]
 
+### Changed
+
+- The public hosted instance (`https://mcp.daip.io/mcp`) serves the v0.8.0 image with the
+  experimental `get_binding_picture` tool (seven tools), on the frozen v0.8 Sokol111 C1 package
+  ([record](docs/release-validation/v0.8.0-hosted-record.md)). `verify_public_edge.py` has a new
+  `sokol111-v08` profile and a `--local-app` rehearsal mode.
+
 ### Security
 
 - The locality-capture harness lock (`harness/locality-capture/app/requirements.txt`) now pins

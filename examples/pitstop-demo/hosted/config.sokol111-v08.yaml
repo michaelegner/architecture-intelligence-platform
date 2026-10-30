@@ -1,0 +1,52 @@
+# Hosted AIP configuration for the v0.8 Sokol111 binding picture (v0.8 spec D11, deployed after the
+# release per D19). It is docs/specifications/0.8.0/i2-evidence/config.yaml (the I1 C1 profile plus
+# the EventCatalog registration and the experimental flag) plus the `mcp:` allow-list block of
+# docs/specifications/0.7.2/i2-evidence/sokol111/config.yaml (mcp.daip.io). The deployment copies the
+# frozen I1 package (docs/specifications/0.8.0/i1-evidence/, at the v0.8.0 tag) unchanged to
+# /app/sokol111-v08/ and mounts this file next to it, never inside it. The graph connection comes from
+# the deployment's NEO4J_* environment.
+architecture_intelligence:
+  sources:
+    directories:
+      - id: sokol111-declarations-sokol111-local
+        root: /app/sokol111-v08/declarations/sokol111-local
+    kafka_consumer_state:
+      - id: sokol111-kafka
+        root: /app/sokol111-v08/c1
+        broker_id: kafka:sokol111-local
+        environment: local
+        consumer_groups:
+          - ecommerce-catalog-service
+          - ecommerce-category-query-service
+          - ecommerce-image-service
+          - ecommerce-product-query-service
+    kafka_service_mappings:
+      - id: sokol111-mapping
+        root: /app/sokol111-v08/mapping/sokol111-local
+        broker_id: kafka:sokol111-local
+        environment: local
+    event_catalogs:
+      - id: sokol111-catalog
+        root: /app/sokol111-v08
+        environment: local
+  graph:
+    uri: bolt://localhost:7687
+    database: neo4j
+  import:
+    openapi: true
+    asyncapi: true
+    architecture_manifest: true
+  llm:
+    enabled: false
+  # v0.8 I2 D11: the experimental get_binding_picture tool and its REST routes.
+  experimental:
+    binding-picture: true
+  mcp:
+    allowed-hosts:
+      - "127.0.0.1:8000"
+      - "localhost:8000"
+      - "mcp.daip.io"
+    allowed-origins:
+      - "http://127.0.0.1:8000"
+      - "http://localhost:8000"
+      - "https://mcp.daip.io"
