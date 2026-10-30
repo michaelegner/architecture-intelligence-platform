@@ -83,6 +83,12 @@ def test_mcp_registry_server_json_agrees_with_package_version():
     assert server["websiteUrl"].endswith("#connect-aip-to-your-coding-agent")
 
 
-def test_server_json_website_anchor_points_at_an_existing_readme_heading():
+def test_server_json_website_anchor_points_at_hosted_mcp_demo():
+    server = json.loads((_REPO_ROOT / "server.json").read_text(encoding="utf-8"))
+    fragment = server["websiteUrl"].rsplit("#", 1)[-1]
     readme = (_REPO_ROOT / "README.md").read_text(encoding="utf-8")
-    assert "\n## Connect AIP to Your Coding Agent\n" in readme
+    anchor = f'<a id="{fragment}"></a>'
+    assert f"\n{anchor}\n" in readme
+    assert readme.index("\n## Try AIP\n") < readme.index(anchor) < readme.index(
+        "\n### Hosted MCP demo\n"
+    )
