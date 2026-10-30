@@ -21,6 +21,8 @@ architectural context that architects, engineering teams, and coding agents can 
 
 ## What is AIP?
 
+![How AIP works: architecture signals from repositories, API contracts, runtime and documentation flow into evidence-qualified binding pictures, current state and answers.](images/aip-how-it-works-hero.svg)
+
 **Repository and source-analysis tools** explain implementations an engineer or agent can
 inspect. **AIP complements them** with attributable architectural promises and independent
 evidence about relationships across autonomous boundaries. It keeps what is promised,
@@ -99,26 +101,7 @@ not re-qualified for v0.8.0.
 AIP combines independent sources **without treating declarations, observations, and promises
 as interchangeable**. It projects only what is relevant to a selected architectural question.
 
-```mermaid
-flowchart TB
-    C["OpenAPI · AsyncAPI · configuration"]
-    R["Runtime traces · broker captures"]
-    P["EventCatalog · attributable promises"]
-    B["Declared boundary membership"]
 
-    CS["Current State<br/>Qualified relationships"]
-    I["Intent<br/>Attributable promises"]
-    A["Assessment<br/>Agreement · unresolved"]
-    OUT["Binding picture<br/>Context · snapshot · evidence · limitations"]
-
-    C --> CS
-    R --> CS
-    P --> I
-    CS --> A
-    I --> A
-    B --> A
-    A --> OUT
-```
 
 AIP's deterministic architecture service uses Neo4j and makes qualified results available
 through read-only REST and MCP interfaces. **Six MCP tools are enabled by default**;
