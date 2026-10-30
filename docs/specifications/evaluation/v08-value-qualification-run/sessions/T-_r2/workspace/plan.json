@@ -1,0 +1,117 @@
+{
+  "items": [
+    {
+      "id": "P01-preflight-inputs",
+      "action": "Platform team runs rpk topic describe for catalog.product.events, catalog.category.events, catalog.attribute.events and tenant.tenant.events, and checks for any *.dlq topics. They also read the kafka settings in the local Helm values of both moved services. If partition counts, group ids, DLQ use or the broker key differ from this plan's assumptions, stop and report.",
+      "topics": ["catalog.product.events", "catalog.category.events", "catalog.attribute.events", "tenant.tenant.events"],
+      "services": ["ecommerce-catalog-service", "ecommerce-image-service"],
+      "evidence": [
+        {"kind": "request", "reference": "R2", "note": "not available in planning; must be obtained before execution"},
+        {"kind": "source", "reference": "src/ecommerce-commons/pkg/kafka/config/defaults.go:61-63", "note": "DLQ topics default to {topic}.dlq when enabled"}
+      ]
+    },
+    {
+      "id": "P02-preflight-clean-state",
+      "action": "Check that the Kafka broker has no user topics and no consumer groups, and that the image apache/kafka:4.1.2@sha256:5cc2a2fd... is in docker image ls --digests. Check that no container named mm2-catalog exists, and that neither broker has a topic named heartbeats, mm2-*, *.checkpoints.internal or mm2-offset-syncs.*. Record what exists; anything found was not created by us and must not be deleted. Stop if Kafka is not empty or the image is missing.",
+      "evidence": [
+        {"kind": "reasoning", "reference": "TASK.md: remove only what you created and check before deleting by name; use only local images."}
+      ]
+    },
+    {
+      "id": "P03-baseline",
+      "action": "Record the Redpanda log-end offsets of the four topics and the committed offsets of all four consumer groups as the baseline. R1 shows 120/4/20/1, all with lag 0.",
+      "topics": ["catalog.product.events", "catalog.category.events", "catalog.attribute.events", "tenant.tenant.events"],
+      "services": ["ecommerce-catalog-service", "ecommerce-image-service", "ecommerce-product-query-service", "ecommerce-category-query-service"],
+      "evidence": [{"kind": "request", "reference": "R1"}]
+    },
+    {
+      "id": "P04-create-kafka-topics",
+      "action": "On Kafka, create catalog.product.events, catalog.category.events and catalog.attribute.events with the same partition counts as on Redpanda (from P01), replication factor 1. tenant.tenant.events is created by MirrorMaker 2 in P06. Record the created names in a created-resources list.",
+      "topics": ["catalog.product.events", "catalog.category.events", "catalog.attribute.events"],
+      "evidence": [
+        {"kind": "source", "reference": "src/ecommerce-catalog-service-api/pkg/events/topics.go:11-13"},
+        {"kind": "source", "reference": "src/ecommerce-commons/pkg/kafka/consumer/fxconfig/consumer.go:70-75", "note": "consumers verify the topic exists at startup"},
+        {"kind": "reasoning", "reference": "Matching partition counts keep MM2's 1:1 partition mapping, so per-key order is preserved."}
+      ]
+    },
+    {
+      "id": "P05-mm2-config",
+      "action": "Write the dedicated MirrorMaker 2 config mm2/mm2-catalog.properties in the workspace. It defines two one-way flows with IdentityReplicationPolicy and disables heartbeats, topic config sync and ACL sync. The redpanda->kafka flow allows only tenant.tenant.events and syncs the offsets of groups ecommerce-catalog-service and ecommerce-image-service. The kafka->redpanda flow allows only the three catalog topics, with checkpoints and group sync off. The full content is in plan.md.",
+      "topics": ["tenant.tenant.events", "catalog.product.events", "catalog.category.events", "catalog.attribute.events"],
+      "files": [
+        {"path": "mm2/mm2-catalog.properties", "keys": ["clusters", "redpanda.bootstrap.servers", "kafka.bootstrap.servers", "replication.policy.class", "emit.heartbeats.enabled", "sync.topic.configs.enabled", "sync.topic.acls.enabled", "redpanda->kafka.enabled", "redpanda->kafka.topics", "redpanda->kafka.groups", "redpanda->kafka.sync.group.offsets.enabled", "kafka->redpanda.enabled", "kafka->redpanda.topics", "kafka->redpanda.groups.exclude", "kafka->redpanda.emit.checkpoints.enabled", "kafka->redpanda.sync.group.offsets.enabled"]}
+      ],
+      "evidence": [
+        {"kind": "reasoning", "reference": "IdentityReplicationPolicy keeps topic names unchanged, which the services require because they subscribe to literal names. It disables MM2 cycle detection, so the allow-lists must be disjoint and heartbeats off."},
+        {"kind": "source", "reference": "src/ecommerce-product-query-service/configs/config.standalone.yaml:21-23", "note": "consumers subscribe to literal topic names"}
+      ]
+    },
+    {
+      "id": "P06-flow-redpanda-to-kafka",
+      "action": "Start MirrorMaker 2 as container mm2-catalog on shared-network from the local Kafka image, with the config mounted from the workspace. Check that tenant.tenant.events exists on Kafka and that its log-end offset equals Redpanda's. Check that groups ecommerce-catalog-service and ecommerce-image-service on Kafka have offsets for tenant.tenant.events equal to the Kafka log-end offset. Stop if any check fails.",
+      "topics": ["tenant.tenant.events"],
+      "direction": {"source": "redpanda", "target": "kafka"},
+      "services": ["ecommerce-catalog-service", "ecommerce-image-service"],
+      "evidence": [
+        {"kind": "request", "reference": "R1", "note": "both moved groups consume tenant.tenant.events at offset 1"},
+        {"kind": "source", "reference": "src/ecommerce-tenant-service/internal/infrastructure/outbound/kafka/event_factory.go:30-40", "note": "producer stays on Redpanda"}
+      ]
+    },
+    {
+      "id": "P07-flow-kafka-to-redpanda",
+      "action": "The same MM2 process runs the kafka->redpanda flow for the three catalog topics. They are empty on Kafka at this point. Check in the MM2 logs that the source tasks are assigned all partitions of the three topics, and that no task replicates tenant.tenant.events back. Stop if not.",
+      "topics": ["catalog.product.events", "catalog.category.events", "catalog.attribute.events"],
+      "direction": {"source": "kafka", "target": "redpanda"},
+      "services": ["ecommerce-product-query-service", "ecommerce-category-query-service"],
+      "evidence": [
+        {"kind": "request", "reference": "R1", "note": "product-query and category-query groups consume the catalog topics on Redpanda"},
+        {"kind": "documentation", "reference": "src/ecommerce-workspace/docs/architecture/product-update-flow.md:28-34"}
+      ]
+    },
+    {
+      "id": "P08-quiesce-producers",
+      "action": "Platform team scales ecommerce-catalog-service and ecommerce-image-service in namespace dev to 0 replicas with kubectl, without Tilt. Then wait until the Redpanda groups ecommerce-image-service, ecommerce-product-query-service and ecommerce-category-query-service show lag 0 on all catalog.* topics, and record the final Redpanda log-end offsets. Stop if the lag does not drain.",
+      "topics": ["catalog.product.events", "catalog.category.events", "catalog.attribute.events"],
+      "services": ["ecommerce-catalog-service", "ecommerce-image-service"],
+      "evidence": [
+        {"kind": "reasoning", "reference": "With no producer on Redpanda during the switch, no event is written to Redpanda by both an old producer and MM2, and the image service drains its Redpanda backlog before it moves."},
+        {"kind": "source", "reference": "src/ecommerce-commons/pkg/kafka/outbox/outbox.go:71", "note": "events are queued in the Mongo outbox, so writes while scaled down are not lost; they are relayed on restart"}
+      ]
+    },
+    {
+      "id": "P09-switch-brokers",
+      "action": "Platform team sets the kafka brokers value of both services to kafka:29092 in the platform's local Helm values and runs helm upgrade, then scales back up. Exact key from P01; stop if it can't be confirmed. Both services subscribe on Kafka. With no committed offset, the image group starts catalog.product.events at earliest, which is offset 0 of the new empty topic.",
+      "services": ["ecommerce-catalog-service", "ecommerce-image-service"],
+      "files": [
+        {"path": "ecommerce-infrastructure/environments/local/values/ecommerce-catalog-service.yaml", "keys": ["kafka.brokers (key unconfirmed, see P01)"]},
+        {"path": "ecommerce-infrastructure/environments/local/values/ecommerce-image-service.yaml", "keys": ["kafka.brokers (key unconfirmed, see P01)"]}
+      ],
+      "evidence": [
+        {"kind": "source", "reference": "src/ecommerce-image-service/configs/config.standalone.yaml:14-21", "note": "kafka.brokers and the catalog-events consumer with auto-offset-reset earliest"},
+        {"kind": "source", "reference": "src/ecommerce-catalog-service/configs/config.standalone.yaml:10-11"},
+        {"kind": "reasoning", "reference": "The files are owned by the platform team and are outside the workspace, so the change is made by the platform team, not by us."}
+      ]
+    },
+    {
+      "id": "P10-verify",
+      "action": "Verify that on Kafka both moved groups are Stable on tenant.tenant.events (and image on catalog.product.events) with lag 0. Verify that on Redpanda the product-query and category-query groups advance beyond the baseline offsets with lag 0 after a test write, and that MM2 is the only writer. Then write 'OPERATOR: please run the functional test' and wait for the result. Stop and report on any failure.",
+      "topics": ["catalog.product.events", "catalog.category.events", "catalog.attribute.events", "tenant.tenant.events"],
+      "services": ["ecommerce-catalog-service", "ecommerce-image-service", "ecommerce-product-query-service", "ecommerce-category-query-service"],
+      "evidence": [
+        {"kind": "request", "reference": "R1", "note": "baseline offsets"},
+        {"kind": "reasoning", "reference": "TASK.md: functional test is run by the operator only."}
+      ]
+    },
+    {
+      "id": "P11-rollback-and-cleanup",
+      "action": "If a check fails before P09, stop MM2, delete only the resources on the created-resources list (container mm2-catalog, the Kafka topics from P04/P06, and the MM2 internal topics that P02 showed were absent), and report. If it fails after P09, stop and report instead of rolling back automatically. Re-pointing the services to Redpanda would make the image group re-read mirrored records from its old offset.",
+      "evidence": [
+        {"kind": "reasoning", "reference": "TASK.md: remove only what you created; check names before deleting; stop when a relied-on check fails."}
+      ]
+    }
+  ],
+  "allow_lists": [
+    {"flow": "redpanda->kafka", "source": "redpanda", "target": "kafka", "topics": ["tenant.tenant.events"]},
+    {"flow": "kafka->redpanda", "source": "kafka", "target": "redpanda", "topics": ["catalog.product.events", "catalog.category.events", "catalog.attribute.events"]}
+  ]
+}

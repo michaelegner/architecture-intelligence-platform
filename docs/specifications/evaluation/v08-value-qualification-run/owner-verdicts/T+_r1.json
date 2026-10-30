@@ -1,0 +1,150 @@
+{
+  "K6.1": {
+    "verdict": "MATCHED",
+    "plan_items": [
+      "P03-mm2-config"
+    ],
+    "reason": "P03: checkpoints and group-offset sync on for redpanda->kafka and the two moving groups.",
+    "basis": "evidence-reviewed"
+  },
+  "K6.2": {
+    "verdict": "DIFFERENT",
+    "plan_items": [
+      "P05-verify-tenant-mirror",
+      "P07-quiesce"
+    ],
+    "reason": "P05 checks the translated Kafka offsets equal the Redpanda committed offsets, but before the services stop (P07); no check of the final offsets against the checkpoint before restart.",
+    "basis": "evidence-reviewed"
+  },
+  "K8.1": {
+    "verdict": "MATCHED",
+    "plan_items": [
+      "P01-baseline",
+      "P02-create-kafka-topics",
+      "P03-mm2-config"
+    ],
+    "reason": "P01 requires Kafka empty; P02 creates the catalog topics before MM2 (P04); P03 has disjoint allow lists.",
+    "basis": "evidence-reviewed"
+  },
+  "K8.2": {
+    "verdict": "MATCHED",
+    "plan_items": [
+      "P03-mm2-config",
+      "P04-start-mm2",
+      "P05-verify-tenant-mirror"
+    ],
+    "reason": "P04 starts the tenant mirror with group-offset sync; P05 checks end offsets and translated offsets before P07 stops Catalog.",
+    "basis": "evidence-reviewed"
+  },
+  "K8.3": {
+    "verdict": "DIFFERENT",
+    "plan_items": [
+      "P07-quiesce"
+    ],
+    "reason": "P07 stops Catalog first, then waits for Image lag 0; the key order is reversed.",
+    "basis": "evidence-reviewed"
+  },
+  "K8.4": {
+    "verdict": "DIFFERENT",
+    "plan_items": [
+      "P07-quiesce",
+      "P09-verify-attachments"
+    ],
+    "reason": "Zero attachment of the old groups on Redpanda is checked only after the restart (P09), not when Image stops.",
+    "basis": "evidence-reviewed"
+  },
+  "K8.5": {
+    "verdict": "MISSING",
+    "plan_items": [],
+    "reason": "No pre-cut-over drain of Product Query and Category Query to lag 0; P07 checks only producer quiet.",
+    "basis": "evidence-reviewed"
+  },
+  "K8.6": {
+    "verdict": "DIFFERENT",
+    "plan_items": [
+      "P05-verify-tenant-mirror"
+    ],
+    "reason": "The hand-off check (P05) runs before the stop; not verified before restart.",
+    "basis": "evidence-reviewed"
+  },
+  "K8.7": {
+    "verdict": "DIFFERENT",
+    "plan_items": [
+      "P04-start-mm2",
+      "P07-quiesce"
+    ],
+    "reason": "P04 starts both flows before P07 stops the producers.",
+    "basis": "evidence-reviewed"
+  },
+  "K8.8": {
+    "verdict": "MATCHED",
+    "plan_items": [
+      "P08-switch-helm-values",
+      "P09-verify-attachments"
+    ],
+    "reason": "P08 restarts on Kafka; P09 checks members of both groups on Kafka.",
+    "basis": "evidence-reviewed"
+  },
+  "K8.9": {
+    "verdict": "MATCHED",
+    "plan_items": [
+      "P10-functional-test",
+      "P11-post-verify"
+    ],
+    "reason": "P11: Kafka growth equals Redpanda growth per catalog topic (catch-up), lag 0 for the query groups and the moved groups, after the functional test (P10).",
+    "basis": "evidence-reviewed"
+  },
+  "Q4": {
+    "verdict": "MATCHED",
+    "reason": "Each of the six crossing rows states the delivery the move must preserve and its flow direction (the K1-K4 requirement of the row).",
+    "basis": "evidence-reviewed"
+  },
+  "Q5": {
+    "verdict": "DIFFERENT",
+    "coverage": {
+      "a: an attachment does not establish event handling": "statement [1]",
+      "b: a capture is one point in time and one broker scope": "statement [3]",
+      "c: a producer is known from source or a declaration, not observed": "statement [2]",
+      "d: a missing document does not mean a missing binding": "not stated"
+    },
+    "reason": "Not stated: d: a missing document does not mean a missing binding. Rule applied: MATCHED only when all four key statements are present (my reading of spec \u00a75.2; the owner decides).",
+    "basis": "evidence-reviewed"
+  },
+  "claims": {
+    "plan.P09-verify-attachments:direction:*|catalog.product.events": {
+      "verdict": "UNSUPPORTED",
+      "reason": "the only cited source line is the image-service consumer registration on catalog-events; it does not establish the producer (and, for the other topics, not the binding).",
+      "basis": "evidence-reviewed (direction: verified with support() and the accepted producer call sites)"
+    },
+    "plan.P09-verify-attachments:direction:*|catalog.category.events": {
+      "verdict": "UNSUPPORTED",
+      "reason": "the only cited source line is the image-service consumer registration on catalog-events; it does not establish the producer (and, for the other topics, not the binding).",
+      "basis": "evidence-reviewed (direction: verified with support() and the accepted producer call sites)"
+    },
+    "plan.P09-verify-attachments:direction:*|catalog.attribute.events": {
+      "verdict": "UNSUPPORTED",
+      "reason": "the only cited source line is the image-service consumer registration on catalog-events; it does not establish the producer (and, for the other topics, not the binding).",
+      "basis": "evidence-reviewed (direction: verified with support() and the accepted producer call sites)"
+    },
+    "plan.P09-verify-attachments:direction:*|tenant.tenant.events": {
+      "verdict": "UNSUPPORTED",
+      "reason": "the only cited source line is the image-service consumer registration on catalog-events; it does not establish the producer (and, for the other topics, not the binding).",
+      "basis": "evidence-reviewed (direction: verified with support() and the accepted producer call sites)"
+    },
+    "U2:answers.q4[4]:The handler runs per-tenant database migrations on TenantUpdated and cleanup on TenantDeleted; a missed event leaves a new tenant without migrated catalog collections.": {
+      "verdict": "SUPPORTED",
+      "reason": "Verified: tenant-service-api consumer.go:15-30 and AGENTS.md:33-35 state the migration on TenantUpdated and the deferred cleanup on TenantDeleted.",
+      "basis": "evidence-reviewed"
+    },
+    "U2:answers.q4[5]:Its tenant handler also runs the S3 tenant cleaner on TenantDeleted (wiping the tenant's image prefix), so a missed delete leaves the tenant's objects in place, and a redelivered one repeats the cleanup.": {
+      "verdict": "SUPPORTED",
+      "reason": "Verified: image AGENTS.md:87-88 (S3 tenant cleaner wipes the tenant prefix) and image module.go:34-39 (tenant consumer module wired).",
+      "basis": "evidence-reviewed"
+    },
+    "U2:answers.q5[1]:An attachment shows only topic assignment, not which event types a consumer handles.": {
+      "verdict": "NOT_A_CLAIM",
+      "reason": "Negated: states what is not shown.",
+      "basis": "evidence-reviewed"
+    }
+  }
+}

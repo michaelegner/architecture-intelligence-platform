@@ -1,0 +1,35 @@
+{
+  "result": "PASSED",
+  "problems": [],
+  "live": {
+    "ecommerce-catalog-service": {
+      "members": 1,
+      "topics": [
+        "tenant.tenant.events"
+      ]
+    },
+    "ecommerce-category-query-service": {
+      "members": 3,
+      "topics": [
+        "catalog.attribute.events",
+        "catalog.category.events",
+        "tenant.tenant.events"
+      ]
+    },
+    "ecommerce-image-service": {
+      "members": 2,
+      "topics": [
+        "catalog.product.events",
+        "tenant.tenant.events"
+      ]
+    },
+    "ecommerce-product-query-service": {
+      "members": 3,
+      "topics": [
+        "catalog.attribute.events",
+        "catalog.product.events",
+        "tenant.tenant.events"
+      ]
+    }
+  }
+}

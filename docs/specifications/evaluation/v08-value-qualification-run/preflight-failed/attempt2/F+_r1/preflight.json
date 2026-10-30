@@ -1,0 +1,8 @@
+{
+  "session": "F+_r1",
+  "type": "F+",
+  "problems": [
+    "reachable copy: /tmp/pytest-of-michael/pytest-2/test_a_planted_excluded_tree_o0/copy/aip/inputs/event-topic-lookup.json",
+    "reachable copy: /tmp/pytest-of-michael/pytest-4/test_a_planted_excluded_tree_o0/copy/aip/inputs/event-topic-lookup.json"
+  ]
+}

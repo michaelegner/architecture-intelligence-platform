@@ -1,0 +1,3 @@
+utc: 2026-10-29T20:02:05Z
+command: docker compose -p aip-v08-i4 --project-directory <run home>/kafka -f <run home>/kafka/docker-compose.kafka.yml --env-file /dev/null up -d
+exit: 0

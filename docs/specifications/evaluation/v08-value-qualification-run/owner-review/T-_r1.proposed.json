@@ -1,0 +1,142 @@
+{
+  "session": "T-_r1",
+  "status": "owner decisions applied; remaining items evidence-reviewed under the owner conditional GO of 2026-10-30",
+  "K6_K8": {
+    "K6.1": {
+      "verdict": "DIFFERENT",
+      "plan_items": [
+        "P03-mm2-config",
+        "P09-seed-kafka-group-offsets"
+      ],
+      "reason": "P03 disables checkpoints and group-offset sync; the hand-off is a manual reset (P09).",
+      "basis": "evidence-reviewed"
+    },
+    "K6.2": {
+      "verdict": "DIFFERENT",
+      "plan_items": [
+        "P05-verify-tenant-mirror",
+        "P07-drain-image-service",
+        "P09-seed-kafka-group-offsets"
+      ],
+      "reason": "P07 records the final Redpanda committed offsets and P09 installs and describes them on Kafka, gated on the P05 log alignment; there is no checkpoint, so the checkpoint upstream/downstream equality of the key is not established.",
+      "basis": "evidence-reviewed"
+    },
+    "K8.1": {
+      "verdict": "MATCHED",
+      "plan_items": [
+        "P00-preflight",
+        "P02-create-kafka-topics",
+        "P03-mm2-config"
+      ],
+      "reason": "P00 confirms Kafka empty; P02 creates the topics at end offset 0 before MM2 starts (P04); P03 checks no topic is in both allow lists.",
+      "basis": "evidence-reviewed"
+    },
+    "K8.2": {
+      "verdict": "DIFFERENT",
+      "plan_items": [
+        "P03-mm2-config",
+        "P04-start-mm2",
+        "P05-verify-tenant-mirror"
+      ],
+      "reason": "P05 verifies the tenant mirror caught up before P06 stops Catalog, but group-offset sync for Catalog and Image is disabled (P03).",
+      "basis": "evidence-reviewed"
+    },
+    "K8.3": {
+      "verdict": "DIFFERENT",
+      "plan_items": [
+        "P06-stop-catalog-service",
+        "P07-drain-image-service"
+      ],
+      "reason": "P06 stops Catalog first; P07 waits for Image lag 0 only afterwards. The key order is reversed (as in v0.8).",
+      "basis": "evidence-reviewed"
+    },
+    "K8.4": {
+      "verdict": "MATCHED",
+      "plan_items": [
+        "P07-drain-image-service"
+      ],
+      "reason": "P07 verifies the Image group Empty with lag 0 and does the same check for the Catalog group, i.e. no live attachment of either moved group on Redpanda.",
+      "basis": "evidence-reviewed"
+    },
+    "K8.5": {
+      "verdict": "MISSING",
+      "plan_items": [],
+      "reason": "No pre-cut-over drain of Product Query and Category Query to lag 0; P08 checks producer quiet, and the query lag is checked only after the switch (P12).",
+      "basis": "evidence-reviewed"
+    },
+    "K8.6": {
+      "verdict": "DIFFERENT",
+      "plan_items": [
+        "P09-seed-kafka-group-offsets"
+      ],
+      "reason": "P09 verifies the seeded offsets with --describe, but there is no checkpoint, so the K6 equality is not verified.",
+      "basis": "evidence-reviewed"
+    },
+    "K8.7": {
+      "verdict": "DIFFERENT",
+      "plan_items": [
+        "P04-start-mm2",
+        "P06-stop-catalog-service"
+      ],
+      "reason": "P04 starts both flows before P06/P07 stop the producers.",
+      "basis": "evidence-reviewed"
+    },
+    "K8.8": {
+      "verdict": "MATCHED",
+      "plan_items": [
+        "P10-switch-brokers",
+        "P11-verify-kafka-side"
+      ],
+      "reason": "P10 restarts on Kafka; P11 checks both groups Stable with members.",
+      "basis": "evidence-reviewed"
+    },
+    "K8.9": {
+      "verdict": "MATCHED",
+      "plan_items": [
+        "P11-verify-kafka-side",
+        "P12-verify-outbound-mirror",
+        "P13-verify-inbound-mirror"
+      ],
+      "reason": "P12 requires the Redpanda end offsets to grow by the Kafka end offsets (catch-up after new traffic) and the query groups back at lag 0, then the functional test; P11/P13 require lag 0 on Kafka.",
+      "basis": "evidence-reviewed"
+    }
+  },
+  "Q4": {
+    "verdict": "MATCHED",
+    "reason": "Each of the six crossing rows states the delivery the move must preserve and its flow direction (the K1-K4 requirement of the row).",
+    "basis": "evidence-reviewed"
+  },
+  "Q5": {
+    "verdict": "DIFFERENT",
+    "coverage": {
+      "a: an attachment does not establish event handling": "not stated",
+      "b: a capture is one point in time and one broker scope": "statement [1]",
+      "c: a producer is known from source or a declaration, not observed": "statement [1]",
+      "d: a missing document does not mean a missing binding": "not stated"
+    },
+    "reason": "Not stated: a: an attachment does not establish event handling; d: a missing document does not mean a missing binding. Rule applied: MATCHED only when all four key statements are present (my reading of spec \u00a75.2; the owner decides).",
+    "basis": "evidence-reviewed"
+  },
+  "claims": {
+    "answers.q2:direction:ecommerce-catalog-service|tenant.tenant.events": {
+      "verdict": "SUPPORTED",
+      "reason": "binding established (R1/broker output or frozen binding location) and the cited producer call site shows the producer of this topic (TopicFor / event-to-topic map in the producer API module); not a frozen location, same strength as the frozen topics.go constant.",
+      "basis": "evidence-reviewed (direction: verified with support() and the accepted producer call sites)"
+    },
+    "answers.q2:direction:ecommerce-image-service|tenant.tenant.events": {
+      "verdict": "SUPPORTED",
+      "reason": "binding established (R1/broker output or frozen binding location) and the cited producer call site shows the producer of this topic (TopicFor / event-to-topic map in the producer API module); not a frozen location, same strength as the frozen topics.go constant.",
+      "basis": "evidence-reviewed (direction: verified with support() and the accepted producer call sites)"
+    },
+    "plan.P13-verify-inbound-mirror:direction:*|tenant.tenant.events": {
+      "verdict": "UNSUPPORTED",
+      "reason": "only the producer side is cited; no consumer binding for this topic (no file location, broker output or request).",
+      "basis": "evidence-reviewed (direction: verified with support() and the accepted producer call sites)"
+    },
+    "U5:plan.md:** Tilt is not used.": {
+      "verdict": "NOT_A_CLAIM",
+      "reason": "About the deployment tool, not a binding; no conclusion from a missing declaration.",
+      "basis": "evidence-reviewed"
+    }
+  }
+}
