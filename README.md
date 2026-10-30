@@ -28,7 +28,7 @@ observed, and unresolved distinct instead of presenting assumptions as facts.
 
 ## The binding picture
 
-**Before moving Catalog Management to Kafka, what else must keep working?**
+**AIP binding picture brings cross-boundary relationships together**
 
 In [Sokol111](https://github.com/Sokol111/ecommerce-workspace), the architecture documents
 show Catalog Management publishing events to Storefront. But the broker evidence reveals more:
