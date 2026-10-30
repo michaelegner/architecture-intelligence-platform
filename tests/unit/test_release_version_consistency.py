@@ -89,6 +89,8 @@ def test_server_json_website_anchor_points_at_hosted_mcp_demo():
     readme = (_REPO_ROOT / "README.md").read_text(encoding="utf-8")
     anchor = f'<a id="{fragment}"></a>'
     assert f"\n{anchor}\n" in readme
-    assert readme.index("\n## Try AIP\n") < readme.index(anchor) < readme.index(
-        "\n### Hosted MCP demo\n"
+    assert (
+        readme.index("\n## Try AIP\n")
+        < readme.index(anchor)
+        < readme.index("\n### Hosted MCP demo\n")
     )
