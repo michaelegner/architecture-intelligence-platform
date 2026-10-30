@@ -1,0 +1,2 @@
+RegisterTenant {"slug": "vqshop", "status": "REGISTRATION_STATUS_COMPLETED"}
+GetRegistrationStatus {"slug": "vqshop", "status": "REGISTRATION_STATUS_COMPLETED"}

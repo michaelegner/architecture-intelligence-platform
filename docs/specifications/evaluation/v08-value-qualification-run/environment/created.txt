@@ -1,0 +1,9 @@
+2026-10-29T19:55:04Z	dir	<run home> (run home)
+2026-10-29T19:58:10Z	k3d-cluster	dev-cluster
+2026-10-29T19:58:10Z	container	dev-registry
+2026-10-29T19:58:10Z	network	shared-network
+2026-10-29T19:58:10Z	volume	k3d-dev-cluster-images
+2026-10-29T19:58:10Z	helm-release	traefik-crds,traefik,alloy (in dev-cluster)
+2026-10-29T19:58:14Z	image	sha256:faaf121991970df37b4df1737abceb6bc5c1ac5ea0c1b25196a0eb3065f48a14 (AIP, untagged)
+2026-10-29T20:02:11Z	compose-project	aip-v08-i4 (container kafka; anonymous volumes: 8f57eb4d2c96e8fb5f87ff4e9f451778db5c39afa9efe7ce9b218879b3567bf4 697210fa80730d2d323fdf690a3883ff07ec55accfd560972f67a27559375815 8947a76a098f790a21d885b41412c8674edb713ea70a8becf5aafc11c867eecc )
+2026-10-29T20:03:04Z	compose-project	aip-v08-i4-aip (containers app, neo4j; anonymous volumes: 6de91040deb18bd00d16c4f4b9123483d4f62a74f6bcdc1766375ae52fd61226 76b25c097c9a71cb99985167a46126103ec25c8de5c41027e2f296ab87c2009a   )

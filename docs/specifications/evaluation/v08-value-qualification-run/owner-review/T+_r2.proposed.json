@@ -1,0 +1,136 @@
+{
+  "session": "T+_r2",
+  "status": "owner decisions applied; remaining items evidence-reviewed under the owner conditional GO of 2026-10-30",
+  "K6_K8": {
+    "K6.1": {
+      "verdict": "MATCHED",
+      "plan_items": [
+        "P02-mm2-inbound-redpanda-to-kafka"
+      ],
+      "reason": "P02: emit.checkpoints and sync.group.offsets on for the two groups.",
+      "basis": "evidence-reviewed"
+    },
+    "K6.2": {
+      "verdict": "DIFFERENT",
+      "plan_items": [
+        "P05-verify-offset-translation"
+      ],
+      "reason": "P05 checks only that translated offsets exist on Kafka; no equality with the final Redpanda offset and the checkpoint.",
+      "basis": "evidence-reviewed"
+    },
+    "K8.1": {
+      "verdict": "MATCHED",
+      "plan_items": [
+        "P00-preflight-baseline",
+        "P01-precreate-kafka-topics",
+        "P02-mm2-inbound-redpanda-to-kafka",
+        "P03-mm2-outbound-kafka-to-redpanda"
+      ],
+      "reason": "P00 requires Kafka empty; P01 creates the topics before MM2; the two flows have disjoint allow lists.",
+      "basis": "evidence-reviewed"
+    },
+    "K8.2": {
+      "verdict": "MATCHED",
+      "plan_items": [
+        "P02-mm2-inbound-redpanda-to-kafka",
+        "P04-drain-and-stop-movers"
+      ],
+      "reason": "P02 starts the tenant mirror with group-offset sync and checks end offsets match before P04 stops Catalog.",
+      "basis": "evidence-reviewed"
+    },
+    "K8.3": {
+      "verdict": "DIFFERENT",
+      "plan_items": [
+        "P04-drain-and-stop-movers"
+      ],
+      "reason": "P04 scales both services to 0 together, then checks lag.",
+      "basis": "evidence-reviewed"
+    },
+    "K8.4": {
+      "verdict": "MATCHED",
+      "plan_items": [
+        "P04-drain-and-stop-movers"
+      ],
+      "reason": "P04 checks both moved groups empty on Redpanda after the stop.",
+      "basis": "evidence-reviewed"
+    },
+    "K8.5": {
+      "verdict": "MISSING",
+      "plan_items": [],
+      "reason": "No pre-cut-over drain of the query groups to lag 0; checked only after the functional test (P08).",
+      "basis": "evidence-reviewed"
+    },
+    "K8.6": {
+      "verdict": "DIFFERENT",
+      "plan_items": [
+        "P05-verify-offset-translation"
+      ],
+      "reason": "P05 checks presence, not the K6 equality.",
+      "basis": "evidence-reviewed"
+    },
+    "K8.7": {
+      "verdict": "DIFFERENT",
+      "plan_items": [
+        "P03-mm2-outbound-kafka-to-redpanda",
+        "P04-drain-and-stop-movers"
+      ],
+      "reason": "P03 starts the outbound flow before P04 stops the producers.",
+      "basis": "evidence-reviewed"
+    },
+    "K8.8": {
+      "verdict": "MATCHED",
+      "plan_items": [
+        "P07-start-and-verify"
+      ],
+      "reason": "P07 restarts both and checks both groups Stable on Kafka.",
+      "basis": "evidence-reviewed"
+    },
+    "K8.9": {
+      "verdict": "DIFFERENT",
+      "plan_items": [
+        "P07-start-and-verify",
+        "P08-verify-redpanda-consumers"
+      ],
+      "reason": "P07 requires MM2 outbound lag \"near 0\", not a catch-up; P08 has the query lag 0 and the functional test.",
+      "basis": "evidence-reviewed"
+    }
+  },
+  "Q4": {
+    "verdict": "MATCHED",
+    "reason": "Each of the six crossing rows states the delivery the move must preserve and its flow direction (the K1-K4 requirement of the row).",
+    "basis": "evidence-reviewed"
+  },
+  "Q5": {
+    "verdict": "DIFFERENT",
+    "coverage": {
+      "a: an attachment does not establish event handling": "statement [1]",
+      "b: a capture is one point in time and one broker scope": "statement [0]",
+      "c: a producer is known from source or a declaration, not observed": "statement [2]",
+      "d: a missing document does not mean a missing binding": "not stated"
+    },
+    "reason": "Not stated: d: a missing document does not mean a missing binding. Rule applied: MATCHED only when all four key statements are present (my reading of spec \u00a75.2; the owner decides).",
+    "basis": "evidence-reviewed"
+  },
+  "claims": {
+    "U1:plan.md:and every consumer would miss them.": {
+      "verdict": "NOT_A_CLAIM",
+      "reason": "Consequence of the default replication policy (renamed topics), not a claim that the bindings found are all bindings.",
+      "basis": "evidence-reviewed"
+    },
+    "U2:answers.q5[1]:An attachment shows only that a group is assigned to a topic, not that it handles the events.": {
+      "verdict": "NOT_A_CLAIM",
+      "reason": "Negated.",
+      "basis": "evidence-reviewed"
+    },
+    "U5:answers.q4[4]:This binding is undocumented and undeclared (only observed), so it is easy to miss; dropping the topic from the allow-list would silently stop this consumer.": {
+      "verdict": "NOT_A_CLAIM",
+      "reason": "The reverse of U5: it keeps the binding because it is observed, not dropped for a missing declaration.",
+      "basis": "evidence-reviewed"
+    },
+    "U5:answers.q4[5]:Same topic and flow as the previous row: attribute events from Kafka must reach product-query-service on Redpanda; undocumented and undeclared, observed only.": {
+      "verdict": "NOT_A_CLAIM",
+      "reason": "As above.",
+      "basis": "evidence-reviewed"
+    }
+  }
+}

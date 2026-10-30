@@ -1,0 +1,943 @@
+{
+  "claims": {
+    "candidates": [
+      {
+        "id": "U2:plan.md:DLQ topic handling, idempotency of the tenant handlers, outbox behaviour, and the production",
+        "keyword": "handler",
+        "proposal": {
+          "reason": "`handler`: Does the text state which events a consumer handles, or how, with no source reference?",
+          "verdict": "UNSUPPORTED"
+        },
+        "rule": "U2",
+        "statement": "DLQ topic handling, idempotency of the tenant handlers, outbox behaviour, and the production",
+        "where": "plan.md"
+      },
+      {
+        "id": "U2:plan.5-stop-catalog:events, so image-service processes every ProductUpdated event already on Redpanda before it moves.",
+        "keyword": "processes",
+        "proposal": {
+          "reason": "a source entry is on the same item",
+          "verdict": "SUPPORTED"
+        },
+        "rule": "U2",
+        "statement": "events, so image-service processes every ProductUpdated event already on Redpanda before it moves.",
+        "where": "plan.5-stop-catalog"
+      },
+      {
+        "id": "U2:answers.q5[4]:Not established: whether the tenant-event handlers in catalog-service and image-service are idempotent.",
+        "keyword": "handler",
+        "proposal": {
+          "reason": "a negated statement",
+          "verdict": "NOT_A_CLAIM"
+        },
+        "rule": "U2",
+        "statement": "Not established: whether the tenant-event handlers in catalog-service and image-service are idempotent.",
+        "where": "answers.q5[4]"
+      }
+    ],
+    "claims": [
+      {
+        "id": "answers.q2:binding:ecommerce-catalog-service|tenant.tenant.events",
+        "pair": [
+          "ecommerce-catalog-service",
+          "tenant.tenant.events"
+        ],
+        "partial": [],
+        "proposal": null,
+        "status": "SUPPORTED",
+        "type": "binding",
+        "unresolved": [],
+        "where": "answers.q2"
+      },
+      {
+        "id": "answers.q2:direction:ecommerce-catalog-service|tenant.tenant.events",
+        "pair": [
+          "ecommerce-catalog-service",
+          "tenant.tenant.events"
+        ],
+        "partial": [],
+        "proposal": {
+          "lines": {
+            "ecommerce-tenant-service/internal/infrastructure/outbound/kafka/event_factory.go:30-30": "\t\tTopic: events.TopicFor(&eventsv1.TenantUpdatedEvent{}),"
+          },
+          "reason": "the cited location is not a frozen support location; the owner checks the line",
+          "verdict": "UNSUPPORTED"
+        },
+        "status": "OWNER",
+        "type": "direction",
+        "unresolved": [],
+        "where": "answers.q2"
+      },
+      {
+        "id": "answers.q2:binding:ecommerce-image-service|tenant.tenant.events",
+        "pair": [
+          "ecommerce-image-service",
+          "tenant.tenant.events"
+        ],
+        "partial": [],
+        "proposal": null,
+        "status": "SUPPORTED",
+        "type": "binding",
+        "unresolved": [],
+        "where": "answers.q2"
+      },
+      {
+        "id": "answers.q2:direction:ecommerce-image-service|tenant.tenant.events",
+        "pair": [
+          "ecommerce-image-service",
+          "tenant.tenant.events"
+        ],
+        "partial": [],
+        "proposal": {
+          "lines": {
+            "ecommerce-tenant-service/internal/infrastructure/outbound/kafka/event_factory.go:30-40": "\t\tTopic: events.TopicFor(&eventsv1.TenantUpdatedEvent{}),\n\t\tKey:   t.Slug,\n\t}\n}\n"
+          },
+          "reason": "the cited location is not a frozen support location; the owner checks the line",
+          "verdict": "UNSUPPORTED"
+        },
+        "status": "OWNER",
+        "type": "direction",
+        "unresolved": [],
+        "where": "answers.q2"
+      },
+      {
+        "id": "answers.q2:binding:ecommerce-product-query-service|catalog.product.events",
+        "pair": [
+          "ecommerce-product-query-service",
+          "catalog.product.events"
+        ],
+        "partial": [],
+        "proposal": null,
+        "status": "SUPPORTED",
+        "type": "binding",
+        "unresolved": [],
+        "where": "answers.q2"
+      },
+      {
+        "id": "answers.q2:direction:ecommerce-product-query-service|catalog.product.events",
+        "pair": [
+          "ecommerce-product-query-service",
+          "catalog.product.events"
+        ],
+        "partial": [],
+        "proposal": {
+          "lines": {
+            "ecommerce-catalog-service/internal/infrastructure/outbound/kafka/product_event_factory.go:72-83": "\t\tTopic: apiEvents.TopicFor(event),\n\t}\n}\n\nfunc (f *productEventFactory) NewProductDeletedOutboxMessage(ctx context.Context, productID string) outbox.Message {",
+            "ecommerce-image-service/internal/infrastructure/outbound/kafka/event_factory.go:18-29": "func (f *imageEventFactory) NewProductImagePromotedOutboxMessage(ctx context.Context, productID string, imageID string, smallImageURL string, largeImageURL string) outbox.Message {\n\tevent := &eventsv1.ProductImagePromotedEvent{\n\t\tProductId:     productID,\n\t\tImageId:       imageID,\n\t\tSmallImageUrl: smallImageURL,",
+            "ecommerce-product-query-service/internal/infrastructure/inbound/kafka/fxconfig/module.go:21-23": "\tconsumer.Register(r, h.HandleProductUpdated)\n\tconsumer.Register(r, h.HandleProductDeleted)\n\tconsumer.Register(r, h.HandleProductImagePromoted)"
+          },
+          "reason": "the cited location is not a frozen support location; the owner checks the line",
+          "verdict": "UNSUPPORTED"
+        },
+        "status": "OWNER",
+        "type": "direction",
+        "unresolved": [],
+        "where": "answers.q2"
+      },
+      {
+        "id": "answers.q2:binding:ecommerce-product-query-service|catalog.attribute.events",
+        "pair": [
+          "ecommerce-product-query-service",
+          "catalog.attribute.events"
+        ],
+        "partial": [],
+        "proposal": null,
+        "status": "SUPPORTED",
+        "type": "binding",
+        "unresolved": [],
+        "where": "answers.q2"
+      },
+      {
+        "id": "answers.q2:direction:ecommerce-product-query-service|catalog.attribute.events",
+        "pair": [
+          "ecommerce-product-query-service",
+          "catalog.attribute.events"
+        ],
+        "partial": [],
+        "proposal": {
+          "lines": {
+            "ecommerce-catalog-service/internal/infrastructure/outbound/kafka/attribute_event_factory.go:68-68": "\t\tTopic: apiEvents.TopicFor(event),",
+            "ecommerce-product-query-service/internal/infrastructure/inbound/kafka/fxconfig/module.go:29-29": "\tconsumer.Register(r, h.HandleAttributeUpdated)"
+          },
+          "reason": "the cited location is not a frozen support location; the owner checks the line",
+          "verdict": "UNSUPPORTED"
+        },
+        "status": "OWNER",
+        "type": "direction",
+        "unresolved": [],
+        "where": "answers.q2"
+      },
+      {
+        "id": "answers.q2:binding:ecommerce-category-query-service|catalog.category.events",
+        "pair": [
+          "ecommerce-category-query-service",
+          "catalog.category.events"
+        ],
+        "partial": [],
+        "proposal": null,
+        "status": "SUPPORTED",
+        "type": "binding",
+        "unresolved": [],
+        "where": "answers.q2"
+      },
+      {
+        "id": "answers.q2:direction:ecommerce-category-query-service|catalog.category.events",
+        "pair": [
+          "ecommerce-category-query-service",
+          "catalog.category.events"
+        ],
+        "partial": [],
+        "proposal": {
+          "lines": {
+            "ecommerce-catalog-service/internal/infrastructure/outbound/kafka/category_event_factory.go:64-64": "\t\tTopic: apiEvents.TopicFor(event),",
+            "ecommerce-category-query-service/internal/infrastructure/inbound/kafka/fxconfig/module.go:21-21": "\tconsumer.Register(r, h.HandleCategoryUpdated)"
+          },
+          "reason": "the cited location is not a frozen support location; the owner checks the line",
+          "verdict": "UNSUPPORTED"
+        },
+        "status": "OWNER",
+        "type": "direction",
+        "unresolved": [],
+        "where": "answers.q2"
+      },
+      {
+        "id": "answers.q2:binding:ecommerce-category-query-service|catalog.attribute.events",
+        "pair": [
+          "ecommerce-category-query-service",
+          "catalog.attribute.events"
+        ],
+        "partial": [],
+        "proposal": null,
+        "status": "SUPPORTED",
+        "type": "binding",
+        "unresolved": [],
+        "where": "answers.q2"
+      },
+      {
+        "id": "answers.q2:direction:ecommerce-category-query-service|catalog.attribute.events",
+        "pair": [
+          "ecommerce-category-query-service",
+          "catalog.attribute.events"
+        ],
+        "partial": [],
+        "proposal": {
+          "lines": {
+            "ecommerce-catalog-service/internal/infrastructure/outbound/kafka/attribute_event_factory.go:68-68": "\t\tTopic: apiEvents.TopicFor(event),",
+            "ecommerce-category-query-service/internal/infrastructure/inbound/kafka/fxconfig/module.go:27-27": "\tconsumer.Register(r, h.HandleAttributeUpdated)"
+          },
+          "reason": "the cited location is not a frozen support location; the owner checks the line",
+          "verdict": "UNSUPPORTED"
+        },
+        "status": "OWNER",
+        "type": "direction",
+        "unresolved": [],
+        "where": "answers.q2"
+      },
+      {
+        "id": "answers.q3:observed:ecommerce-catalog-service|tenant.tenant.events",
+        "pair": [
+          "ecommerce-catalog-service",
+          "tenant.tenant.events"
+        ],
+        "partial": [],
+        "proposal": null,
+        "status": "SUPPORTED",
+        "type": "observed",
+        "unresolved": [],
+        "where": "answers.q3"
+      },
+      {
+        "id": "answers.q3:observed:ecommerce-image-service|tenant.tenant.events",
+        "pair": [
+          "ecommerce-image-service",
+          "tenant.tenant.events"
+        ],
+        "partial": [],
+        "proposal": null,
+        "status": "SUPPORTED",
+        "type": "observed",
+        "unresolved": [],
+        "where": "answers.q3"
+      },
+      {
+        "id": "answers.q3:documented:ecommerce-product-query-service|catalog.product.events",
+        "pair": [
+          "ecommerce-product-query-service",
+          "catalog.product.events"
+        ],
+        "partial": [],
+        "proposal": null,
+        "status": "SUPPORTED",
+        "type": "documented",
+        "unresolved": [],
+        "where": "answers.q3"
+      },
+      {
+        "id": "answers.q3:observed:ecommerce-product-query-service|catalog.product.events",
+        "pair": [
+          "ecommerce-product-query-service",
+          "catalog.product.events"
+        ],
+        "partial": [],
+        "proposal": null,
+        "status": "SUPPORTED",
+        "type": "observed",
+        "unresolved": [],
+        "where": "answers.q3"
+      },
+      {
+        "id": "answers.q3:observed:ecommerce-product-query-service|catalog.attribute.events",
+        "pair": [
+          "ecommerce-product-query-service",
+          "catalog.attribute.events"
+        ],
+        "partial": [],
+        "proposal": null,
+        "status": "SUPPORTED",
+        "type": "observed",
+        "unresolved": [],
+        "where": "answers.q3"
+      },
+      {
+        "id": "answers.q3:documented:ecommerce-category-query-service|catalog.category.events",
+        "pair": [
+          "ecommerce-category-query-service",
+          "catalog.category.events"
+        ],
+        "partial": [
+          "ecommerce-workspace/docs/architecture/platform-overview.md:40-43",
+          "ecommerce-workspace/docs/architecture/platform-overview.md:51-51"
+        ],
+        "proposal": null,
+        "status": "PARTIAL",
+        "type": "documented",
+        "unresolved": [],
+        "where": "answers.q3"
+      },
+      {
+        "id": "answers.q3:observed:ecommerce-category-query-service|catalog.category.events",
+        "pair": [
+          "ecommerce-category-query-service",
+          "catalog.category.events"
+        ],
+        "partial": [],
+        "proposal": null,
+        "status": "SUPPORTED",
+        "type": "observed",
+        "unresolved": [],
+        "where": "answers.q3"
+      },
+      {
+        "id": "answers.q3:observed:ecommerce-category-query-service|catalog.attribute.events",
+        "pair": [
+          "ecommerce-category-query-service",
+          "catalog.attribute.events"
+        ],
+        "partial": [],
+        "proposal": null,
+        "status": "SUPPORTED",
+        "type": "observed",
+        "unresolved": [],
+        "where": "answers.q3"
+      },
+      {
+        "id": "plan.4-verify-inbound-mirror:direction:*|tenant.tenant.events",
+        "pair": [
+          "*",
+          "tenant.tenant.events"
+        ],
+        "partial": [],
+        "proposal": {
+          "lines": {
+            "ecommerce-tenant-service/internal/infrastructure/outbound/kafka/event_factory.go:30-40": "\t\tTopic: events.TopicFor(&eventsv1.TenantUpdatedEvent{}),\n\t\tKey:   t.Slug,\n\t}\n}\n"
+          },
+          "reason": "the cited location is not a frozen support location; the owner checks the line",
+          "verdict": "UNSUPPORTED"
+        },
+        "status": "OWNER",
+        "type": "direction",
+        "unresolved": [],
+        "where": "plan.4-verify-inbound-mirror"
+      },
+      {
+        "id": "plan.7-verify-offset-sync:direction:*|tenant.tenant.events",
+        "pair": [
+          "*",
+          "tenant.tenant.events"
+        ],
+        "partial": [],
+        "proposal": {
+          "lines": {
+            "ecommerce-infrastructure/environments/local/values/ecommerce-catalog-service.yaml:35-35": "      default-auto-offset-reset: \"earliest\"",
+            "ecommerce-infrastructure/environments/local/values/ecommerce-image-service.yaml:27-27": "      default-auto-offset-reset: \"earliest\""
+          },
+          "reason": "the cited location is not a frozen support location; the owner checks the line",
+          "verdict": "UNSUPPORTED"
+        },
+        "status": "OWNER",
+        "type": "direction",
+        "unresolved": [],
+        "where": "plan.7-verify-offset-sync"
+      },
+      {
+        "id": "plan.10-verify-outbound-mirror:direction:*|catalog.product.events",
+        "pair": [
+          "*",
+          "catalog.product.events"
+        ],
+        "partial": [],
+        "proposal": null,
+        "status": "UNSUPPORTED",
+        "type": "direction",
+        "unresolved": [],
+        "where": "plan.10-verify-outbound-mirror"
+      },
+      {
+        "id": "plan.10-verify-outbound-mirror:direction:*|catalog.category.events",
+        "pair": [
+          "*",
+          "catalog.category.events"
+        ],
+        "partial": [],
+        "proposal": null,
+        "status": "UNSUPPORTED",
+        "type": "direction",
+        "unresolved": [],
+        "where": "plan.10-verify-outbound-mirror"
+      },
+      {
+        "id": "plan.10-verify-outbound-mirror:direction:*|catalog.attribute.events",
+        "pair": [
+          "*",
+          "catalog.attribute.events"
+        ],
+        "partial": [],
+        "proposal": null,
+        "status": "UNSUPPORTED",
+        "type": "direction",
+        "unresolved": [],
+        "where": "plan.10-verify-outbound-mirror"
+      }
+    ],
+    "count": 6,
+    "pending_owner": [],
+    "subjects": {
+      "*|catalog.attribute.events": [
+        "U3"
+      ],
+      "*|catalog.category.events": [
+        "U3"
+      ],
+      "*|catalog.product.events": [
+        "U3"
+      ],
+      "*|tenant.tenant.events": [
+        "U3"
+      ],
+      "ecommerce-category-query-service|catalog.category.events": [
+        "U3"
+      ],
+      "statement:events, so image-service processes every ProductUpdated event already on Redpanda before it moves.": [
+        "U2"
+      ]
+    },
+    "u4": []
+  },
+  "counts": {
+    "active_seconds": 380,
+    "output_tokens": 35119,
+    "requests": null,
+    "tool_calls_attempted": 34,
+    "tool_calls_received": 29,
+    "unsupported_claims": 6
+  },
+  "pending_owner": [],
+  "plan": {
+    "extra": [
+      "12-keep-mm2-running",
+      "pre-2-redpanda-baseline",
+      "pre-3-names-free",
+      "pre-4-pod-reaches-kafka"
+    ],
+    "key_items": [
+      {
+        "id": "K1",
+        "in_allow_list": true,
+        "plan_items": [
+          "4-verify-inbound-mirror",
+          "7-verify-offset-sync"
+        ],
+        "verdict": "MATCHED"
+      },
+      {
+        "id": "K2",
+        "in_allow_list": true,
+        "plan_items": [
+          "10-verify-outbound-mirror"
+        ],
+        "verdict": "MATCHED"
+      },
+      {
+        "id": "K3",
+        "in_allow_list": true,
+        "plan_items": [
+          "10-verify-outbound-mirror"
+        ],
+        "verdict": "MATCHED"
+      },
+      {
+        "id": "K4",
+        "in_allow_list": true,
+        "plan_items": [
+          "10-verify-outbound-mirror"
+        ],
+        "verdict": "MATCHED"
+      },
+      {
+        "basis": "PLAN_ONLY",
+        "id": "K5",
+        "plan_items": [],
+        "planned": {
+          "kafka->redpanda": [
+            "catalog.attribute.events",
+            "catalog.category.events",
+            "catalog.product.events"
+          ],
+          "redpanda->kafka": [
+            "tenant.tenant.events"
+          ]
+        },
+        "problems": [],
+        "verdict": "MATCHED"
+      },
+      {
+        "basis": "PLAN_ONLY",
+        "id": "K7",
+        "plan_items": [
+          "8-switch-config",
+          "R-rollback"
+        ],
+        "problems": [],
+        "verdict": "MATCHED"
+      }
+    ],
+    "owner_judged": [
+      {
+        "candidates": [
+          "1-create-kafka-topics",
+          "11-functional-test",
+          "12-keep-mm2-running",
+          "2-write-mm2-config",
+          "3-start-mm2",
+          "5-stop-catalog",
+          "6-stop-image",
+          "9-start-moved-services",
+          "pre-1-kafka-baseline",
+          "pre-2-redpanda-baseline",
+          "pre-3-names-free",
+          "pre-4-pod-reaches-kafka"
+        ],
+        "check": "group-offset translation is configured for the two groups (MirrorMaker 2 checkpoints and group-offset sync)",
+        "id": "K6.1",
+        "plan_items": [
+          "2-write-mm2-config"
+        ],
+        "reason": "2: emit.checkpoints and sync.group.offsets on for redpanda->kafka, groups ecommerce-catalog-service|ecommerce-image-service.",
+        "verdict": "MATCHED"
+      },
+      {
+        "candidates": [
+          "1-create-kafka-topics",
+          "11-functional-test",
+          "12-keep-mm2-running",
+          "2-write-mm2-config",
+          "3-start-mm2",
+          "5-stop-catalog",
+          "6-stop-image",
+          "9-start-moved-services",
+          "pre-1-kafka-baseline",
+          "pre-2-redpanda-baseline",
+          "pre-3-names-free",
+          "pre-4-pod-reaches-kafka"
+        ],
+        "check": "per group and partition: the final committed offset on Redpanda equals a checkpoint's upstream offset, and the offset installed on Kafka equals that checkpoint's downstream offset, before the moved services start",
+        "id": "K6.2",
+        "plan_items": [
+          "6-stop-image",
+          "7-verify-offset-sync"
+        ],
+        "reason": "After the stop, 6 requires both Redpanda groups Empty with lag 0 (final committed = end offset), and 7 requires the synced Kafka offsets on tenant.tenant.events at the mirrored end offset, before 9 restarts. owner decision 2026-10-30: the frozen key requires the checkpoint upstream/downstream comparison; comparing final Redpanda offsets directly with installed Kafka offsets does not establish it.",
+        "verdict": "DIFFERENT"
+      },
+      {
+        "candidates": [
+          "1-create-kafka-topics",
+          "11-functional-test",
+          "12-keep-mm2-running",
+          "2-write-mm2-config",
+          "3-start-mm2",
+          "5-stop-catalog",
+          "6-stop-image",
+          "9-start-moved-services",
+          "pre-1-kafka-baseline",
+          "pre-2-redpanda-baseline",
+          "pre-3-names-free",
+          "pre-4-pod-reaches-kafka"
+        ],
+        "check": "before any mirror starts: the catalog topics exist empty on Kafka, and the allow-lists are disjoint",
+        "id": "K8.1",
+        "plan_items": [
+          "1-create-kafka-topics",
+          "2-write-mm2-config",
+          "pre-1-kafka-baseline"
+        ],
+        "reason": "pre-1 requires no user topics on Kafka; 1 creates the catalog topics before MM2 (3); 2 states no topic is in both allow lists.",
+        "verdict": "MATCHED"
+      },
+      {
+        "candidates": [
+          "1-create-kafka-topics",
+          "11-functional-test",
+          "12-keep-mm2-running",
+          "2-write-mm2-config",
+          "3-start-mm2",
+          "5-stop-catalog",
+          "6-stop-image",
+          "9-start-moved-services",
+          "pre-1-kafka-baseline",
+          "pre-2-redpanda-baseline",
+          "pre-3-names-free",
+          "pre-4-pod-reaches-kafka"
+        ],
+        "check": "the Redpanda to Kafka mirror for the tenant topic is started, with group-offset sync for Catalog and Image, and replication is caught up before Catalog stops",
+        "id": "K8.2",
+        "plan_items": [
+          "3-start-mm2",
+          "4-verify-inbound-mirror",
+          "5-stop-catalog"
+        ],
+        "reason": "3 starts the tenant mirror with group-offset sync; 4 verifies equal end offsets before 5 stops Catalog.",
+        "verdict": "MATCHED"
+      },
+      {
+        "candidates": [
+          "1-create-kafka-topics",
+          "11-functional-test",
+          "12-keep-mm2-running",
+          "2-write-mm2-config",
+          "3-start-mm2",
+          "5-stop-catalog",
+          "6-stop-image",
+          "9-start-moved-services",
+          "pre-1-kafka-baseline",
+          "pre-2-redpanda-baseline",
+          "pre-3-names-free",
+          "pre-4-pod-reaches-kafka"
+        ],
+        "check": "Catalog stops only after Image has lag 0 on catalog.product.events",
+        "id": "K8.3",
+        "plan_items": [
+          "5-stop-catalog"
+        ],
+        "reason": "5 stops Catalog first and then waits for Image lag 0.",
+        "verdict": "DIFFERENT"
+      },
+      {
+        "candidates": [
+          "1-create-kafka-topics",
+          "11-functional-test",
+          "12-keep-mm2-running",
+          "2-write-mm2-config",
+          "3-start-mm2",
+          "5-stop-catalog",
+          "6-stop-image",
+          "9-start-moved-services",
+          "pre-1-kafka-baseline",
+          "pre-2-redpanda-baseline",
+          "pre-3-names-free",
+          "pre-4-pod-reaches-kafka"
+        ],
+        "check": "Image stops; both moved groups show zero live attachment on Redpanda",
+        "id": "K8.4",
+        "plan_items": [
+          "6-stop-image"
+        ],
+        "reason": "6 checks both moved groups Empty with lag 0 on Redpanda after Image stops.",
+        "verdict": "MATCHED"
+      },
+      {
+        "candidates": [
+          "1-create-kafka-topics",
+          "11-functional-test",
+          "12-keep-mm2-running",
+          "2-write-mm2-config",
+          "3-start-mm2",
+          "5-stop-catalog",
+          "6-stop-image",
+          "9-start-moved-services",
+          "pre-1-kafka-baseline",
+          "pre-2-redpanda-baseline",
+          "pre-3-names-free",
+          "pre-4-pod-reaches-kafka"
+        ],
+        "check": "the remaining Redpanda consumers (Product Query, Category Query) are drained to lag 0 on the catalog topics",
+        "id": "K8.5",
+        "plan_items": [],
+        "reason": "No pre-cut-over drain of the query groups; their lag is checked only after the switch (10).",
+        "verdict": "MISSING"
+      },
+      {
+        "candidates": [
+          "1-create-kafka-topics",
+          "11-functional-test",
+          "12-keep-mm2-running",
+          "2-write-mm2-config",
+          "3-start-mm2",
+          "5-stop-catalog",
+          "6-stop-image",
+          "9-start-moved-services",
+          "pre-1-kafka-baseline",
+          "pre-2-redpanda-baseline",
+          "pre-3-names-free",
+          "pre-4-pod-reaches-kafka"
+        ],
+        "check": "the offset hand-off of K6 is verified",
+        "id": "K8.6",
+        "plan_items": [
+          "7-verify-offset-sync"
+        ],
+        "reason": "7 verifies the hand-off after the stop and before the restart. owner decision 2026-10-30: the frozen key requires the checkpoint upstream/downstream comparison; comparing final Redpanda offsets directly with installed Kafka offsets does not establish it.",
+        "verdict": "DIFFERENT"
+      },
+      {
+        "candidates": [
+          "1-create-kafka-topics",
+          "11-functional-test",
+          "12-keep-mm2-running",
+          "2-write-mm2-config",
+          "3-start-mm2",
+          "5-stop-catalog",
+          "6-stop-image",
+          "9-start-moved-services",
+          "pre-1-kafka-baseline",
+          "pre-2-redpanda-baseline",
+          "pre-3-names-free",
+          "pre-4-pod-reaches-kafka"
+        ],
+        "check": "the Kafka to Redpanda mirror for the catalog topics starts only after the producers have stopped and the drain is done",
+        "id": "K8.7",
+        "plan_items": [
+          "3-start-mm2",
+          "5-stop-catalog"
+        ],
+        "reason": "3 starts both flows before 5 stops the producers.",
+        "verdict": "DIFFERENT"
+      },
+      {
+        "candidates": [
+          "1-create-kafka-topics",
+          "11-functional-test",
+          "12-keep-mm2-running",
+          "2-write-mm2-config",
+          "3-start-mm2",
+          "5-stop-catalog",
+          "6-stop-image",
+          "9-start-moved-services",
+          "pre-1-kafka-baseline",
+          "pre-2-redpanda-baseline",
+          "pre-3-names-free",
+          "pre-4-pod-reaches-kafka"
+        ],
+        "check": "Catalog and Image start on Kafka, and both groups are Stable there",
+        "id": "K8.8",
+        "plan_items": [
+          "9-start-moved-services"
+        ],
+        "reason": "9 restarts both and checks both groups Stable on Kafka.",
+        "verdict": "MATCHED"
+      },
+      {
+        "candidates": [
+          "1-create-kafka-topics",
+          "11-functional-test",
+          "12-keep-mm2-running",
+          "2-write-mm2-config",
+          "3-start-mm2",
+          "5-stop-catalog",
+          "6-stop-image",
+          "9-start-moved-services",
+          "pre-1-kafka-baseline",
+          "pre-2-redpanda-baseline",
+          "pre-3-names-free",
+          "pre-4-pod-reaches-kafka"
+        ],
+        "check": "restart checks: replication caught up on the catalog mirror after new traffic; lag 0 for the consumers on both brokers; the functional test passes",
+        "id": "K8.9",
+        "plan_items": [
+          "10-verify-outbound-mirror",
+          "11-functional-test"
+        ],
+        "reason": "10/11: catch-up (Redpanda end = baseline + Kafka end), query groups lag 0, functional test; but no lag-0 condition for the moved groups on Kafka.",
+        "verdict": "DIFFERENT"
+      }
+    ]
+  },
+  "questions": [
+    {
+      "boundary": "The broker boundary around Catalog Management. ecommerce-catalog-service and ecommerce-image-service move from Redpanda (redpanda:29092) to Apache Kafka (kafka:29092); ecommerce-tenant-service, ecommerce-product-query-service and ecommerce-category-query-service stay on Redpanda. Every consumer x topic binding whose producer and consumer end up on different brokers crosses the boundary. Inside the boundary, catalog.product.events has two producers (catalog-service and image-service) and one inside consumer (image-service). Both producers and that consumer move together, so that binding does not cross.",
+      "boundary_named": true,
+      "id": "Q1",
+      "services": [
+        "ecommerce-catalog-service",
+        "ecommerce-image-service"
+      ],
+      "verdict": "MATCHED"
+    },
+    {
+      "id": "Q2",
+      "missing": [],
+      "not_crossing_listed": [],
+      "verdict": "MATCHED",
+      "wrong_direction": []
+    },
+    {
+      "id": "Q3-calibration",
+      "observed_reach": true,
+      "rows": [
+        {
+          "calibrated": true,
+          "pair": [
+            "ecommerce-catalog-service",
+            "tenant.tenant.events"
+          ]
+        },
+        {
+          "calibrated": true,
+          "pair": [
+            "ecommerce-category-query-service",
+            "catalog.attribute.events"
+          ]
+        },
+        {
+          "calibrated": true,
+          "pair": [
+            "ecommerce-category-query-service",
+            "catalog.category.events"
+          ]
+        },
+        {
+          "calibrated": true,
+          "pair": [
+            "ecommerce-image-service",
+            "tenant.tenant.events"
+          ]
+        },
+        {
+          "calibrated": true,
+          "pair": [
+            "ecommerce-product-query-service",
+            "catalog.attribute.events"
+          ]
+        },
+        {
+          "calibrated": true,
+          "pair": [
+            "ecommerce-product-query-service",
+            "catalog.product.events"
+          ]
+        }
+      ],
+      "verdict": "MATCHED"
+    },
+    {
+      "covered": 5,
+      "id": "Q3-coverage",
+      "of": 6,
+      "rows": [
+        {
+          "covered": true,
+          "pair": [
+            "ecommerce-catalog-service",
+            "tenant.tenant.events"
+          ]
+        },
+        {
+          "covered": true,
+          "pair": [
+            "ecommerce-category-query-service",
+            "catalog.attribute.events"
+          ]
+        },
+        {
+          "covered": false,
+          "pair": [
+            "ecommerce-category-query-service",
+            "catalog.category.events"
+          ]
+        },
+        {
+          "covered": true,
+          "pair": [
+            "ecommerce-image-service",
+            "tenant.tenant.events"
+          ]
+        },
+        {
+          "covered": true,
+          "pair": [
+            "ecommerce-product-query-service",
+            "catalog.attribute.events"
+          ]
+        },
+        {
+          "covered": true,
+          "pair": [
+            "ecommerce-product-query-service",
+            "catalog.product.events"
+          ]
+        }
+      ],
+      "verdict": "DIFFERENT"
+    },
+    {
+      "id": "Q4",
+      "proposal": {
+        "candidates": {
+          "ecommerce-catalog-service|tenant.tenant.events": "After the move, catalog-service must still receive TenantUpdated/TenantDeleted events that tenant-service (on Redpanda) publishes. That needs a redpanda->kafka flow for tenant.tenant.events under the same topic name, plus a consumer position on Kafka near its Redpanda position (offset 1). Without that position, auto-offset-reset=earliest replays the topic history. Tenant events drive per-tenant database provisioning and cleanup.",
+          "ecommerce-category-query-service|catalog.attribute.events": "Category-query must keep receiving AttributeUpdated events on Redpanda's catalog.attribute.events through the kafka->redpanda flow. This topic has two outside consumers, so the flow must carry it even though no document mentions it.",
+          "ecommerce-category-query-service|catalog.category.events": "Category-query must keep receiving CategoryUpdated events on Redpanda's catalog.category.events through the kafka->redpanda flow, in order, from its current Redpanda offset (4 at planning time). This is the category read model the storefront reads.",
+          "ecommerce-image-service|tenant.tenant.events": "After the move, image-service must keep receiving tenant lifecycle events from Redpanda via the same redpanda->kafka flow, from a translated position. Tenant deletion drives the image-service tenant cleaner, which wipes the tenant's S3 prefix, so missing or duplicated events have real effects.",
+          "ecommerce-product-query-service|catalog.attribute.events": "Product-query must keep receiving AttributeUpdated events on Redpanda's catalog.attribute.events through the kafka->redpanda flow, so attribute data in product projections stays current. This binding is undocumented, so only the config, the source and the running group show it exists.",
+          "ecommerce-product-query-service|catalog.product.events": "Product-query must keep receiving product events from both producers that move: ProductUpdated/ProductDeleted from catalog-service and ProductImagePromoted from image-service. They arrive on Redpanda's existing catalog.product.events through a kafka->redpanda flow with the same topic name. The topic keeps its single partition and the product-id key, so per-product order is preserved. The group keeps its current Redpanda offsets, 120 at planning time. This binding feeds the storefront read model and its image URLs."
+        },
+        "reason": "a reason is given for every crossing row",
+        "verdict": "MATCHED"
+      },
+      "reason": "Each of the six crossing rows states the delivery the move must preserve and its flow direction (the K1-K4 requirement of the row).",
+      "verdict": "MATCHED"
+    },
+    {
+      "id": "Q5",
+      "proposal": {
+        "candidates": [
+          "My evidence does not show that the move is lossless or exactly-once, and the plan makes no such claim. MirrorMaker 2 gives at-least-once copying between clusters. Offsets differ between source and target topics. Offset translation for tenant.tenant.events is approximate, so consumers may see duplicates or replays.",
+          "I could not query the Kafka broker in this session; my kafka-topics.sh call was denied. I have not verified that Kafka is empty, how its listeners behave, or that MM2 can reach both brokers. The execution session must check all three first (plan item pre-1) and stop if a check fails.",
+          "Kafka has auto-create disabled. catalog.product.events, catalog.category.events, catalog.attribute.events and tenant.tenant.events.dlq must exist on Kafka before the moved services start. tenant.tenant.events.dlq is the DLQ that catalog-service and image-service write to on tenant-event failures. Not verified: whether the services create topics themselves or fail on a missing topic.",
+          "Not established: whether pods in namespace dev can resolve and reach kafka:29092. The pods reach redpanda:29092 today, and kafka sits on the same docker network, but I did not test it from a pod. Verify before the cutover.",
+          "Not established: whether the tenant-event handlers in catalog-service and image-service are idempotent. If the MM2 group-offset sync fails, the two groups on Kafka start from earliest and replay tenant.tenant.events (1 record now). After cutover, check that the Kafka groups ecommerce-catalog-service and ecommerce-image-service sit at the mirrored end offset and did not replay.",
+          "Not established: how the outbox behaves while catalog-service and image-service are scaled to zero. I assume unsent outbox rows in MongoDB are published to Kafka after restart and then mirrored to Redpanda. Verify with Redpanda end offsets: new end = previous end + records produced on Kafka.",
+          "Must verify after the move: image-service consumes the topic its own service publishes to, catalog.product.events, now on Kafka. Kafka's topic starts empty, so image-service's group on Kafka begins at offset 0 of new events only. It must have drained Redpanda catalog.product.events (lag 0) before it stopped, or it will miss image promotions.",
+          "Must verify after the move, through the operator's functional test and broker checks: an edit to a product, category or attribute, and an image promotion, all reach product-query and category-query on Redpanda; tenant events reach catalog-service and image-service on Kafka; groups ecommerce-product-query-service and ecommerce-category-query-service on Redpanda show lag 0 at the new end offsets.",
+          "Not covered: the production environment (environments/production/values) and any consumer not in the local cluster. The binding list comes from the local values, the source and the four Redpanda groups. A consumer that was not running at query time, or one outside src/, would not appear.",
+          "MM2 needs IdentityReplicationPolicy to keep topic names unchanged. With that policy MM2 cannot detect cycles. Loop safety therefore rests on the two allow-lists being disjoint: tenant.tenant.events goes only redpanda->kafka, and catalog.* goes only kafka->redpanda. Re-check that after MM2 starts."
+        ],
+        "reason": "keywords found for ['Q5.1']",
+        "verdict": "DIFFERENT"
+      },
+      "reason": "Not stated: a: an attachment does not establish event handling; c: a producer is known from source or a declaration, not observed; d: a missing document does not mean a missing binding. Rule applied: MATCHED only when all four key statements are present (my reading of spec \u00a75.2; the owner decides).",
+      "verdict": "DIFFERENT"
+    }
+  ],
+  "requests": [],
+  "type": "F-"
+}

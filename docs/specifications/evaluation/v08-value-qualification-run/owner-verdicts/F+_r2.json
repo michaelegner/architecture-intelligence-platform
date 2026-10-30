@@ -1,0 +1,122 @@
+{
+  "K6.1": {
+    "verdict": "MATCHED",
+    "plan_items": [
+      "P06-write-mm2-config"
+    ],
+    "reason": "P06: emit.checkpoints and sync.group.offsets on for redpanda->kafka and the two groups.",
+    "basis": "evidence-reviewed"
+  },
+  "K6.2": {
+    "verdict": "DIFFERENT",
+    "plan_items": [
+      "P07-drain-and-stop-moved-services",
+      "P10-translate-group-offsets"
+    ],
+    "reason": "P07 requires both groups at lag 0 on every topic after the stop; P10, before the restart, requires the synced Kafka offsets at the Kafka end offset. owner decision 2026-10-30: the frozen key requires the checkpoint upstream/downstream comparison; comparing final Redpanda offsets directly with installed Kafka offsets does not establish it.",
+    "basis": "owner"
+  },
+  "K8.1": {
+    "verdict": "MATCHED",
+    "plan_items": [
+      "P02-preflight-kafka",
+      "P05-create-kafka-topics",
+      "P06-write-mm2-config"
+    ],
+    "reason": "P02 requires Kafka empty; P05 creates the topics before MM2 (P08); P06 checks no name matches both allow lists.",
+    "basis": "evidence-reviewed"
+  },
+  "K8.2": {
+    "verdict": "DIFFERENT",
+    "plan_items": [
+      "P07-drain-and-stop-moved-services",
+      "P08-start-mm2"
+    ],
+    "reason": "The tenant mirror starts (P08) after Catalog has stopped (P07); replication is not caught up before Catalog stops.",
+    "basis": "evidence-reviewed"
+  },
+  "K8.3": {
+    "verdict": "DIFFERENT",
+    "plan_items": [
+      "P07-drain-and-stop-moved-services"
+    ],
+    "reason": "P07 stops Catalog first and then waits for Image lag 0.",
+    "basis": "evidence-reviewed"
+  },
+  "K8.4": {
+    "verdict": "DIFFERENT",
+    "plan_items": [
+      "P07-drain-and-stop-moved-services"
+    ],
+    "reason": "P07 checks lag 0 for both groups, not zero live attachment.",
+    "basis": "evidence-reviewed"
+  },
+  "K8.5": {
+    "verdict": "MISSING",
+    "plan_items": [],
+    "reason": "No pre-cut-over drain of the query groups to lag 0.",
+    "basis": "evidence-reviewed"
+  },
+  "K8.6": {
+    "verdict": "DIFFERENT",
+    "plan_items": [
+      "P10-translate-group-offsets"
+    ],
+    "reason": "P10 verifies the hand-off before the restart. owner decision 2026-10-30: the frozen key requires the checkpoint upstream/downstream comparison; comparing final Redpanda offsets directly with installed Kafka offsets does not establish it.",
+    "basis": "owner"
+  },
+  "K8.7": {
+    "verdict": "DIFFERENT",
+    "plan_items": [
+      "P07-drain-and-stop-moved-services",
+      "P08-start-mm2"
+    ],
+    "reason": "Both flows start (P08) after the producers stop, but the query-group drain (K8.5) is not done first.",
+    "basis": "evidence-reviewed"
+  },
+  "K8.8": {
+    "verdict": "MATCHED",
+    "plan_items": [
+      "P11-switch-config",
+      "P13-start-moved-services"
+    ],
+    "reason": "P13 restarts both and checks both groups attached on Kafka.",
+    "basis": "evidence-reviewed"
+  },
+  "K8.9": {
+    "verdict": "DIFFERENT",
+    "plan_items": [
+      "P14-verify"
+    ],
+    "reason": "P14 has query lag 0 and the functional test, but only \"Redpanda grows\", not a catch-up equality, and no lag-0 condition for the moved groups on Kafka.",
+    "basis": "evidence-reviewed"
+  },
+  "Q4": {
+    "verdict": "MATCHED",
+    "reason": "Each of the six crossing rows states the delivery the move must preserve and its flow direction (the K1-K4 requirement of the row).",
+    "basis": "evidence-reviewed"
+  },
+  "Q5": {
+    "verdict": "DIFFERENT",
+    "coverage": {
+      "a: an attachment does not establish event handling": "statement [0]",
+      "b: a capture is one point in time and one broker scope": "statement [1]",
+      "c: a producer is known from source or a declaration, not observed": "statement [2]",
+      "d: a missing document does not mean a missing binding": "not stated (borderline: [5 (borderline: event catalog, not documents)])"
+    },
+    "reason": "Not stated: d. Statement [5] only mentions that five bindings have no promise (\"no promise at all\"), without the inference that a missing promise does not establish an absent binding (owner test). Rule applied: MATCHED only when all four key statements are present.",
+    "basis": "owner test applied (2026-10-30)"
+  },
+  "claims": {
+    "plan.P10-translate-group-offsets:direction:*|tenant.tenant.events": {
+      "verdict": "UNSUPPORTED",
+      "reason": "only values-file lines (broker address / group id / offset reset) are cited; they establish neither the producer side nor the binding of this topic.",
+      "basis": "evidence-reviewed (direction: verified with support() and the accepted producer call sites)"
+    },
+    "U2:answers.q5[0]:An attachment shows a consumer group is assigned to a topic, not which event types it handles or that it handles them correctly.": {
+      "verdict": "NOT_A_CLAIM",
+      "reason": "Negated.",
+      "basis": "evidence-reviewed"
+    }
+  }
+}
