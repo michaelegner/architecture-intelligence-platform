@@ -1,6 +1,6 @@
 # Sokol111 demo: the architecture you thought you had
 
-**Status:** Draft 0.5 — proposal, pending owner approval.
+**Status:** Draft 0.6 — proposal, pending owner approval.
 **Basis:** AIP v0.8.0 and the frozen Sokol111 evidence before wave 1
 ([v0.8 §3.5](../0.8.0/specification.md#35-expected-assessment-of-c1)).
 The recorded after-wave-1 state ([§3.6](../0.8.0/specification.md#36-expected-assessment-after-wave-1))
@@ -72,13 +72,17 @@ from the running tool; do not invent schema fields.
 | Product Query | `tenant.tenant.events` | NONE | `UNRESOLVED` |
 | Category Query | `tenant.tenant.events` | NONE | `UNRESOLVED` |
 
-**Two rows are promised and observed; seven are unresolved for missing catalog coverage.**
+**Two rows are promised and observed; seven have no matching promise in the generated catalog.**
 Only some cross the Catalog Management boundary: do not present INSIDE/NONE as migration
 dependencies *of this boundary*. In plain language, tenant attachments into Catalog and
 Image and attribute attachments toward the query services are missing from the generated
-promise picture. Topic attachments do not by themselves prove processing of particular
-events. `UNRESOLVED` means *no matching promise in this demo catalog*, not that no agreement
-exists elsewhere.
+promise picture. In particular, **Category Query × `catalog.category.events` is `UNRESOLVED` even though the
+architecture documents describe category events reaching Storefront**: the fixed catalog
+generation rule produces no `receives` promise for Category Query. This is a *catalog coverage*
+gap, not evidence that the relationship is absent from the documents. The clearer additional
+relationships are the tenant and attribute topic attachments. Topic attachments do not by
+themselves prove processing of particular events. `UNRESOLVED` means *no matching promise in
+this demo catalog*, not that no agreement exists elsewhere.
 
 **Viewer learns:** the documented picture is incomplete relative to the captured, mapped
 relationships, and AIP preserves which kind of evidence supports each statement.
@@ -112,11 +116,13 @@ Ask:
 
 > “Why does AIP show Catalog consuming the tenant topic, and what exactly establishes that?”
 
-Resolve the relevant binding/evidence references with the experimental binding-picture
-evidence interface. Display the attributable group-to-service mapping, captured topic
-attachment and declared topic/context information, with the snapshot and observation scope.
-The runnable walkthrough must give the **exact evidence request**, IDs/refs obtained from
-the answer and representative response excerpts.
+Resolve the Catalog × `tenant.tenant.events` row's evidence references with the experimental
+binding-picture evidence interface. **That lookup resolves the captured topic attachment and
+the group-to-service mapping only**; this unresolved row has no promise reference. Explain
+the separately authored producer declaration and bounded-context membership using the
+**binding-picture answer row**, not as if the evidence lookup had returned them. Show the
+snapshot and observation scope. The walkthrough gives the exact evidence request, row refs
+and the result the reader should see.
 
 In the same view, explain what remains unestablished: event-type handling, message
 delivery, offsets/lag, any future attachment, complete consumer coverage and correctness
@@ -155,107 +161,105 @@ Show the checklist derived explicitly from the displayed boundary-crossing rows:
 This is a demonstration of a **capability**, not proof that AIP produces better plans in
 real organizations.
 
-## 3. Reproducible main walkthrough
+## 3. Hosted walkthrough — runnable now
 
-Implement the primary narrative in
-`examples/pitstop-demo/TRY_IT_HOSTED.md`, or a clearly linked dedicated Sokol111 page if
-replacing the existing Pitstop instructions would remove another working demo.
+Update the **existing Sokol111** [`TRY_IT_HOSTED.md`](../../../examples/pitstop-demo/TRY_IT_HOSTED.md).
+The Pitstop instructions are already in `TRY_IT_LOCALLY.md`. This is a narrative/content
+improvement, not a new demo deployment or qualification exercise.
 
-The page must be usable without this spec:
+The hosted instance at `https://mcp.daip.io/mcp` already serves the frozen **pre-wave-1 C1**
+package, as recorded in the [hosted deployment record](../../release-validation/v0.8.0-hosted-record.md)
+(2026-10-30). The record identifies the snapshot as `aip:snapshot:v1:7f171aea…`
+(abbreviated); include the **complete identifier from the actual response** in the
+walkthrough. It exposes seven read-only MCP tools, including experimental
+`get_binding_picture`.
 
-- Introduce Sokol111, Redpanda, Catalog Management and the proposed move in plain language.
-- Show a pinned documented picture (with source-document links) next to the **nine-row
-  evidence-qualified binding picture**; keep the comparison visually intelligible.
-- Provide client prerequisites and copyable MCP connection instructions, e.g.
+Keep the reader's practical reproduction details:
+
+- A brief Sokol111 introduction and a visual comparison of documented flows and the existing
+  nine-row binding picture.
+- The endpoint and copyable connection command:
   `claude mcp add --transport http aip-hosted https://mcp.daip.io/mcp`.
-- State the exact package and snapshot IDs, pinned capture/repository revision, available
-  tool set and how to check the deployed endpoint serves the expected **pre-wave-1 C1** data.
-  Obtain real IDs from the assembled package, never fabricate them.
-- For each tool step: give the natural-language prompt, precise tool and argument values,
-  expected response/row evidence, plain-English interpretation and limitations.
-- Explain statuses only after the reader sees what each finding means.
-- Make the actionable checklist and final takeaway the **end** of the main walkthrough,
-  not a list of MCP commands or experimental results.
-- Explain missing/disabled tools, wrong hosted snapshot, and unsupported response fields.
-  If the hosted endpoint cannot serve C1, provide the precise local frozen replay path
-  instead and **do not claim** the hosted questions reproduce it.
+- The package and complete hosted snapshot IDs, tool inventory and capture time; use the
+  existing verified package, not a new import.
+- For each step, the **exact prompt, tool name, argument values and recognizable result**;
+  this includes `get_binding_picture` for `catalog-management`, `environment: local`
+  and `broker_ids: [kafka:sokol111-local]`, followed by the exact evidence-mode
+  request for the Catalog tenant-topic row.
+- Everyday interpretation next to each finding: which relationships cross the boundary,
+  how the Category Query category-topic row differs from the truly additional
+  tenant/attribute attachments, and which sources the evidence lookup actually resolves.
+- Practical troubleshooting: unavailable tool, connection problem, and unexpected snapshot
+  or row count. Explain what a wrong snapshot would look like without introducing a new
+  verification workflow.
+- A row-derived migration checklist and the §2 takeaway at the end.
 
-**Cold-reader acceptance test:** Someone new to AIP can identify the documented belief,
-the new tenant/attribute attachments, which rows actually cross Catalog Management, the
-evidence behind one surprising row, and the concrete migration checks—without reading
-the implementation spec.
+The walkthrough describes the **nine visible rows** and their limits; it does not need
+another formal expected-output qualification or a new reader acceptance test.
 
-## 4. Hosted package and data constraints
+## 4. Existing hosted evidence
 
-The hosted endpoint is currently a constrained, frozen MCP demonstration. **Switching its
-package is a separate owner-controlled action**. The main story must not depend on an
-unverified assumption that it already serves the pre-wave-1 state.
+The [hosted record](../../release-validation/v0.8.0-hosted-record.md) already documents
+the installed C1 package, deployment, external MCP checks and evidence drill-down.
+Use that established baseline. No new digests, fixture matching, re-import, local replay,
+tool-contract qualification or hosted-switch decision is part of this follow-up.
 
-Use the versioned C1 evidence
-([v0.7.2 C1](../0.7.2/i2-evidence/sokol111/c1/kafka-consumer-state.json))
-and the corresponding v0.8 authored declarations, service mapping and EventCatalog.
-Document input digests, package/snapshot IDs, tool contracts, frozen expected rows and
-replay instructions. The generated EventCatalog is an explicit assumption
-(`PROMISES_ASSUMED_CONFIRMED`); its entries are not claims made by the Sokol111 teams.
-Source/configuration-derived declarations and mapping are authored evidence.
+The generated EventCatalog entries are treated as confirmed promises by a disclosed
+demo assumption (`PROMISES_ASSUMED_CONFIRMED`), not because real service owners signed
+them. The source/config-derived declarations and service mapping are authored.
+The broker capture is frozen, not continuous monitoring.
 
-Do not erase or overwrite a different hosted demo without the owner's decision. The
-implementation PR must describe whether it hosts C1, uses a separate endpoint, or relies
-on a local deterministic replay. No live traffic or complete architecture inventory is
-implied.
+## 5. Optional recorded stories (not hosted interactive demos)
 
-## 5. Optional advanced stories (not prerequisites)
+The public endpoint serves **C1 only**. The after-wave-1 two-broker captures (`a-r`, `a-k`)
+are in [`i4-evidence/captures`](../0.8.0/i4-evidence/captures/), **not** loaded on the
+hosted endpoint. No reader-facing local Sokol111 import walkthrough is supplied by this
+spec. Do not suggest that the following stories can currently be queried from the host.
+They are **recorded case studies** until an explicit runnable route is provided.
 
-### A. Wave 1: what did the change produce?
+### A. Wave 1 — what happened after migration?
 
-Using the already frozen **after-wave-1** two-broker captures, compare the before/after
-attachments for the Catalog Management boundary. Explain which rows now appear on Kafka,
-which remain on Redpanda and which are outside each capture scope. Show the difference
-between AIP's broker-attachment evidence and the **separate** broker commands/functional
-tests that established replication progress and application behavior
-([release notes](../../release-validation/v0.8.0-release-notes.md)).
-No unsupported claim of delivery or universal detachment.
+Present the frozen before/after findings from the
+[v0.8 release notes](../../release-validation/v0.8.0-release-notes.md) and
+[I4 evidence](../0.8.0/i4-evidence/README.md), clearly labeled **recorded results,
+not a rerunnable hosted session**. Show attachment changes on Kafka/Redpanda and explain
+that separate broker tools and functional tests, not AIP, established replication
+progress and application behavior.
 
-### B. Wave 2: who relies on Store Provisioning?
+### B. Wave 2 — who relies on Store Provisioning?
 
-Preserve the former Draft 0.4 scenario as a follow-up using the frozen after-wave-1 state:
-Store Provisioning proposes moving the tenant producer. Two consumer attachments (Product
-Query, Category Query) are on Redpanda; two (Catalog, Image) are on Kafka. The producer is
-declared on Redpanda, so Kafka-side attachments expose a **cross-broker path to verify**
-(`cross_broker_producers: true`), not proven delivery or a confirmed bridge. Show missing
-demo-catalog promises, row evidence, limitations and an owner/checklist outcome.
+Use the recorded after-wave-1 picture: Product Query and Category Query are attached
+on Redpanda, Catalog and Image on Kafka. The producer is declared on Redpanda; AIP's
+`cross_broker_producers: true` identifies a cross-broker path **to investigate**, not
+verified delivery or a proven bridge. Show the limits and a concrete owner/checklist
+outcome.
 
-Only offer this when the reader understands the primary single-broker story. Record
-exact queries, package/snapshot IDs and expected outputs independently.
+**Presentation route:** link to the frozen I4 answers and captures; mark the example
+**recorded, not interactive**. If a separate runnable Wave-2 walkthrough is later
+published, it must supply its own executable queries, both broker IDs, snapshot/package
+IDs and recognizable outputs, and say where that package runs. None of that is required
+to deliver the primary demo now.
 
-### C. Coding agent with and without AIP (optional exhibit)
+### C. Coding agent comparison (optional recorded exhibit)
 
-A tightly controlled, **non-qualifying illustration**, not the demo climax. Hold prompt,
-model/settings, pinned repositories and initial context fixed; vary only AIP access.
-Retain unedited transcripts and annotate specific context differences. One session per
-condition does not establish better planning quality or real-world product value.
+If shown, disclose a fixed task prompt, model and settings, repository revisions and
+starting context, with AIP access as the only intended difference. Link the actual
+published transcripts, if available. This is an illustration from one session per
+condition, **not** evidence of improved plan quality. It is neither a requirement for
+the primary walkthrough nor another qualification study.
 
-## 6. Deliverables and acceptance
+## 6. Deliverable
 
-Implementation follow-up:
+Revise the existing hosted Sokol111 page to include the documented architecture picture,
+the boundaries that matter for the proposed Catalog Management change, accurate evidence
+attribution for one surprising row, the Category Query catalog-coverage explanation and
+a practical migration checklist. Keep the existing runnable connection and question flow,
+including exact tool arguments, results, snapshot identification and reader troubleshooting.
 
-1. A versioned, reproducible **pre-wave-1 C1** package/replay route and a truthful account
-   of hosted deployment state.
-2. A copyable primary walkthrough with documented source picture, the nine-row binding
-   picture, exact evidence calls, and a row-derived migration checklist.
-3. Optional separate advanced pages for after-wave verification, wave 2, or agent comparison.
-
-**Acceptance criteria:**
-
-- Main story is understandable to a first-time viewer and runs against the **identified**
-  snapshot/package with the documented tool interface.
-- Nine expected rows match the frozen evidence; **INSIDE/NONE** are not counted as crossing
-  Catalog Management, and missing promise coverage is explained without overclaim.
-- Evidence is attributable and limitations are visible at the point of each claim.
-- The main story finishes with the actionable checklist and the specific, evidence-grounded
-  AIP contribution; no agent comparison interrupts the narrative.
-- Advanced stories are optional, independently reproducible and do not confuse the
-  main C1 snapshot with the after-wave-1 captures.
+The published instructions should produce the **described C1 binding picture** on the
+recorded hosted instance. The main story closes with specific AIP-supported findings
+and their limitations, rather than test results or an agent comparison. Optional stories
+are clearly labeled **recorded** until a supported execution route exists.
 
 ## 7. Disclosures
 
@@ -275,5 +279,5 @@ Implementation follow-up:
 |---|---|---|
 | D1 | Primary story: documented belief → C1 discovery → wave-1 impact decision | proposed |
 | D2 | Use one nine-row binding picture throughout the primary story | proposed |
-| D3 | Treat hosting/replay of C1 as an explicit implementation decision | proposed |
-| D4 | Offer wave-1 before/after, wave-2 migration and agent comparison only as extensions | proposed |
+| D3 | Use the existing hosted C1 endpoint and Sokol111 walkthrough; no new deployment/replay | proposed |
+| D4 | Present wave-1 after-state, wave-2 and agent comparison as optional recorded exhibits, not hosted interactive demos | proposed |
