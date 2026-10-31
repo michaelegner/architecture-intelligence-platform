@@ -231,8 +231,12 @@ progress and application behavior.
 Use the recorded after-wave-1 picture: Product Query and Category Query are attached
 on Redpanda, Catalog and Image on Kafka. The producer is declared on Redpanda; AIP's
 `cross_broker_producers: true` identifies a cross-broker path **to investigate**, not
-verified delivery or a proven bridge. Show the limits and a concrete owner/checklist
-outcome.
+verified delivery or a proven bridge. **The recorded `answers-after.json` is scoped to
+Catalog Management, not Store Provisioning:** Product Query and Category Query tenant rows
+therefore have `crossing: NONE` relative to Catalog Management, while
+`cross_broker_producers: true` appears only for the Kafka-side Catalog and Image rows.
+No Store Provisioning-scoped answer was recorded. Show the limits and a concrete
+owner/checklist outcome.
 
 **Presentation route:** link to the frozen I4 answers and captures; mark the example
 **recorded, not interactive**. If a separate runnable Wave-2 walkthrough is later
