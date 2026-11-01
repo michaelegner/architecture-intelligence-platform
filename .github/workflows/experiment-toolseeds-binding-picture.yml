@@ -25,3 +25,13 @@ jobs:
         run: node experiments/toolseeds-binding-picture/build.mjs --without-provider
       - name: Verify no-provider output has not drifted
         run: git diff --exit-code -- experiments/toolseeds-binding-picture/results/without-provider.json
+      - name: Verify source-only extraction and comparison
+        run: node --test experiments/toolseeds-binding-picture/source-only/test.mjs
+      - name: Reproduce source-only and comparison artifacts
+        run: node experiments/toolseeds-binding-picture/source-only/build.mjs
+      - name: Upload source-only and comparative evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: toolseeds-sokol111-comparison
+          path: experiments/toolseeds-binding-picture/source-only/results/
+          if-no-files-found: error
