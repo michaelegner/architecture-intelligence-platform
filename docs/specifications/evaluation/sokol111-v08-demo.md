@@ -163,7 +163,7 @@ real organizations.
 
 ## 3. Hosted walkthrough — runnable now
 
-Update the **existing Sokol111** [`TRY_IT_HOSTED.md`](../../../examples/pitstop-demo/TRY_IT_HOSTED.md).
+Update the **existing Sokol111** [`TRY_IT_HOSTED.md`](../../../examples/sokol111-demo/TRY_IT_HOSTED.md).
 The Pitstop instructions are already in `TRY_IT_LOCALLY.md`. This is a narrative/content
 improvement, not a new demo deployment or qualification exercise.
 
