@@ -1,0 +1,570 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Binding picture — Catalog Management → Apache Kafka (local)</title>
+<style>
+  :root { --fg:#1b1f24; --muted:#59636e; --line:#d0d7de; --bg:#fff; --soft:#f6f8fa; --sel:#fff8c5; --accent:#0b5cad; }
+  * { box-sizing: border-box; }
+  body { font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; color: var(--fg); background: var(--bg); margin: 0; }
+  header, main, footer { max-width: 1400px; margin: 0 auto; padding: 0 20px; }
+  header { padding-top: 18px; }
+  h1 { font-size: 20px; margin: 0 0 6px; }
+  h2 { font-size: 16px; margin: 22px 0 8px; border-bottom: 1px solid var(--line); padding-bottom: 4px; }
+  h3 { font-size: 14px; margin: 14px 0 6px; }
+  .q { background: var(--soft); border: 1px solid var(--line); border-left: 4px solid var(--fg); padding: 10px 14px; margin: 8px 0; }
+  .q dt { font-weight: 600; float: left; width: 130px; clear: left; }
+  .q dd { margin: 0 0 4px 140px; }
+  code, .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12.5px; }
+  table { border-collapse: collapse; width: 100%; }
+  th, td { border: 1px solid var(--line); padding: 5px 7px; text-align: left; vertical-align: top; }
+  th { background: var(--soft); font-weight: 600; }
+  #bindings tbody tr { cursor: pointer; }
+  #bindings tbody tr:hover { background: #f3f6fa; }
+  #bindings tbody tr[aria-selected="true"] { background: var(--sel); outline: 2px solid var(--fg); }
+  .tag { display: inline-block; border: 1px solid var(--fg); border-radius: 3px; padding: 0 4px; margin: 1px 2px 1px 0; font-size: 11.5px; font-family: ui-monospace, monospace; background: #fff; }
+  .tag.prov { border-style: dashed; }
+  .tag.interp { border-style: dotted; }
+  .unres { font-weight: 600; }
+  .dir { font-weight: 600; white-space: nowrap; }
+  .controls { display: flex; flex-wrap: wrap; gap: 18px; align-items: center; padding: 8px 10px; background: var(--soft); border: 1px solid var(--line); margin-bottom: 8px; }
+  .layout { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+  @media (max-width: 1000px) { .layout { grid-template-columns: 1fr; } }
+  #details { border: 1px solid var(--line); padding: 10px 14px; position: sticky; top: 8px; max-height: calc(100vh - 16px); overflow: auto; }
+  .box { border: 1px solid var(--line); padding: 6px 10px; margin: 6px 0; }
+  .box.src { border-left: 4px solid var(--fg); }
+  .box.prov { border: 1px dashed var(--fg); border-left: 4px dashed var(--fg); }
+  .box.interp { border: 1px dotted var(--fg); border-left: 4px dotted var(--fg); background: #fbfbfb; }
+  .box.gap { border-left: 4px double var(--fg); }
+  .label { font-size: 11px; text-transform: uppercase; letter-spacing: .04em; font-weight: 700; }
+  ul { margin: 4px 0; padding-left: 20px; }
+  li { margin: 2px 0; }
+  a.ref { font-family: ui-monospace, monospace; font-size: 12px; color: var(--accent); }
+  pre { background: var(--soft); border: 1px solid var(--line); padding: 6px; overflow: auto; font-size: 12px; margin: 4px 0; white-space: pre-wrap; word-break: break-all; }
+  .ev:target, .ev.flash { outline: 3px solid var(--fg); background: var(--sel); }
+  .muted { color: var(--muted); }
+  .ok::before { content: "PASS "; font-weight: 700; }
+  .fail::before { content: "FAIL "; font-weight: 700; }
+  .na::before { content: "NOT RUN "; font-weight: 700; }
+  .banner { border: 2px solid var(--fg); padding: 6px 10px; margin: 8px 0; font-weight: 600; }
+  footer { padding-bottom: 40px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Binding picture: Catalog Management on the Kafka broker (environment <code>local</code>)</h1>
+  <div class="q">
+    <dl>
+      <dt>Question</dt><dd>When moving Catalog Management (Catalog and Image) to Apache Kafka, which bindings are configured across the boundary and what is not established?</dd>
+      <dt>Boundary</dt><dd><b>Catalog Management</b> = <code>ecommerce-catalog-service</code> + <code>ecommerce-image-service</code>. <i>Defined by the task, not inferred from source.</i> <span id="provBoundary" data-prov="1">The provider's bounded context <code>catalog-management</code> lists the same two services as producers <span class="tag prov">provider</span>.</span> Counterparts below are services that the inspected config/code connects to the selected side through Kafka.</dd>
+      <dt>Environment</dt><dd><code>local</code> (k3d + Tilt + docker-compose). Production values were not inspected.</dd>
+      <dt>Scope</dt><dd>Only Kafka bindings (topics, consumer groups, DLQ, the broker endpoint) of the two services, in both directions. Not a full dependency map. gRPC/HTTP, MongoDB, S3 and imgproxy bindings are out of scope for this question.</dd>
+      <dt>Premise check</dt><dd>The services already use the Kafka protocol (Go client <code>franz-go</code>, <a class="ref" href="#ev-E30">E30</a>). The broker running locally is <b>Redpanda</b> <code>redpandadata/redpanda:v24.3.1</code> (<a class="ref" href="#ev-E25">E25</a>), and the docs say Redpanda also runs in production (<a class="ref" href="#ev-E28">E28</a>, doc only). So "moving to Apache Kafka" means changing the broker, not adopting messaging for the first time.</dd>
+    </dl>
+  </div>
+  <div id="provBanner" class="banner"></div>
+</header>
+
+<main>
+  <h2>Bindings</h2>
+  <div class="controls" role="group" aria-label="Filters">
+    <label>Direction:
+      <select id="fDir">
+        <option value="CROSSING">Crossing + shared + unresolved (default)</option>
+        <option value="ALL">All rows incl. not crossing</option>
+        <option value="INBOUND">INBOUND only</option>
+        <option value="OUTBOUND">OUTBOUND only</option>
+        <option value="INSIDE">INSIDE only</option>
+        <option value="SHARED">SHARED resource only</option>
+        <option value="UNRESOLVED">Direction UNRESOLVED only</option>
+        <option value="NONE">NONE (not crossing; context)</option>
+      </select>
+    </label>
+    <label><input type="checkbox" id="fUnres"> Only rows with unresolved items</label>
+    <label><input type="checkbox" id="fProv" checked> Use provider input (AIP)</label>
+    <span id="count" class="muted"></span>
+  </div>
+  <p class="muted">Direction is relative to the task boundary: <b>⇐ INBOUND</b> = a selected-side service consumes from an outside producer; <b>⇒ OUTBOUND</b> = an outside service consumes from a selected-side producer; <b>⟲ INSIDE</b> = both ends are inside; <b>◇ SHARED</b> = shared infrastructure; <b>? UNRESOLVED</b> = counterpart unknown. Evidence tags: <span class="tag">code</span> source code references it, <span class="tag">config</span> deployment config declares it, <span class="tag">doc</span> a document states it, <span class="tag">manifest</span> a dependency manifest lists it,<span class="tag prov">capture</span> provider-qualified runtime attachment, <span class="tag prov">promise</span> provider catalog promise, <span class="tag prov">mapping</span> provider group→service mapping. Dashed = provider input.</p>
+
+  <div class="layout">
+    <div>
+      <table id="bindings" aria-label="Bindings">
+        <thead><tr><th>ID</th><th>Direction</th><th>Selected side (role)</th><th>Counterpart (role)</th><th>Topic / destination</th><th>Evidence kinds</th><th>Provider status (verbatim)</th><th>Unresolved</th></tr></thead>
+        <tbody></tbody>
+      </table>
+      <p class="muted">Click a row or focus it and press Enter to see its references.</p>
+    </div>
+    <aside id="details" aria-live="polite"><p class="muted">Select a binding.</p></aside>
+  </div>
+
+  <h2>Inputs inspected</h2>
+  <table>
+    <thead><tr><th>Repository (./src)</th><th>Revision (.git/HEAD)</th><th>What was read</th></tr></thead>
+    <tbody id="repos"></tbody>
+  </table>
+  <p class="muted">The <code>.git/HEAD</code> files contain a commit SHA directly (a detached HEAD). I did not check whether the working trees have uncommitted changes, because shell access was denied in this session.</p>
+  <h3>Provider answers used</h3>
+  <div id="provInputs"></div>
+
+  <h2>Unavailable or incomplete inputs</h2>
+  <ul id="gaps"></ul>
+
+  <h2>Evidence registry</h2>
+  <h3>Source evidence (read directly from ./src)</h3>
+  <table><thead><tr><th>Ref</th><th>Kind</th><th>Location</th><th>Excerpt (as read)</th></tr></thead><tbody id="srcEv"></tbody></table>
+  <div id="provEvWrap"><h3>Provider evidence entries (verbatim from <code>get_binding_picture</code> mode <code>evidence</code>)</h3><div id="provEv"></div></div>
+
+  <h2>Verification</h2>
+  <h3>Cross-checks done by hand when this artifact was built (2026-11-01)</h3>
+  <ul id="manualChecks"></ul>
+  <h3>Integrity checks run in this browser</h3>
+  <ul id="autoChecks"></ul>
+</main>
+<footer><p class="muted">Read only: no repository, configuration or system was changed. Generated as an investigation artifact. Raw provider responses are also stored in <code>provider-responses.json</code> next to this file.</p></footer>
+
+<script id="provider-data" type="application/json">
+{"query":{"schema_version":"0.8.0","producer":{"name":"architecture-intelligence-platform","version":"0.8.0","build_revision":"63534a650b8d1f947aa0d930f678dd0a0cb718e4"},"tool":"get_binding_picture","mode":"query","outcome":"PARTIAL","snapshot":{"snapshot_id":"aip:snapshot:v1:7f171aea2d3c5070e6be3dd9c6b53a234ad75934be5724681b95cd3e1705c413","model_revision":"sha256:7f171aea2d3c5070e6be3dd9c6b53a234ad75934be5724681b95cd3e1705c413"},"data":{"request_context":{"bounded_context_id":"catalog-management","environment":"local","broker_ids":["kafka:sokol111-local"]},"catalog_source":{"source_instance_id":"urn:aip:source:event-catalog:9f0dee1c1c3902c957f0f6d7fb126d4da85cb8cc63c9a1fa940242811f94d1d9","catalog_digest":"ff24602762eb2bac4d56955900b82f00f23f01dc5479a12140719753e9ae250e","lookup_digest":"63adbc14429b0cea899076e44ae0f4fc8e3b7ab259a87bfd918526866973adf1","source_revision":"catalog-sha256:ff24602762eb2bac4d56955900b82f00f23f01dc5479a12140719753e9ae250e+lookup-sha256:63adbc14429b0cea899076e44ae0f4fc8e3b7ab259a87bfd918526866973adf1"},"capture_sources":[{"broker_id":"kafka:sokol111-local","source_instance_id":"urn:aip:source:kafka-consumer-state:3be60c43a058512e56dc34d4dddb6ed2282e99ac7f0768c8dacb9a778bb5e9dc","captured_at":"2026-10-21T17:53:57Z","source_revision":"kafka:not-established+capture:2026-10-21T17:53:57Z"}],"rows":[{"broker_id":"kafka:sokol111-local","topic_name":"catalog.attribute.events","topic_id":"topic:owned:ef00b8a20df7bed4e26c809d03727b11fd83d1169cc8e425f88922d3b5973bd6","consumer_service_id":"service:ecommerce-category-query-service","group_ids":["ecommerce-category-query-service"],"crossing":"OUTBOUND","status":"UNRESOLVED","reason":"PROMISE_COVERAGE_MISSING","declared_event_types":[],"producers":[{"service_id":"service:ecommerce-catalog-service","bounded_context_id":"catalog-management","broker_ids":["kafka:sokol111-local"],"declared_event_types":[]}],"cross_broker_producers":false,"captured_at":"2026-10-21T17:53:57Z","promise_evidence_refs":[],"attachment_evidence_refs":["binding-evidence:46041dc7cf7ba35aac1b2e60075295ecf851c3b2b5aea5d045cb36b2eddea429"],"mapping_evidence_refs":["binding-evidence:7fe1983115b2125837f4944c5bc83c41b1686665b22e80136a46559749166d72"]},{"broker_id":"kafka:sokol111-local","topic_name":"catalog.attribute.events","topic_id":"topic:owned:ef00b8a20df7bed4e26c809d03727b11fd83d1169cc8e425f88922d3b5973bd6","consumer_service_id":"service:ecommerce-product-query-service","group_ids":["ecommerce-product-query-service"],"crossing":"OUTBOUND","status":"UNRESOLVED","reason":"PROMISE_COVERAGE_MISSING","declared_event_types":[],"producers":[{"service_id":"service:ecommerce-catalog-service","bounded_context_id":"catalog-management","broker_ids":["kafka:sokol111-local"],"declared_event_types":[]}],"cross_broker_producers":false,"captured_at":"2026-10-21T17:53:57Z","promise_evidence_refs":[],"attachment_evidence_refs":["binding-evidence:cc18919143367ebbaa5c0992626ffcf205739ba78179ef01a31270af792c3c41"],"mapping_evidence_refs":["binding-evidence:8556aa1507aeefc37b3cbbae1b89114bab5e8d43e7f9ca0cc0fd7c16ad7adff8"]},{"broker_id":"kafka:sokol111-local","topic_name":"catalog.category.events","topic_id":"topic:owned:53418bb503b87bfe0ea8cb1fbc2677d69d1d70dc81b86cb8520dcc03bcc1bfa0","consumer_service_id":"service:ecommerce-category-query-service","group_ids":["ecommerce-category-query-service"],"crossing":"OUTBOUND","status":"UNRESOLVED","reason":"PROMISE_COVERAGE_MISSING","declared_event_types":[],"producers":[{"service_id":"service:ecommerce-catalog-service","bounded_context_id":"catalog-management","broker_ids":["kafka:sokol111-local"],"declared_event_types":["CategoryEvents"]}],"cross_broker_producers":false,"captured_at":"2026-10-21T17:53:57Z","promise_evidence_refs":[],"attachment_evidence_refs":["binding-evidence:838e4db4fb4f95799e7a7a64839a897eb59b60d485cafd4ab8da02f8c7353f79"],"mapping_evidence_refs":["binding-evidence:7fe1983115b2125837f4944c5bc83c41b1686665b22e80136a46559749166d72"]},{"broker_id":"kafka:sokol111-local","topic_name":"catalog.product.events","topic_id":"topic:owned:5534005a20357fa91c86e22e83f557c20a0be39302067e509fa59c85eb034539","consumer_service_id":"service:ecommerce-image-service","group_ids":["ecommerce-image-service"],"crossing":"INSIDE","status":"PROMISED_AND_OBSERVED","declared_event_types":["ProductUpdated"],"producers":[{"service_id":"service:ecommerce-catalog-service","bounded_context_id":"catalog-management","broker_ids":["kafka:sokol111-local"],"declared_event_types":["ProductEvents","ProductUpdated"]},{"service_id":"service:ecommerce-image-service","bounded_context_id":"catalog-management","broker_ids":["kafka:sokol111-local"],"declared_event_types":["ProductImagePromoted"]}],"cross_broker_producers":false,"captured_at":"2026-10-21T17:53:57Z","promise_evidence_refs":["binding-evidence:77775d07e93d8ac07341da1002baa1b74d43123372c993c2c0d2efcf4f81a338"],"attachment_evidence_refs":["binding-evidence:46fcfc9a8c567079bbae9e40b75abc87d46cac2056af1b0d7b6affd668280e95"],"mapping_evidence_refs":["binding-evidence:52b9ad72fadb5d4fe90d8548c21eac81149797d200c7db055515b7b08c97d6a2"]},{"broker_id":"kafka:sokol111-local","topic_name":"catalog.product.events","topic_id":"topic:owned:5534005a20357fa91c86e22e83f557c20a0be39302067e509fa59c85eb034539","consumer_service_id":"service:ecommerce-product-query-service","group_ids":["ecommerce-product-query-service"],"crossing":"OUTBOUND","status":"PROMISED_AND_OBSERVED","declared_event_types":["ProductImagePromoted","ProductUpdated"],"producers":[{"service_id":"service:ecommerce-catalog-service","bounded_context_id":"catalog-management","broker_ids":["kafka:sokol111-local"],"declared_event_types":["ProductEvents","ProductUpdated"]},{"service_id":"service:ecommerce-image-service","bounded_context_id":"catalog-management","broker_ids":["kafka:sokol111-local"],"declared_event_types":["ProductImagePromoted"]}],"cross_broker_producers":false,"captured_at":"2026-10-21T17:53:57Z","promise_evidence_refs":["binding-evidence:8d57ba4913af3aa5084df2481dcdf89cd53d665f8184a4e34fc184c45d5c13b5","binding-evidence:f0a4b9b0886b78e43db946f9c0c9ca118b0ad34d65055acae1028f23ee04422d"],"attachment_evidence_refs":["binding-evidence:5fda86cb03fc54cf4f9c257b8cbc8fb7d4e9d9511061a2ca19662af696c4c5a1"],"mapping_evidence_refs":["binding-evidence:8556aa1507aeefc37b3cbbae1b89114bab5e8d43e7f9ca0cc0fd7c16ad7adff8"]},{"broker_id":"kafka:sokol111-local","topic_name":"tenant.tenant.events","topic_id":"topic:owned:80ac3adc89d6d4d0c21254e63f88920456c927900edbe9d78fa242ce57bdc592","consumer_service_id":"service:ecommerce-catalog-service","group_ids":["ecommerce-catalog-service"],"crossing":"INBOUND","status":"UNRESOLVED","reason":"PROMISE_COVERAGE_MISSING","declared_event_types":[],"producers":[{"service_id":"service:ecommerce-tenant-service","bounded_context_id":"store-provisioning","broker_ids":["kafka:sokol111-local"],"declared_event_types":["TenantUpdated"]}],"cross_broker_producers":false,"captured_at":"2026-10-21T17:53:57Z","promise_evidence_refs":[],"attachment_evidence_refs":["binding-evidence:2e802e918dffe51fee2d5f6024d74bfe67dd63704edeecbbf48f5c9d335544ee"],"mapping_evidence_refs":["binding-evidence:0292efcfba50e7444fb5decd6ac41d695edd1e6eb8dd90890e1f64bd02ced5e6"]},{"broker_id":"kafka:sokol111-local","topic_name":"tenant.tenant.events","topic_id":"topic:owned:80ac3adc89d6d4d0c21254e63f88920456c927900edbe9d78fa242ce57bdc592","consumer_service_id":"service:ecommerce-category-query-service","group_ids":["ecommerce-category-query-service"],"crossing":"NONE","status":"UNRESOLVED","reason":"PROMISE_COVERAGE_MISSING","declared_event_types":[],"producers":[{"service_id":"service:ecommerce-tenant-service","bounded_context_id":"store-provisioning","broker_ids":["kafka:sokol111-local"],"declared_event_types":["TenantUpdated"]}],"cross_broker_producers":false,"captured_at":"2026-10-21T17:53:57Z","promise_evidence_refs":[],"attachment_evidence_refs":["binding-evidence:053786f6e95277209187731d87e03eff1371ec2a58e017db59005cf6bcdd124a"],"mapping_evidence_refs":["binding-evidence:7fe1983115b2125837f4944c5bc83c41b1686665b22e80136a46559749166d72"]},{"broker_id":"kafka:sokol111-local","topic_name":"tenant.tenant.events","topic_id":"topic:owned:80ac3adc89d6d4d0c21254e63f88920456c927900edbe9d78fa242ce57bdc592","consumer_service_id":"service:ecommerce-image-service","group_ids":["ecommerce-image-service"],"crossing":"INBOUND","status":"UNRESOLVED","reason":"PROMISE_COVERAGE_MISSING","declared_event_types":[],"producers":[{"service_id":"service:ecommerce-tenant-service","bounded_context_id":"store-provisioning","broker_ids":["kafka:sokol111-local"],"declared_event_types":["TenantUpdated"]}],"cross_broker_producers":false,"captured_at":"2026-10-21T17:53:57Z","promise_evidence_refs":[],"attachment_evidence_refs":["binding-evidence:4ae3b254cf0e6f61763a68e9e6e1b07a887180438f26f39586c7dc09cdbacaee"],"mapping_evidence_refs":["binding-evidence:52b9ad72fadb5d4fe90d8548c21eac81149797d200c7db055515b7b08c97d6a2"]},{"broker_id":"kafka:sokol111-local","topic_name":"tenant.tenant.events","topic_id":"topic:owned:80ac3adc89d6d4d0c21254e63f88920456c927900edbe9d78fa242ce57bdc592","consumer_service_id":"service:ecommerce-product-query-service","group_ids":["ecommerce-product-query-service"],"crossing":"NONE","status":"UNRESOLVED","reason":"PROMISE_COVERAGE_MISSING","declared_event_types":[],"producers":[{"service_id":"service:ecommerce-tenant-service","bounded_context_id":"store-provisioning","broker_ids":["kafka:sokol111-local"],"declared_event_types":["TenantUpdated"]}],"cross_broker_producers":false,"captured_at":"2026-10-21T17:53:57Z","promise_evidence_refs":[],"attachment_evidence_refs":["binding-evidence:1c225103caf4e38285aad8781398ddefe82ce829e34bc4ba181da18fe2e09d05"],"mapping_evidence_refs":["binding-evidence:8556aa1507aeefc37b3cbbae1b89114bab5e8d43e7f9ca0cc0fd7c16ad7adff8"]}],"page":{"limit":100,"returned":9}},"limitations":[{"code":"CAPTURE_SCOPE_LIMITED","message":"each capture covers only its configured consumer groups at its own capture time"},{"code":"EVENT_HANDLING_NOT_ESTABLISHED","message":"an attachment shows a consumer group's topic assignment, not which event types it handles"},{"code":"PRODUCER_SIDE_DECLARED_ONLY","message":"producers are declared evidence only, never observed"},{"code":"PROMISES_ASSUMED_CONFIRMED","message":"catalog entries count as confirmed promises by a disclosed demonstration assumption"}]},
+"evidence":{"schema_version":"0.8.0","producer":{"name":"architecture-intelligence-platform","version":"0.8.0","build_revision":"63534a650b8d1f947aa0d930f678dd0a0cb718e4"},"tool":"get_binding_picture","mode":"evidence","outcome":"ANSWERED","snapshot":{"snapshot_id":"aip:snapshot:v1:7f171aea2d3c5070e6be3dd9c6b53a234ad75934be5724681b95cd3e1705c413","model_revision":"sha256:7f171aea2d3c5070e6be3dd9c6b53a234ad75934be5724681b95cd3e1705c413"},"data":{"request_context":{"bounded_context_id":"catalog-management","environment":"local","broker_ids":["kafka:sokol111-local"]},"entries":[{"ref":"binding-evidence:0292efcfba50e7444fb5decd6ac41d695edd1e6eb8dd90890e1f64bd02ced5e6","status":"RESOLVED","kind":"KAFKA_SERVICE_MAPPING","evidence":{"kind":"KAFKA_SERVICE_MAPPING","consumer_id":"consumer:3aa6eb1c7f50b8feb08bc7d4c364410185eb2a0353398cca16477881bb09c35c","group_id":"ecommerce-catalog-service","service_name":"ecommerce-catalog-service","service_id":"service:ecommerce-catalog-service","mapping_source_instance_id":"urn:aip:source:kafka-service-mapping:4c22199fe7dea2f32cad2095878ac5e76cfab436d6b1c6bfd5735df05ef4380d","mapping_source_revision":"artifact-sha256:c705d8451bb2fec5582d2550d608985375e00ab6fc7d8bdd7a2fd264fafb08e8","artifact_sha256":"c705d8451bb2fec5582d2550d608985375e00ab6fc7d8bdd7a2fd264fafb08e8"}},{"ref":"binding-evidence:053786f6e95277209187731d87e03eff1371ec2a58e017db59005cf6bcdd124a","status":"RESOLVED","kind":"KAFKA_ATTACHMENT","evidence":{"kind":"KAFKA_ATTACHMENT","consumer_id":"consumer:2ae11ce6fa5f7781190b4f9895a0b7d733c809862c834fb25f042f46a65c1f4e","group_id":"ecommerce-category-query-service","topic_id":"topic:owned:80ac3adc89d6d4d0c21254e63f88920456c927900edbe9d78fa242ce57bdc592","captured_at":"2026-10-21T17:53:57Z","capture_source_instance_id":"urn:aip:source:kafka-consumer-state:3be60c43a058512e56dc34d4dddb6ed2282e99ac7f0768c8dacb9a778bb5e9dc","capture_source_revision":"kafka:not-established+capture:2026-10-21T17:53:57Z","capture_content_sha256":"b46d4ae2c535da88ab77bde5d7f63f4a089bea4faaf16b1fcb478ca90f5b30d8"}},{"ref":"binding-evidence:1c225103caf4e38285aad8781398ddefe82ce829e34bc4ba181da18fe2e09d05","status":"RESOLVED","kind":"KAFKA_ATTACHMENT","evidence":{"kind":"KAFKA_ATTACHMENT","consumer_id":"consumer:1481e9ab341a271aae90aca7108cc1b40005c78464bdab5fc03aaf71431cbd4e","group_id":"ecommerce-product-query-service","topic_id":"topic:owned:80ac3adc89d6d4d0c21254e63f88920456c927900edbe9d78fa242ce57bdc592","captured_at":"2026-10-21T17:53:57Z","capture_source_instance_id":"urn:aip:source:kafka-consumer-state:3be60c43a058512e56dc34d4dddb6ed2282e99ac7f0768c8dacb9a778bb5e9dc","capture_source_revision":"kafka:not-established+capture:2026-10-21T17:53:57Z","capture_content_sha256":"b46d4ae2c535da88ab77bde5d7f63f4a089bea4faaf16b1fcb478ca90f5b30d8"}},{"ref":"binding-evidence:2e802e918dffe51fee2d5f6024d74bfe67dd63704edeecbbf48f5c9d335544ee","status":"RESOLVED","kind":"KAFKA_ATTACHMENT","evidence":{"kind":"KAFKA_ATTACHMENT","consumer_id":"consumer:3aa6eb1c7f50b8feb08bc7d4c364410185eb2a0353398cca16477881bb09c35c","group_id":"ecommerce-catalog-service","topic_id":"topic:owned:80ac3adc89d6d4d0c21254e63f88920456c927900edbe9d78fa242ce57bdc592","captured_at":"2026-10-21T17:53:57Z","capture_source_instance_id":"urn:aip:source:kafka-consumer-state:3be60c43a058512e56dc34d4dddb6ed2282e99ac7f0768c8dacb9a778bb5e9dc","capture_source_revision":"kafka:not-established+capture:2026-10-21T17:53:57Z","capture_content_sha256":"b46d4ae2c535da88ab77bde5d7f63f4a089bea4faaf16b1fcb478ca90f5b30d8"}},{"ref":"binding-evidence:46041dc7cf7ba35aac1b2e60075295ecf851c3b2b5aea5d045cb36b2eddea429","status":"RESOLVED","kind":"KAFKA_ATTACHMENT","evidence":{"kind":"KAFKA_ATTACHMENT","consumer_id":"consumer:2ae11ce6fa5f7781190b4f9895a0b7d733c809862c834fb25f042f46a65c1f4e","group_id":"ecommerce-category-query-service","topic_id":"topic:owned:ef00b8a20df7bed4e26c809d03727b11fd83d1169cc8e425f88922d3b5973bd6","captured_at":"2026-10-21T17:53:57Z","capture_source_instance_id":"urn:aip:source:kafka-consumer-state:3be60c43a058512e56dc34d4dddb6ed2282e99ac7f0768c8dacb9a778bb5e9dc","capture_source_revision":"kafka:not-established+capture:2026-10-21T17:53:57Z","capture_content_sha256":"b46d4ae2c535da88ab77bde5d7f63f4a089bea4faaf16b1fcb478ca90f5b30d8"}},{"ref":"binding-evidence:46fcfc9a8c567079bbae9e40b75abc87d46cac2056af1b0d7b6affd668280e95","status":"RESOLVED","kind":"KAFKA_ATTACHMENT","evidence":{"kind":"KAFKA_ATTACHMENT","consumer_id":"consumer:f5364fcf0a16e69d490f38c2a2f6271cf7daab835846c0013147f2e69df265e9","group_id":"ecommerce-image-service","topic_id":"topic:owned:5534005a20357fa91c86e22e83f557c20a0be39302067e509fa59c85eb034539","captured_at":"2026-10-21T17:53:57Z","capture_source_instance_id":"urn:aip:source:kafka-consumer-state:3be60c43a058512e56dc34d4dddb6ed2282e99ac7f0768c8dacb9a778bb5e9dc","capture_source_revision":"kafka:not-established+capture:2026-10-21T17:53:57Z","capture_content_sha256":"b46d4ae2c535da88ab77bde5d7f63f4a089bea4faaf16b1fcb478ca90f5b30d8"}},{"ref":"binding-evidence:4ae3b254cf0e6f61763a68e9e6e1b07a887180438f26f39586c7dc09cdbacaee","status":"RESOLVED","kind":"KAFKA_ATTACHMENT","evidence":{"kind":"KAFKA_ATTACHMENT","consumer_id":"consumer:f5364fcf0a16e69d490f38c2a2f6271cf7daab835846c0013147f2e69df265e9","group_id":"ecommerce-image-service","topic_id":"topic:owned:80ac3adc89d6d4d0c21254e63f88920456c927900edbe9d78fa242ce57bdc592","captured_at":"2026-10-21T17:53:57Z","capture_source_instance_id":"urn:aip:source:kafka-consumer-state:3be60c43a058512e56dc34d4dddb6ed2282e99ac7f0768c8dacb9a778bb5e9dc","capture_source_revision":"kafka:not-established+capture:2026-10-21T17:53:57Z","capture_content_sha256":"b46d4ae2c535da88ab77bde5d7f63f4a089bea4faaf16b1fcb478ca90f5b30d8"}},{"ref":"binding-evidence:52b9ad72fadb5d4fe90d8548c21eac81149797d200c7db055515b7b08c97d6a2","status":"RESOLVED","kind":"KAFKA_SERVICE_MAPPING","evidence":{"kind":"KAFKA_SERVICE_MAPPING","consumer_id":"consumer:f5364fcf0a16e69d490f38c2a2f6271cf7daab835846c0013147f2e69df265e9","group_id":"ecommerce-image-service","service_name":"ecommerce-image-service","service_id":"service:ecommerce-image-service","mapping_source_instance_id":"urn:aip:source:kafka-service-mapping:4c22199fe7dea2f32cad2095878ac5e76cfab436d6b1c6bfd5735df05ef4380d","mapping_source_revision":"artifact-sha256:c705d8451bb2fec5582d2550d608985375e00ab6fc7d8bdd7a2fd264fafb08e8","artifact_sha256":"c705d8451bb2fec5582d2550d608985375e00ab6fc7d8bdd7a2fd264fafb08e8"}},{"ref":"binding-evidence:5fda86cb03fc54cf4f9c257b8cbc8fb7d4e9d9511061a2ca19662af696c4c5a1","status":"RESOLVED","kind":"KAFKA_ATTACHMENT","evidence":{"kind":"KAFKA_ATTACHMENT","consumer_id":"consumer:1481e9ab341a271aae90aca7108cc1b40005c78464bdab5fc03aaf71431cbd4e","group_id":"ecommerce-product-query-service","topic_id":"topic:owned:5534005a20357fa91c86e22e83f557c20a0be39302067e509fa59c85eb034539","captured_at":"2026-10-21T17:53:57Z","capture_source_instance_id":"urn:aip:source:kafka-consumer-state:3be60c43a058512e56dc34d4dddb6ed2282e99ac7f0768c8dacb9a778bb5e9dc","capture_source_revision":"kafka:not-established+capture:2026-10-21T17:53:57Z","capture_content_sha256":"b46d4ae2c535da88ab77bde5d7f63f4a089bea4faaf16b1fcb478ca90f5b30d8"}},{"ref":"binding-evidence:77775d07e93d8ac07341da1002baa1b74d43123372c993c2c0d2efcf4f81a338","status":"RESOLVED","kind":"CATALOG_PROMISE","evidence":{"kind":"CATALOG_PROMISE","catalog_source_instance_id":"urn:aip:source:event-catalog:9f0dee1c1c3902c957f0f6d7fb126d4da85cb8cc63c9a1fa940242811f94d1d9","catalog_digest":"ff24602762eb2bac4d56955900b82f00f23f01dc5479a12140719753e9ae250e","lookup_digest":"63adbc14429b0cea899076e44ae0f4fc8e3b7ab259a87bfd918526866973adf1","source_revision":"catalog-sha256:ff24602762eb2bac4d56955900b82f00f23f01dc5479a12140719753e9ae250e+lookup-sha256:63adbc14429b0cea899076e44ae0f4fc8e3b7ab259a87bfd918526866973adf1","file":"services/ecommerce-image-service/index.mdx","service_name":"ecommerce-image-service","direction":"RECEIVES","event_id":"ProductUpdated","event_version":"1.0.0","topic":"catalog.product.events","lookup_repository":"Sokol111/ecommerce-catalog-service-api","lookup_commit":"7cecb3e1131dbd5199ce25e9cf101d75d3365171","lookup_path":"pkg/events/topics.go"}},{"ref":"binding-evidence:7fe1983115b2125837f4944c5bc83c41b1686665b22e80136a46559749166d72","status":"RESOLVED","kind":"KAFKA_SERVICE_MAPPING","evidence":{"kind":"KAFKA_SERVICE_MAPPING","consumer_id":"consumer:2ae11ce6fa5f7781190b4f9895a0b7d733c809862c834fb25f042f46a65c1f4e","group_id":"ecommerce-category-query-service","service_name":"ecommerce-category-query-service","service_id":"service:ecommerce-category-query-service","mapping_source_instance_id":"urn:aip:source:kafka-service-mapping:4c22199fe7dea2f32cad2095878ac5e76cfab436d6b1c6bfd5735df05ef4380d","mapping_source_revision":"artifact-sha256:c705d8451bb2fec5582d2550d608985375e00ab6fc7d8bdd7a2fd264fafb08e8","artifact_sha256":"c705d8451bb2fec5582d2550d608985375e00ab6fc7d8bdd7a2fd264fafb08e8"}},{"ref":"binding-evidence:838e4db4fb4f95799e7a7a64839a897eb59b60d485cafd4ab8da02f8c7353f79","status":"RESOLVED","kind":"KAFKA_ATTACHMENT","evidence":{"kind":"KAFKA_ATTACHMENT","consumer_id":"consumer:2ae11ce6fa5f7781190b4f9895a0b7d733c809862c834fb25f042f46a65c1f4e","group_id":"ecommerce-category-query-service","topic_id":"topic:owned:53418bb503b87bfe0ea8cb1fbc2677d69d1d70dc81b86cb8520dcc03bcc1bfa0","captured_at":"2026-10-21T17:53:57Z","capture_source_instance_id":"urn:aip:source:kafka-consumer-state:3be60c43a058512e56dc34d4dddb6ed2282e99ac7f0768c8dacb9a778bb5e9dc","capture_source_revision":"kafka:not-established+capture:2026-10-21T17:53:57Z","capture_content_sha256":"b46d4ae2c535da88ab77bde5d7f63f4a089bea4faaf16b1fcb478ca90f5b30d8"}},{"ref":"binding-evidence:8556aa1507aeefc37b3cbbae1b89114bab5e8d43e7f9ca0cc0fd7c16ad7adff8","status":"RESOLVED","kind":"KAFKA_SERVICE_MAPPING","evidence":{"kind":"KAFKA_SERVICE_MAPPING","consumer_id":"consumer:1481e9ab341a271aae90aca7108cc1b40005c78464bdab5fc03aaf71431cbd4e","group_id":"ecommerce-product-query-service","service_name":"ecommerce-product-query-service","service_id":"service:ecommerce-product-query-service","mapping_source_instance_id":"urn:aip:source:kafka-service-mapping:4c22199fe7dea2f32cad2095878ac5e76cfab436d6b1c6bfd5735df05ef4380d","mapping_source_revision":"artifact-sha256:c705d8451bb2fec5582d2550d608985375e00ab6fc7d8bdd7a2fd264fafb08e8","artifact_sha256":"c705d8451bb2fec5582d2550d608985375e00ab6fc7d8bdd7a2fd264fafb08e8"}},{"ref":"binding-evidence:8d57ba4913af3aa5084df2481dcdf89cd53d665f8184a4e34fc184c45d5c13b5","status":"RESOLVED","kind":"CATALOG_PROMISE","evidence":{"kind":"CATALOG_PROMISE","catalog_source_instance_id":"urn:aip:source:event-catalog:9f0dee1c1c3902c957f0f6d7fb126d4da85cb8cc63c9a1fa940242811f94d1d9","catalog_digest":"ff24602762eb2bac4d56955900b82f00f23f01dc5479a12140719753e9ae250e","lookup_digest":"63adbc14429b0cea899076e44ae0f4fc8e3b7ab259a87bfd918526866973adf1","source_revision":"catalog-sha256:ff24602762eb2bac4d56955900b82f00f23f01dc5479a12140719753e9ae250e+lookup-sha256:63adbc14429b0cea899076e44ae0f4fc8e3b7ab259a87bfd918526866973adf1","file":"services/ecommerce-product-query-service/index.mdx","service_name":"ecommerce-product-query-service","direction":"RECEIVES","event_id":"ProductImagePromoted","event_version":"1.0.0","topic":"catalog.product.events","lookup_repository":"Sokol111/ecommerce-image-service-api","lookup_commit":"2167948573ced4b2854d8aed93fb83b242cf2e7f","lookup_path":"pkg/events/topics.go"}},{"ref":"binding-evidence:cc18919143367ebbaa5c0992626ffcf205739ba78179ef01a31270af792c3c41","status":"RESOLVED","kind":"KAFKA_ATTACHMENT","evidence":{"kind":"KAFKA_ATTACHMENT","consumer_id":"consumer:1481e9ab341a271aae90aca7108cc1b40005c78464bdab5fc03aaf71431cbd4e","group_id":"ecommerce-product-query-service","topic_id":"topic:owned:ef00b8a20df7bed4e26c809d03727b11fd83d1169cc8e425f88922d3b5973bd6","captured_at":"2026-10-21T17:53:57Z","capture_source_instance_id":"urn:aip:source:kafka-consumer-state:3be60c43a058512e56dc34d4dddb6ed2282e99ac7f0768c8dacb9a778bb5e9dc","capture_source_revision":"kafka:not-established+capture:2026-10-21T17:53:57Z","capture_content_sha256":"b46d4ae2c535da88ab77bde5d7f63f4a089bea4faaf16b1fcb478ca90f5b30d8"}},{"ref":"binding-evidence:f0a4b9b0886b78e43db946f9c0c9ca118b0ad34d65055acae1028f23ee04422d","status":"RESOLVED","kind":"CATALOG_PROMISE","evidence":{"kind":"CATALOG_PROMISE","catalog_source_instance_id":"urn:aip:source:event-catalog:9f0dee1c1c3902c957f0f6d7fb126d4da85cb8cc63c9a1fa940242811f94d1d9","catalog_digest":"ff24602762eb2bac4d56955900b82f00f23f01dc5479a12140719753e9ae250e","lookup_digest":"63adbc14429b0cea899076e44ae0f4fc8e3b7ab259a87bfd918526866973adf1","source_revision":"catalog-sha256:ff24602762eb2bac4d56955900b82f00f23f01dc5479a12140719753e9ae250e+lookup-sha256:63adbc14429b0cea899076e44ae0f4fc8e3b7ab259a87bfd918526866973adf1","file":"services/ecommerce-product-query-service/index.mdx","service_name":"ecommerce-product-query-service","direction":"RECEIVES","event_id":"ProductUpdated","event_version":"1.0.0","topic":"catalog.product.events","lookup_repository":"Sokol111/ecommerce-catalog-service-api","lookup_commit":"7cecb3e1131dbd5199ce25e9cf101d75d3365171","lookup_path":"pkg/events/topics.go"}}]},"limitations":[]}}
+</script>
+
+<script>
+"use strict";
+const BOUNDARY = ["ecommerce-catalog-service", "ecommerce-image-service"];
+const PROVIDER_RAW = JSON.parse(document.getElementById("provider-data").textContent);
+
+const REPOS = {
+  "ecommerce-catalog-service":        { rev: "e9f147483e6e33ec512851d478169d2985614b09", read: "cmd/main.go; internal/infrastructure/fxconfig/module.go; outbound/kafka/{product,category,attribute}_event_factory.go, fxconfig/module.go; configs/config.standalone.yaml; AGENTS.md" },
+  "ecommerce-image-service":          { rev: "f1b97e8402e8183b131847f8a4db8bb00dddb33a", read: "cmd/main.go; internal/infrastructure/fxconfig/module.go; inbound/kafka/product_handler.go + fxconfig/module.go; outbound/kafka/event_factory.go + fxconfig/module.go; configs/config.standalone.yaml; AGENTS.md" },
+  "ecommerce-catalog-service-api":    { rev: "7cecb3e1131dbd5199ce25e9cf101d75d3365171", read: "pkg/events/topics.go; AGENTS.md" },
+  "ecommerce-image-service-api":      { rev: "2167948573ced4b2854d8aed93fb83b242cf2e7f", read: "pkg/events/topics.go; AGENTS.md" },
+  "ecommerce-tenant-service-api":     { rev: "d9b90972f77b6a2df7ebee0f52e0cd8124937fe7", read: "pkg/events/topics.go; pkg/fxconfig/consumer.go; AGENTS.md" },
+  "ecommerce-product-query-service":  { rev: "b8f5137b9e6fae3bacbe0319e0c23edfd0d25f19", read: "internal/infrastructure/inbound/kafka/fxconfig/module.go; AGENTS.md" },
+  "ecommerce-category-query-service": { rev: "6cb5373dd90ae57512e96a03893a3a3e9b75450d", read: "internal/infrastructure/fxconfig/module.go; inbound/kafka/fxconfig/module.go; AGENTS.md" },
+  "ecommerce-tenant-service":         { rev: "dbeacdbfff49c84c74f042d5e981461ec373bc1b", read: "AGENTS.md only (producer code not read)" },
+  "ecommerce-infrastructure":         { rev: "07c059908b99e08448cf1c2c7dad6a865fe5ccf0", read: "environments/local/values/{catalog,image,product-query,category-query,tenant}-service.yaml; environments/local/Tiltfile; environments/local/compose/kafka.yml; AGENTS.md" },
+  "ecommerce-commons":                { rev: "d54bf55eba79566286b57b630f5d5b0d68b64302", read: "go.mod; AGENTS.md (Kafka package internals not located)" }
+};
+
+// Source evidence. Kinds: code = source code references; config = configuration declares; doc = document states; manifest = dependency manifest.
+const SRC_EV = [
+  { id:"E01", kind:"code", repo:"ecommerce-catalog-service-api", path:"pkg/events/topics.go", lines:"10-14", ex:'TopicCatalogProductEvents = "catalog.product.events"; TopicCatalogCategoryEvents = "catalog.category.events"; TopicCatalogAttributeEvents = "catalog.attribute.events"' },
+  { id:"E02", kind:"code", repo:"ecommerce-catalog-service-api", path:"pkg/events/topics.go", lines:"17-22", ex:"topicMap: ProductUpdatedEvent, ProductDeletedEvent → TopicCatalogProductEvents; CategoryUpdatedEvent → TopicCatalogCategoryEvents; AttributeUpdatedEvent → TopicCatalogAttributeEvents" },
+  { id:"E03", kind:"code", repo:"ecommerce-image-service-api", path:"pkg/events/topics.go", lines:"11-17", ex:'TopicCatalogProductEvents = "catalog.product.events"; topicMap: ProductImagePromotedEvent → TopicCatalogProductEvents' },
+  { id:"E04", kind:"code", repo:"ecommerce-tenant-service-api", path:"pkg/events/topics.go", lines:"11-18", ex:'TopicTenantTenantEvents = "tenant.tenant.events"; topicMap: TenantUpdatedEvent, TenantDeletedEvent → TopicTenantTenantEvents' },
+  { id:"E05", kind:"code", repo:"ecommerce-catalog-service", path:"internal/infrastructure/outbound/kafka/product_event_factory.go", lines:"67-85", ex:"NewProductUpdatedOutboxMessage / NewProductDeletedOutboxMessage → outbox.Message{Event, Key: p.ID | productID, Topic: apiEvents.TopicFor(event)}" },
+  { id:"E06", kind:"code", repo:"ecommerce-catalog-service", path:"internal/infrastructure/outbound/kafka/category_event_factory.go", lines:"59-66", ex:"NewCategoryUpdatedOutboxMessage → outbox.Message{Event, Key: c.ID, Topic: apiEvents.TopicFor(event)}" },
+  { id:"E07", kind:"code", repo:"ecommerce-catalog-service", path:"internal/infrastructure/outbound/kafka/attribute_event_factory.go", lines:"63-70", ex:"NewAttributeUpdatedOutboxMessage → outbox.Message{Event, Key: a.ID, Topic: apiEvents.TopicFor(event)}" },
+  { id:"E08", kind:"code", repo:"ecommerce-catalog-service", path:"internal/infrastructure/outbound/kafka/fxconfig/module.go", lines:"10-14", ex:"fx.Provide(NewProductEventFactory, NewCategoryEventFactory, NewAttributeEventFactory)" },
+  { id:"E09", kind:"code", repo:"ecommerce-catalog-service", path:"internal/infrastructure/fxconfig/module.go", lines:"13", ex:"fx_tenant_api.NewKafkaConsumerModule()" },
+  { id:"E10", kind:"code", repo:"ecommerce-image-service", path:"internal/infrastructure/outbound/kafka/event_factory.go", lines:"18-30", ex:"ProductImagePromotedEvent{ProductId, ImageId, SmallImageUrl, LargeImageUrl} → outbox.Message{Topic: apiEvents.TopicFor(event), Key: productID}" },
+  { id:"E11", kind:"code", repo:"ecommerce-image-service", path:"internal/infrastructure/inbound/kafka/fxconfig/module.go", lines:"14-22", ex:'RegisterHandlerAndConsumer("catalog-events", newProductRouter); router registers HandleProductUpdated, HandleProductDeleted' },
+  { id:"E12", kind:"code", repo:"ecommerce-image-service", path:"internal/infrastructure/inbound/kafka/product_handler.go", lines:"22-45", ex:"HandleProductUpdated: ImageId nil → cleanup owner images, else promote image to product; HandleProductDeleted → cleanup owner images" },
+  { id:"E13", kind:"code", repo:"ecommerce-image-service", path:"internal/infrastructure/fxconfig/module.go", lines:"27-28, 36", ex:"fx_inbound_kafka.NewKafkaModule(); fx_outbound_kafka.NewKafkaModule(); fx_tenant_api.NewKafkaConsumerModule()" },
+  { id:"E14", kind:"code", repo:"ecommerce-tenant-service-api", path:"pkg/fxconfig/consumer.go", lines:"13-37", ex:'const tenantEventsConsumer = "tenant-events"; comment: "runs database migrations when tenants are created/updated and schedules deferred cleanup on delete"; router registers HandleTenantUpdated, HandleTenantDeleted' },
+  { id:"E15", kind:"code", repo:"ecommerce-product-query-service", path:"internal/infrastructure/inbound/kafka/fxconfig/module.go", lines:"14-31", ex:'consumers "catalog-events" (HandleProductUpdated, HandleProductDeleted, HandleProductImagePromoted) and "catalog-attribute-events" (HandleAttributeUpdated)' },
+  { id:"E16", kind:"code", repo:"ecommerce-category-query-service", path:"internal/infrastructure/inbound/kafka/fxconfig/module.go", lines:"14-29", ex:'consumers "category-events" (HandleCategoryUpdated) and "attribute-events" (HandleAttributeUpdated)' },
+  { id:"E17", kind:"code", repo:"ecommerce-category-query-service", path:"internal/infrastructure/fxconfig/module.go", lines:"13", ex:"fx_tenant_api.NewKafkaConsumerModule()" },
+  { id:"E18", kind:"config", repo:"ecommerce-infrastructure", path:"environments/local/values/ecommerce-catalog-service.yaml", lines:"31-42", ex:'kafka.brokers: "redpanda:29092"; default-group-id: "ecommerce-catalog-service"; default-auto-offset-reset: "earliest"; consumer "tenant-events" topic "tenant.tenant.events", max-retries 5, enable-dlq: true' },
+  { id:"E19", kind:"config", repo:"ecommerce-infrastructure", path:"environments/local/values/ecommerce-image-service.yaml", lines:"23-36", ex:'kafka.brokers: "redpanda:29092"; default-group-id: "ecommerce-image-service"; earliest; consumer "catalog-events" topic "catalog.product.events" (no retry/DLQ keys); consumer "tenant-events" topic "tenant.tenant.events", enable-dlq: true' },
+  { id:"E20", kind:"config", repo:"ecommerce-infrastructure", path:"environments/local/values/ecommerce-product-query-service.yaml", lines:"21-44", ex:'brokers "redpanda:29092"; default-group-id "ecommerce-product-query-service"; consumers catalog-events→catalog.product.events, catalog-attribute-events→catalog.attribute.events, tenant-events→tenant.tenant.events (all enable-dlq: true)' },
+  { id:"E21", kind:"config", repo:"ecommerce-infrastructure", path:"environments/local/values/ecommerce-category-query-service.yaml", lines:"21-44", ex:'brokers "redpanda:29092"; default-group-id "ecommerce-category-query-service"; consumers category-events→catalog.category.events, attribute-events→catalog.attribute.events, tenant-events→tenant.tenant.events (all enable-dlq: true)' },
+  { id:"E22", kind:"config", repo:"ecommerce-infrastructure", path:"environments/local/values/ecommerce-tenant-service.yaml", lines:"23-24", ex:'kafka.brokers: "redpanda:29092" (no consumers-config)' },
+  { id:"E23", kind:"config", repo:"ecommerce-infrastructure", path:"environments/local/Tiltfile", lines:"50, 57, 221", ex:"docker_compose(COMPOSE_DIR + '/kafka.yml'); dc_resource('redpanda'); svc_resource_deps = ['mongo', 'redpanda', 'logto-credentials']" },
+  { id:"E24", kind:"config", repo:"ecommerce-infrastructure", path:"environments/local/Tiltfile", lines:"83-104, 209-217", ex:"GO_SERVICES keys = service names; k8s_yaml(helm(HELM_PATH + '/' + name, name=name, values=[VALUES_DIR + '/' + name + '.yaml', ...]))" },
+  { id:"E25", kind:"config", repo:"ecommerce-infrastructure", path:"environments/local/compose/kafka.yml", lines:"4-19", ex:"image redpandadata/redpanda:v24.3.1; --kafka-addr=PLAINTEXT://0.0.0.0:29092,PLAINTEXT_HOST://0.0.0.0:9092; --advertise-kafka-addr=PLAINTEXT://redpanda:29092,PLAINTEXT_HOST://localhost:9092; ports: 9092:9092 only" },
+  { id:"E26", kind:"config", repo:"ecommerce-catalog-service", path:"configs/config.standalone.yaml", lines:"10-11", ex:'kafka.brokers: "localhost:9092" (no consumers-config section)' },
+  { id:"E27", kind:"config", repo:"ecommerce-image-service", path:"configs/config.standalone.yaml", lines:"14-21", ex:'kafka.brokers: "localhost:29092"; consumer "catalog-events" topic "catalog.product.events" only (no tenant-events)' },
+  { id:"E28", kind:"doc", repo:"ecommerce-infrastructure", path:"AGENTS.md", lines:"108-111, 131-134", ex:"Tiltfile brings up docker-compose deps (Mongo, Redpanda, ...). Production: Redpanda, imgproxy, Logto, Postgres, Traefik+cert-manager run in-cluster." },
+  { id:"E29", kind:"doc", repo:"ecommerce-catalog-service", path:"AGENTS.md", lines:"7, 26", ex:"publishes domain events to Kafka via a transactional outbox; make test-e2e (full app in-process + Mongo + Redpanda containers)" },
+  { id:"E30", kind:"manifest", repo:"ecommerce-commons", path:"go.mod", lines:"24-25", ex:"github.com/twmb/franz-go v1.21.5; github.com/twmb/franz-go/pkg/kadm v1.18.0" },
+  { id:"E31", kind:"doc", repo:"ecommerce-image-service", path:"AGENTS.md", lines:"13-14, 56-60", ex:"Kafka (consumes catalog product events, emits image events via the transactional outbox); ProductUpdated without ImageId or ProductDeleted ⇒ cleanup (soft-delete rows + delete S3 objects)" },
+  { id:"E32", kind:"doc", repo:"ecommerce-commons", path:"AGENTS.md", lines:"48-49", ex:"pkg/kafka/fxconfig — NewKafkaModule(): Kafka configuration, producer, protobuf serde, and the outbox pattern. Consumer wiring is opt-in via pkg/kafka/consumer/fxconfig." }
+];
+
+// Bindings. Each fact must cite refs. Unresolved items with prov:true depend on provider input and are hidden when provider input is off.
+const BINDINGS = [
+  { id:"R1", topic:"catalog.product.events", consumer:"ecommerce-product-query-service",
+    producers:["ecommerce-catalog-service","ecommerce-image-service"], direction:"OUTBOUND",
+    selected:"ecommerce-catalog-service (producer), ecommerce-image-service (producer)", counterpart:"ecommerce-product-query-service (consumer)",
+    facts:[
+      { t:"Catalog service code builds outbox messages for ProductUpdatedEvent and ProductDeletedEvent, with the topic from TopicFor and key = product ID.", refs:["E05","E08"] },
+      { t:"The catalog API maps ProductUpdatedEvent and ProductDeletedEvent to \"catalog.product.events\".", refs:["E01","E02"] },
+      { t:"Image service code builds ProductImagePromotedEvent outbox messages, with the topic from TopicFor and key = product ID; the image API maps that event to \"catalog.product.events\".", refs:["E10","E03"] },
+      { t:"Product-query local config declares consumer \"catalog-events\" on catalog.product.events, default group \"ecommerce-product-query-service\", auto-offset-reset earliest, enable-dlq true, broker redpanda:29092.", refs:["E20"] },
+      { t:"Product-query code registers consumer \"catalog-events\" with handlers for ProductUpdated, ProductDeleted and ProductImagePromoted.", refs:["E15"] },
+      { t:"Identity path from config to service: the Tiltfile deploys values/<name>.yaml into Helm chart <name> with release name <name>.", refs:["E24"] }
+    ],
+    entry:["E05","E10","E15"],
+    unresolved:[
+      { t:"Whether either producer actually published to this topic is not established. Producer evidence is code only, and the provider says producers are declared only." },
+      { t:"ProductDeletedEvent is produced (E05) and handled (E15) in code, but the provider's promises for this binding cover only ProductImagePromoted and ProductUpdated. Promise coverage for ProductDeleted is missing.", prov:true },
+      { t:"Topic settings (partition count, retention, cleanup policy) are not in any inspected source, so whether per-product ordering would carry over to a new cluster is not established." }
+    ],
+    interp:{ why:"This is the only topic with two Catalog Management producers and an outside consumer. If the cut-over puts the producers and the consumer on different brokers, product-query stops receiving updates. Keeping the same product-ID key and partitioning matters for the projection.",
+      premises:["E05","E10","E20","E15"], next:"Decide whether catalog, image and product-query switch brokers together. Before switching, capture the source topic's partition count and config. Ask the event-catalog owner whether ProductDeleted should be promised." } },
+
+  { id:"R2", topic:"catalog.product.events", consumer:"ecommerce-image-service",
+    producers:["ecommerce-catalog-service","ecommerce-image-service"], direction:"INSIDE",
+    selected:"ecommerce-image-service (consumer); ecommerce-catalog-service (producer)", counterpart:"none outside the boundary (both ends inside)",
+    facts:[
+      { t:"Catalog service produces ProductUpdatedEvent and ProductDeletedEvent to catalog.product.events.", refs:["E05","E02"] },
+      { t:"Image local config declares consumer \"catalog-events\" on catalog.product.events, group \"ecommerce-image-service\", auto-offset-reset earliest, with no max-retries or enable-dlq keys for this consumer.", refs:["E19"] },
+      { t:"Image code registers handlers for ProductUpdated and ProductDeleted. ProductUpdated without an ImageId, and ProductDeleted, trigger owner-image cleanup.", refs:["E11","E12","E31"] },
+      { t:"The image service also produces ProductImagePromotedEvent to this same topic, so it reads a topic it also writes to.", refs:["E10","E03"] },
+      { t:"Image standalone config uses broker localhost:29092, but compose publishes only port 9092 to the host and advertises 29092 as redpanda:29092.", refs:["E27","E25"] }
+    ],
+    entry:["E11","E12","E10"],
+    unresolved:[
+      { t:"How the shared consumer router handles ProductImagePromotedEvent, which has no handler registered in the image service, is not established: the commons consumer package was not located." },
+      { t:"Retry and DLQ defaults for the image \"catalog-events\" consumer (no keys set) are not established." },
+      { t:"The provider's promise for this binding covers ProductUpdated only, not ProductDeleted.", prov:true }
+    ],
+    interp:{ why:"This binding is inside the boundary, but it runs on the same shared broker. The handlers delete S3 objects. With auto-offset-reset 'earliest', a new cluster that receives the topic's data without the consumer offsets could replay the topic's history into promote/cleanup.",
+      premises:["E19","E12","E31"], next:"Plan offset migration for group ecommerce-image-service (or a start offset), and check that cleanup and promote are safe under replay." } },
+
+  { id:"R3", topic:"catalog.category.events", consumer:"ecommerce-category-query-service",
+    producers:["ecommerce-catalog-service"], direction:"OUTBOUND",
+    selected:"ecommerce-catalog-service (producer)", counterpart:"ecommerce-category-query-service (consumer)",
+    facts:[
+      { t:"Catalog service code builds CategoryUpdatedEvent outbox messages, with key = category ID and the topic from TopicFor (→ catalog.category.events).", refs:["E06","E02","E01"] },
+      { t:"Category-query local config declares consumer \"category-events\" on catalog.category.events, group \"ecommerce-category-query-service\", enable-dlq true.", refs:["E21"] },
+      { t:"Category-query code registers HandleCategoryUpdated on \"category-events\".", refs:["E16"] }
+    ],
+    entry:["E06","E16"],
+    unresolved:[
+      { t:"No catalog promise covers this binding (provider reason PROMISE_COVERAGE_MISSING).", prov:true },
+      { t:"Whether other consumers of this topic exist is not established. No inspected source enumerates all consumers." }
+    ],
+    interp:{ why:"Category-query is the only consumer this investigation found. Its read model depends on this topic, and the binding has no owner promise to test the move against.",
+      premises:["E06","E21"], next:"Ask the catalog owner to declare CategoryUpdated in the event catalog, or accept the source wiring as the migration contract." } },
+
+  { id:"R4", topic:"catalog.attribute.events", consumer:"ecommerce-category-query-service",
+    producers:["ecommerce-catalog-service"], direction:"OUTBOUND",
+    selected:"ecommerce-catalog-service (producer)", counterpart:"ecommerce-category-query-service (consumer)",
+    facts:[
+      { t:"Catalog service code builds AttributeUpdatedEvent outbox messages, with key = attribute ID and the topic from TopicFor (→ catalog.attribute.events).", refs:["E07","E02","E01"] },
+      { t:"Category-query local config declares consumer \"attribute-events\" on catalog.attribute.events, enable-dlq true.", refs:["E21"] },
+      { t:"Category-query code registers HandleAttributeUpdated on \"attribute-events\".", refs:["E16"] }
+    ],
+    entry:["E07","E16"],
+    unresolved:[
+      { t:"No catalog promise covers this binding (PROMISE_COVERAGE_MISSING), and the provider's producer record for this topic lists no event types (declared_event_types: []), although code maps AttributeUpdatedEvent to it.", prov:true }
+    ],
+    interp:{ why:"Attribute master data is joined at read time by both query services, so losing this stream affects category and product reads.",
+      premises:["E07","E21","E16"], next:"Add the AttributeUpdated producer declaration to the event catalog, and include this topic in the migration list." } },
+
+  { id:"R5", topic:"catalog.attribute.events", consumer:"ecommerce-product-query-service",
+    producers:["ecommerce-catalog-service"], direction:"OUTBOUND",
+    selected:"ecommerce-catalog-service (producer)", counterpart:"ecommerce-product-query-service (consumer)",
+    facts:[
+      { t:"Catalog service produces AttributeUpdatedEvent to catalog.attribute.events.", refs:["E07","E02"] },
+      { t:"Product-query local config declares consumer \"catalog-attribute-events\" on catalog.attribute.events, enable-dlq true.", refs:["E20"] },
+      { t:"Product-query code registers HandleAttributeUpdated on \"catalog-attribute-events\".", refs:["E15"] }
+    ],
+    entry:["E07","E15"],
+    unresolved:[
+      { t:"No catalog promise covers this binding (PROMISE_COVERAGE_MISSING), and the producer record lists no event types for the topic.", prov:true }
+    ],
+    interp:{ why:"Same stream as R4, with a second outside consumer group. Both groups need offset handling on any new cluster.",
+      premises:["E20","E15"], next:"Migrate offsets for groups ecommerce-product-query-service and ecommerce-category-query-service together." } },
+
+  { id:"R6", topic:"tenant.tenant.events", consumer:"ecommerce-catalog-service",
+    producers:["ecommerce-tenant-service"], direction:"INBOUND",
+    selected:"ecommerce-catalog-service (consumer)", counterpart:"ecommerce-tenant-service (producer)",
+    facts:[
+      { t:"Catalog local config declares consumer \"tenant-events\" on tenant.tenant.events, group \"ecommerce-catalog-service\", max-retries 5, enable-dlq true, broker redpanda:29092.", refs:["E18"] },
+      { t:"Catalog code wires the tenant API's Kafka consumer module. That module registers consumer \"tenant-events\" with handlers for TenantUpdated and TenantDeleted; its comment says it runs DB migrations on create/update and deferred cleanup on delete.", refs:["E09","E14"] },
+      { t:"The tenant API maps TenantUpdatedEvent and TenantDeletedEvent to \"tenant.tenant.events\".", refs:["E04"] },
+      { t:"Catalog standalone config has no consumers-config section, although the code wires the tenant consumer.", refs:["E26","E09"] }
+    ],
+    entry:["E09","E14"],
+    unresolved:[
+      { t:"Producer identity from source: only the tenant API's topic map was read. The ecommerce-tenant-service producer code was not inspected." },
+      { t:"How the consumer behaves with the standalone config (missing consumer entry) is not established." },
+      { t:"No catalog promise covers this binding (PROMISE_COVERAGE_MISSING). The provider places the producer in bounded context store-provisioning.", prov:true }
+    ],
+    interp:{ why:"This is the inbound dependency of the move. Per E14, tenant events drive per-tenant DB migrations in catalog. If catalog reads from a different broker than the one tenant-service writes to, new tenants would get no catalog migrations.",
+      premises:["E18","E14","E22"], next:"Confirm which broker tenant-service writes to after the move. It is configured on the same redpanda:29092 today (E22)." } },
+
+  { id:"R7", topic:"tenant.tenant.events", consumer:"ecommerce-image-service",
+    producers:["ecommerce-tenant-service"], direction:"INBOUND",
+    selected:"ecommerce-image-service (consumer)", counterpart:"ecommerce-tenant-service (producer)",
+    facts:[
+      { t:"Image local config declares consumer \"tenant-events\" on tenant.tenant.events, group \"ecommerce-image-service\", enable-dlq true.", refs:["E19"] },
+      { t:"Image code wires the tenant API's Kafka consumer module (TenantUpdated/TenantDeleted handlers).", refs:["E13","E14"] },
+      { t:"Image standalone config declares only the catalog-events consumer, not tenant-events.", refs:["E27"] }
+    ],
+    entry:["E13","E14"],
+    unresolved:[
+      { t:"Producer code in ecommerce-tenant-service was not inspected." },
+      { t:"Which tenant cleaners the image service registers was not inspected in code; only the docs mention the S3 tenant cleaner." },
+      { t:"No catalog promise covers this binding (PROMISE_COVERAGE_MISSING).", prov:true }
+    ],
+    interp:{ why:"Same inbound dependency as R6, for the image service. Tenant deletion is the trigger for the tenant cleanup path.",
+      premises:["E19","E13","E14"], next:"Same as R6. In addition, verify the tenant deletion flow end to end after the cut-over." } },
+
+  { id:"R8", topic:"tenant.tenant.events", consumer:"ecommerce-category-query-service",
+    producers:["ecommerce-tenant-service"], direction:"NONE",
+    selected:"— (neither end inside the boundary)", counterpart:"ecommerce-category-query-service (consumer) ← ecommerce-tenant-service",
+    facts:[
+      { t:"Category-query local config declares consumer \"tenant-events\" on tenant.tenant.events, on the same broker redpanda:29092.", refs:["E21"] },
+      { t:"Category-query code wires the tenant API's Kafka consumer module.", refs:["E17","E14"] }
+    ],
+    entry:["E17"],
+    unresolved:[ { t:"Shown for context only; this binding does not cross the Catalog Management boundary." } ],
+    interp:{ why:"This binding does not cross the boundary. It is shown because it shares the topic and broker with R6/R7, so a Catalog-only broker change would leave it on the old broker.",
+      premises:["E21"], next:"Only relevant if the move is a whole-broker swap." } },
+
+  { id:"R9", topic:"tenant.tenant.events", consumer:"ecommerce-product-query-service",
+    producers:["ecommerce-tenant-service"], direction:"NONE",
+    selected:"— (neither end inside the boundary)", counterpart:"ecommerce-product-query-service (consumer) ← ecommerce-tenant-service",
+    facts:[
+      { t:"Product-query local config declares consumer \"tenant-events\" on tenant.tenant.events, on the same broker redpanda:29092.", refs:["E20"] }
+    ],
+    entry:["E20"],
+    unresolved:[ { t:"Product-query's code wiring of the tenant consumer module was not inspected (its infrastructure fxconfig was not read)." } ],
+    interp:{ why:"Context only, as for R8.", premises:["E20"], next:"Only relevant if the move is a whole-broker swap." } },
+
+  { id:"R10", topic:"DLQ destination(s) of tenant-events consumers (name unknown)", consumer:null,
+    producers:["ecommerce-catalog-service","ecommerce-image-service"], direction:"UNRESOLVED",
+    selected:"ecommerce-catalog-service, ecommerce-image-service (would write failed messages)", counterpart:"unknown (DLQ topic name, broker and readers not established)",
+    facts:[
+      { t:"Catalog local config sets enable-dlq: true for consumer \"tenant-events\".", refs:["E18"] },
+      { t:"Image local config sets enable-dlq: true for \"tenant-events\". No enable-dlq key is set for \"catalog-events\".", refs:["E19"] }
+    ],
+    entry:["E18","E19"],
+    unresolved:[
+      { t:"The DLQ topic name and creation are not established: the code in ecommerce-commons/pkg/kafka/consumer was not located." },
+      { t:"Whether anything reads the DLQ is not established." },
+      { t:"The provider answer has no rows for DLQ topics. That is not evidence that none exist.", prov:true }
+    ],
+    interp:{ why:"Enabling a DLQ implies that Catalog Management services write to more topics than the three event topics, and those topics would also need to exist on the target cluster.",
+      premises:["E18","E19"], next:"Find the DLQ naming in ecommerce-commons (consumer package) and list the DLQ topics on the running broker (read-only)." } },
+
+  { id:"R11", topic:"Broker endpoint redpanda:29092 (shared)", consumer:null,
+    producers:[], direction:"SHARED",
+    selected:"ecommerce-catalog-service, ecommerce-image-service (Kafka clients)", counterpart:"Redpanda broker container \"redpanda\", shared with ecommerce-tenant-service, ecommerce-product-query-service and ecommerce-category-query-service",
+    facts:[
+      { t:"Both Catalog Management services are configured with kafka.brokers \"redpanda:29092\" locally.", refs:["E18","E19"] },
+      { t:"All three counterparts are configured with the same broker address.", refs:["E20","E21","E22"] },
+      { t:"That address is the PLAINTEXT listener of the compose service redpanda (image redpandadata/redpanda:v24.3.1), which Tilt starts and which every Go service depends on.", refs:["E25","E23"] },
+      { t:"The Kafka client library in commons is franz-go v1.21.5 with kadm.", refs:["E30"] },
+      { t:"The docs say the commons Kafka module provides producer, protobuf serde and outbox, and that Redpanda also runs in-cluster in production.", refs:["E32","E28","E29"] }
+    ],
+    entry:["E25","E18","E19"],
+    unresolved:[
+      { t:"No inspected source maps the provider's broker id \"kafka:sokol111-local\" to redpanda:29092. That identity is unresolved.", prov:true },
+      { t:"The capture's broker revision is reported as \"kafka:not-established\".", prov:true },
+      { t:"Whether the serde depends on Redpanda-specific features (e.g. Redpanda Schema Registry) is not established; the serde code was not inspected." },
+      { t:"Production broker config was not inspected (environment in scope: local)." }
+    ],
+    interp:{ why:"Every cross-boundary binding (R1, R3–R7) runs through this one broker address. Moving only Catalog Management to a separate Apache Kafka cluster would separate producers from consumers unless the counterparts move too or replication is added. No inspected input establishes delivery between clusters.",
+      premises:["E18","E19","E20","E21","E22"], next:"Decide first whether this is an in-place broker swap for all five services or a Catalog-only cluster. Then inventory topic configs and consumer-group offsets on the running broker." } }
+];
+
+const GAPS = [
+  "Shell access (Bash) was denied in this session. No directory listing, grep, git log or git status was possible. Files were found by following known paths and docs, so other relevant references may exist (e.g. query-service standalone configs, e2e tests, production values).",
+  "Working-tree cleanliness of each repository was not checked. Revisions are the commit SHAs in .git/HEAD.",
+  "ecommerce-commons Kafka internals (pkg/kafka/consumer router, DLQ naming, outbox relay, serde) were not located. Only go.mod and AGENTS.md were read.",
+  "ecommerce-tenant-service producer code was not read (AGENTS.md only).",
+  "Production environment values (environments/production/values) were not inspected. The environment in scope is local.",
+  "Event-catalog source files (services/*/index.mdx) were not found in the workspace. Promise evidence comes from the provider only.",
+  "No runtime capture was inspected directly. The only runtime observation is the provider-qualified Kafka consumer-state capture (2026-10-21T17:53:57Z). No producer-side observation exists.",
+  "Topic configuration (partitions, retention, compaction), consumer-group offsets and DLQ topics on the running broker were not captured. No monitoring was added.",
+  "The provider tools get_destination_consumers, get_service_dependencies and get_architecture_drift were not queried. Only get_binding_picture (query + evidence) was used.",
+  "The provider answer outcome is PARTIAL, and the capture covers only its configured consumer groups (CAPTURE_SCOPE_LIMITED)."
+];
+
+const MANUAL_CHECKS = [
+  "R6 (INBOUND, unresolved promise): E18 lines 31-42 declare tenant-events → tenant.tenant.events with group ecommerce-catalog-service; E09 line 13 wires the tenant consumer; E14 lines 13 and 25-37 register the consumer name and handlers; E04 maps both tenant events to the topic. The provider row has crossing INBOUND, status UNRESOLVED, reason PROMISE_COVERAGE_MISSING, group ecommerce-catalog-service. Consistent. Direction re-derived: consumer inside the task boundary, producer outside ⇒ INBOUND.",
+  "R1 (OUTBOUND, promised): E05 lines 67-85, E10 lines 18-30, E20 lines 27-32, E15 lines 19-25 re-read. The provider row has status PROMISED_AND_OBSERVED with promise refs 8d57… (ProductImagePromoted) and f0a4… (ProductUpdated). Source shows ProductDeleted is also produced and handled; the provider has no promise for it. That gap is shown as provider-dependent, and the provider status is displayed unchanged.",
+  "R2 (INSIDE): E19 lines 29-30 and E11 lines 14-22 re-read. The provider row has crossing INSIDE. Both producers and the consumer are inside the task boundary ⇒ INSIDE. Consistent.",
+  "R4/R5 (ambiguous producer declaration): E02 line 21 maps AttributeUpdatedEvent → catalog.attribute.events, and E07 lines 63-70 produce it. The provider producer record has declared_event_types []. It is shown as unresolved and not filled in from source.",
+  "Boundary: the provider's producers for catalog.* topics carry bounded_context_id catalog-management for exactly ecommerce-catalog-service and ecommerce-image-service, matching the task definition. The tenant-service producer carries store-provisioning.",
+  "Revisions: the provider's promise lookup commits (7cecb3e… catalog-service-api, 2167948… image-service-api) equal the HEAD SHAs read from ./src. The source rows therefore read the same contract revision the provider used.",
+  "Artifact not opened in a browser: no browser or shell tool was available in this session. I could not test row selection, the filters or evidence navigation interactively. The in-page integrity checks below run when you open the file."
+];
+
+// ---------- rendering ----------
+const $ = (s) => document.querySelector(s);
+const esc = (s) => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));
+const SRC_BY_ID = Object.fromEntries(SRC_EV.map(e => [e.id, e]));
+const DIR_SYM = { INBOUND:"⇐ INBOUND", OUTBOUND:"⇒ OUTBOUND", INSIDE:"⟲ INSIDE", SHARED:"◇ SHARED", UNRESOLVED:"? UNRESOLVED", NONE:"— NONE" };
+
+let useProvider = !/[?&]provider=off\b/.test(location.search);
+let selectedId = null;
+
+function provider() { return useProvider ? PROVIDER_RAW : null; }
+function provRow(b, P) {
+  if (!P || !b.consumer) return null;
+  return P.query.data.rows.find(r => r.topic_name === b.topic && r.consumer_service_id === "service:" + b.consumer) || null;
+}
+function provEntry(ref, P) { return P ? P.evidence.data.entries.find(e => e.ref === ref) || null : null; }
+function srcLink(e) { return "../src/" + e.repo + "/" + e.path; }
+function refChip(id) {
+  const e = SRC_BY_ID[id];
+  if (!e) return '<span class="fail">missing ref ' + esc(id) + '</span>';
+  return '<a class="ref" href="#ev-' + id + '" data-ref="' + id + '">' + id + ' ' + e.kind + ' · ' + esc(e.path.split("/").pop()) + ':' + esc(e.lines) + '</a>';
+}
+function sourceDirection(b) {
+  if (!b.consumer) return b.direction;
+  const cin = BOUNDARY.includes(b.consumer);
+  const pin = b.producers.map(p => BOUNDARY.includes(p));
+  if (cin && pin.every(x => x)) return "INSIDE";
+  if (cin && pin.every(x => !x)) return "INBOUND";
+  if (!cin && pin.some(x => x)) return "OUTBOUND";
+  if (!cin && pin.every(x => !x)) return "NONE";
+  return "UNRESOLVED";
+}
+function kindsOf(b, P) {
+  const k = new Set();
+  b.facts.forEach(f => f.refs.forEach(r => SRC_BY_ID[r] && k.add(SRC_BY_ID[r].kind)));
+  const tags = [...k].sort().map(x => '<span class="tag">' + x + '</span>');
+  const row = provRow(b, P);
+  if (row) {
+    if (row.attachment_evidence_refs.length) tags.push('<span class="tag prov" data-prov="1">capture</span>');
+    if (row.promise_evidence_refs.length) tags.push('<span class="tag prov" data-prov="1">promise</span>');
+    if (row.mapping_evidence_refs.length) tags.push('<span class="tag prov" data-prov="1">mapping</span>');
+  }
+  return tags.join("");
+}
+function visibleUnresolved(b, P) { return b.unresolved.filter(u => !u.prov || P); }
+
+function renderTable() {
+  const P = provider();
+  const fDir = $("#fDir").value, fUn = $("#fUnres").checked;
+  const rows = BINDINGS.filter(b => {
+    if (fDir === "CROSSING" && b.direction === "NONE") return false;
+    if (!["CROSSING","ALL"].includes(fDir) && b.direction !== fDir) return false;
+    if (fUn && visibleUnresolved(b, P).length === 0) return false;
+    return true;
+  });
+  $("#bindings tbody").innerHTML = rows.map(b => {
+    const row = provRow(b, P);
+    const st = row ? '<span data-prov="1"><code>' + esc(row.status) + '</code>' + (row.reason ? ' / <code>' + esc(row.reason) + '</code>' : '') + '</span>'
+                   : (P ? '<span class="muted">no provider row</span>' : '<span class="muted">provider input off</span>');
+    const un = visibleUnresolved(b, P).length;
+    return '<tr tabindex="0" data-id="' + b.id + '" aria-selected="' + (b.id === selectedId) + '">' +
+      '<td><b>' + b.id + '</b></td><td class="dir">' + DIR_SYM[b.direction] + '</td><td>' + esc(b.selected) + '</td><td>' + esc(b.counterpart) +
+      '</td><td><code>' + esc(b.topic) + '</code></td><td>' + kindsOf(b, P) + '</td><td>' + st + '</td><td class="unres">' + (un ? '⚠ ' + un + ' open' : '—') + '</td></tr>';
+  }).join("");
+  $("#count").textContent = rows.length + " of " + BINDINGS.length + " rows shown";
+  document.querySelectorAll("#bindings tbody tr").forEach(tr => {
+    tr.addEventListener("click", () => select(tr.dataset.id));
+    tr.addEventListener("keydown", ev => { if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); select(tr.dataset.id); } });
+  });
+}
+
+function detailsHTML(b, P) {
+  const row = provRow(b, P);
+  const revs = [...new Set(b.facts.flatMap(f => f.refs).map(r => SRC_BY_ID[r] && SRC_BY_ID[r].repo).filter(Boolean))]
+    .map(r => '<code>' + esc(r) + '@' + REPOS[r].rev.slice(0, 12) + '</code>').join(", ");
+  let h = '<h3>' + b.id + ' — ' + DIR_SYM[b.direction] + ' · <code>' + esc(b.topic) + '</code></h3>';
+  h += '<p><b>Selected side:</b> ' + esc(b.selected) + '<br><b>Counterpart:</b> ' + esc(b.counterpart) + '</p>';
+  h += '<p class="muted">Scope: environment <code>local</code>; source revisions ' + revs + '; read 2026-11-01.' +
+       (row ? ' <span data-prov="1">Provider snapshot <code>' + esc(P.query.snapshot.snapshot_id) + '</code>, captured_at <code>' + esc(row.captured_at) + '</code>.</span>' : '') + '</p>';
+  if (b.consumer && sourceDirection(b) !== b.direction) h += '<p class="fail">Direction mismatch with task boundary: ' + sourceDirection(b) + '</p>';
+
+  h += '<div class="box src"><div class="label">Established by inspected sources</div><ul>' +
+       b.facts.map(f => '<li>' + esc(f.t) + ' ' + f.refs.map(refChip).join(" ") + '</li>').join("") + '</ul>' +
+       '<div><b>Source entry points:</b> ' + b.entry.map(id => { const e = SRC_BY_ID[id]; return '<a class="ref" href="' + esc(srcLink(e)) + '">' + esc(e.repo + "/" + e.path) + ':' + esc(e.lines) + '</a>'; }).join("; ") + '</div></div>';
+
+  if (P) {
+    h += '<div class="box prov" data-prov="1"><div class="label">Provider findings (AIP, verbatim; not re-assessed here)</div>';
+    if (row) {
+      const fields = ["broker_id","topic_id","consumer_service_id","group_ids","crossing","status","reason","declared_event_types","producers","cross_broker_producers","captured_at"];
+      const shown = {}; fields.forEach(f => { if (f in row) shown[f] = row[f]; });
+      h += '<pre>' + esc(JSON.stringify(shown, null, 1)) + '</pre>';
+      [["promise_evidence_refs","Promise evidence"],["attachment_evidence_refs","Attachment evidence (capture)"],["mapping_evidence_refs","Group→service mapping evidence"]].forEach(([k, label]) => {
+        h += '<div><b>' + label + ':</b> ' + (row[k].length ? row[k].map(r => '<a class="ref" href="#pev-' + r.slice(-64) + '">' + esc(r.slice(0, 28)) + '…</a>').join(" ") : '<i>none in answer</i>') + '</div>';
+        row[k].forEach(r => { const e = provEntry(r, P); h += e ? '<pre>' + esc(JSON.stringify(e, null, 1)) + '</pre>' : '<p class="fail">unresolvable ' + esc(r) + '</p>'; });
+      });
+    } else if (b.id === "R11") {
+      h += '<p>The answer has no binding row for the broker itself. Capture sources as supplied:</p><pre>' + esc(JSON.stringify(P.query.data.capture_sources, null, 1)) + '</pre><pre>' + esc(JSON.stringify(P.query.data.request_context, null, 1)) + '</pre>';
+    } else {
+      h += '<p>The provider answer contains no row for this binding. That is not evidence of absence.</p>';
+    }
+    h += '<div><b>Answer outcome:</b> <code>' + esc(P.query.outcome) + '</code>. <b>Limitations as supplied:</b></div><ul>' +
+         P.query.limitations.map(l => '<li><code>' + esc(l.code) + '</code>: ' + esc(l.message) + '</li>').join("") + '</ul></div>';
+  }
+
+  const un = visibleUnresolved(b, P);
+  h += '<div class="box gap"><div class="label">Not established / unresolved</div><ul>' +
+       (un.length ? un.map(u => '<li' + (u.prov ? ' data-prov="1"' : '') + '>⚠ ' + esc(u.t) + (u.prov ? ' <span class="tag prov">from provider</span>' : '') + '</li>').join("") : '<li>none recorded</li>') + '</ul></div>';
+
+  h += '<div class="box interp"><div class="label">Interpretation (not evidence)</div><p><span class="tag interp">interpretation</span> ' + esc(b.interp.why) + '</p>' +
+       '<p><b>Premises:</b> ' + b.interp.premises.map(refChip).join(" ") + '</p><p><b>Next question to investigate:</b> ' + esc(b.interp.next) + '</p></div>';
+  return h;
+}
+
+function select(id) {
+  selectedId = id;
+  const b = BINDINGS.find(x => x.id === id);
+  $("#details").innerHTML = b ? detailsHTML(b, provider()) : '<p class="muted">Select a binding.</p>';
+  document.querySelectorAll("#bindings tbody tr").forEach(tr => tr.setAttribute("aria-selected", String(tr.dataset.id === id)));
+  bindRefClicks($("#details"));
+}
+
+function bindRefClicks(root) {
+  root.querySelectorAll('a.ref[href^="#"]').forEach(a => a.addEventListener("click", () => {
+    const t = document.querySelector(a.getAttribute("href"));
+    if (t) { document.querySelectorAll(".ev.flash").forEach(x => x.classList.remove("flash")); t.classList.add("flash"); }
+  }));
+}
+
+function renderStatic() {
+  const P = provider();
+  $("#provBanner").innerHTML = P
+    ? 'Provider input ON: AIP <code>get_binding_picture</code> v' + esc(P.query.schema_version) + ', snapshot <code>' + esc(P.query.snapshot.snapshot_id) + '</code>, outcome <code>' + esc(P.query.outcome) + '</code>. Dashed boxes and tags are provider statements, shown as supplied.'
+    : 'Provider input OFF: only statements from inspected source, config and docs are shown. Provider-only findings (attachments, promises, mappings, provider statuses) are removed.';
+  $("#repos").innerHTML = Object.entries(REPOS).map(([r, v]) => '<tr><td><code>' + esc(r) + '</code></td><td><code>' + v.rev + '</code></td><td>' + esc(v.read) + '</td></tr>').join("");
+  $("#provInputs").innerHTML = P
+    ? '<ul data-prov="1"><li><code>get_binding_picture</code> mode <code>query</code> {bounded_context_id: catalog-management, environment: local} → outcome <code>' + esc(P.query.outcome) + '</code>, ' + P.query.data.rows.length + ' rows, snapshot <code>' + esc(P.query.snapshot.snapshot_id) + '</code>, producer build <code>' + esc(P.query.producer.build_revision) + '</code>.</li>' +
+      '<li>Catalog source revision <code>' + esc(P.query.data.catalog_source.source_revision) + '</code>.</li>' +
+      '<li>Capture source <code>' + esc(P.query.data.capture_sources[0].source_instance_id) + '</code>, captured_at <code>' + esc(P.query.data.capture_sources[0].captured_at) + '</code>, revision <code>' + esc(P.query.data.capture_sources[0].source_revision) + '</code>.</li>' +
+      '<li><code>get_binding_picture</code> mode <code>evidence</code> for all ' + P.evidence.data.entries.length + ' refs → outcome <code>' + esc(P.evidence.outcome) + '</code>; every entry status: ' + esc([...new Set(P.evidence.data.entries.map(e => e.status))].join(", ")) + '.</li></ul>'
+    : '<p class="muted">Provider input is switched off.</p>';
+  $("#gaps").innerHTML = GAPS.map(g => '<li>' + esc(g) + '</li>').join("");
+  $("#srcEv").innerHTML = SRC_EV.map(e => '<tr class="ev" id="ev-' + e.id + '"><td><b>' + e.id + '</b></td><td><span class="tag">' + e.kind + '</span></td><td><a class="ref" href="' + esc(srcLink(e)) + '">' + esc(e.repo + "/" + e.path) + '</a> lines ' + esc(e.lines) + '<br><span class="muted">@' + REPOS[e.repo].rev.slice(0, 12) + '</span></td><td><code>' + esc(e.ex) + '</code></td></tr>').join("");
+  $("#provEvWrap").style.display = P ? "" : "none";
+  $("#provBoundary").style.display = P ? "" : "none";
+  $("#provEv").innerHTML = P ? P.evidence.data.entries.map(e => '<div class="ev box prov" data-prov="1" id="pev-' + e.ref.slice(-64) + '"><code>' + esc(e.ref) + '</code> — <code>' + esc(e.status) + '</code> <code>' + esc(e.kind) + '</code><pre>' + esc(JSON.stringify(e.evidence, null, 1)) + '</pre></div>').join("") : "";
+  $("#manualChecks").innerHTML = MANUAL_CHECKS.map(c => '<li>' + esc(c) + '</li>').join("");
+}
+
+function runChecks() {
+  const out = [];
+  const add = (ok, msg) => out.push('<li class="' + (ok ? "ok" : "fail") + '">' + esc(msg) + '</li>');
+  const allFacts = BINDINGS.flatMap(b => b.facts);
+  add(allFacts.every(f => f.refs.length > 0), "Every displayed source fact (" + allFacts.length + ") cites at least one reference.");
+  const missing = BINDINGS.flatMap(b => [...b.facts.flatMap(f => f.refs), ...b.entry, ...b.interp.premises]).filter(r => !SRC_BY_ID[r]);
+  add(missing.length === 0, "All cited source refs resolve in the evidence registry" + (missing.length ? " — missing: " + missing.join(",") : "."));
+  const rows = PROVIDER_RAW.query.data.rows;
+  const allRefs = rows.flatMap(r => [...r.promise_evidence_refs, ...r.attachment_evidence_refs, ...r.mapping_evidence_refs]);
+  const unres = allRefs.filter(r => !provEntry(r, PROVIDER_RAW));
+  add(unres.length === 0, "All " + new Set(allRefs).size + " provider refs in the answer resolve in the provider evidence response.");
+  const mapped = rows.map(r => BINDINGS.find(b => b.consumer && b.topic === r.topic_name && "service:" + b.consumer === r.consumer_service_id));
+  add(mapped.every(Boolean), "Every provider row (" + rows.length + ") is shown as a binding.");
+  const mism = BINDINGS.filter(b => { const r = provRow(b, PROVIDER_RAW); return r && r.crossing !== b.direction; });
+  add(mism.length === 0, "Provider crossing equals the direction shown for every mapped row" + (mism.length ? " — mismatch: " + mism.map(b => b.id).join(",") : "."));
+  const srcMism = BINDINGS.filter(b => b.consumer && sourceDirection(b) !== b.direction);
+  add(srcMism.length === 0, "Direction re-derived from the task boundary and source roles equals the direction shown for every topic binding.");
+  const leaked = BINDINGS.filter(b => /binding-evidence:|data-prov=|PROMISED_AND_OBSERVED|PROMISE_COVERAGE_MISSING/.test(detailsHTML(b, null) + kindsOf(b, null)));
+  add(leaked.length === 0, "With provider input removed, no binding's details or tags contain provider refs, provider statuses or provider-tagged items" + (leaked.length ? " — leaked in: " + leaked.map(b => b.id).join(",") : "."));
+  const provOnly = BINDINGS.filter(b => b.facts.length === 0);
+  add(provOnly.length === 0, "No binding is supported only by the provider (each has source facts); with the provider off, rows stay but provider statuses and capture/promise/mapping tags disappear.");
+  $("#autoChecks").innerHTML = out.join("") + '<li class="na">Interactive behaviour (click, filter, navigation) must be tried manually; it was not tested by the author.</li>';
+}
+
+function rerender() { renderStatic(); renderTable(); if (selectedId) select(selectedId); }
+$("#fProv").checked = useProvider;
+$("#fDir").addEventListener("change", renderTable);
+$("#fUnres").addEventListener("change", renderTable);
+$("#fProv").addEventListener("change", e => { useProvider = e.target.checked; rerender(); });
+rerender();
+runChecks();
+select("R1");
+</script>
+</body>
+</html>

@@ -1,0 +1,49 @@
+{
+  "model": "claude-opus-5-5",
+  "claude_code_version": "2.1.316",
+  "permission_mode": "dontAsk",
+  "tools": [
+    "Task",
+    "Bash",
+    "CronCreate",
+    "CronDelete",
+    "CronList",
+    "DesignSync",
+    "Edit",
+    "EnterWorktree",
+    "ExitWorktree",
+    "ListAgents",
+    "ListMcpResourcesTool",
+    "Monitor",
+    "NotebookEdit",
+    "PushNotification",
+    "Read",
+    "ReadMcpResourceDirTool",
+    "ReadMcpResourceTool",
+    "RemoteTrigger",
+    "ReportFindings",
+    "ScheduleWakeup",
+    "SendMessage",
+    "Skill",
+    "TaskStop",
+    "ToolSearch",
+    "Write",
+    "mcp__aip__get_api_consumer_usage",
+    "mcp__aip__get_architecture_drift",
+    "mcp__aip__get_binding_picture",
+    "mcp__aip__get_destination_consumers",
+    "mcp__aip__get_evidence",
+    "mcp__aip__get_service_dependencies",
+    "mcp__aip__get_service_dependencies_by_locality"
+  ],
+  "mcp_servers": [
+    {
+      "name": "aip",
+      "status": "connected",
+      "source": "project"
+    }
+  ],
+  "num_turns": 62,
+  "duration_s": 729,
+  "is_error": false
+}

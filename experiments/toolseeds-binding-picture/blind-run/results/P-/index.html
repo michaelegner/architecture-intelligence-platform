@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Binding picture — Catalog Management → Apache Kafka (local)</title>
+<style>
+  :root {
+    --fg:#1d1f23; --muted:#5a606b; --bg:#fbfbfa; --panel:#ffffff; --line:#d4d6da;
+    --accent:#1f4e8c; --warn-bg:#fff5e0; --warn-line:#a86b00; --interp-bg:#f1eefb; --interp-line:#5b3fa3;
+    --est-bg:#eef6ef; --est-line:#2e6b3a;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --fg:#e6e7ea; --muted:#a3a8b1; --bg:#16181b; --panel:#1e2024; --line:#3a3e45;
+      --accent:#8db4f0; --warn-bg:#3a2e14; --warn-line:#e0a640; --interp-bg:#2a2540; --interp-line:#b39cf0;
+      --est-bg:#1c2e21; --est-line:#7cc58b; }
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; font:14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; color:var(--fg); background:var(--bg); }
+  header, main, footer { max-width:1400px; margin:0 auto; padding:12px 20px; }
+  h1 { font-size:20px; margin:8px 0 4px; }
+  h2 { font-size:16px; margin:18px 0 8px; border-bottom:1px solid var(--line); padding-bottom:4px; }
+  h3 { font-size:14px; margin:14px 0 6px; }
+  code, .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size:12.5px; }
+  .qbox { background:var(--panel); border:1px solid var(--line); border-left:4px solid var(--accent); padding:10px 14px; }
+  .qbox p { margin:4px 0; }
+  .grid { display:grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap:18px; align-items:start; }
+  @media (max-width: 1000px) { .grid { grid-template-columns: 1fr; } }
+  .panel { background:var(--panel); border:1px solid var(--line); padding:10px 14px; }
+  table { border-collapse:collapse; width:100%; }
+  th, td { text-align:left; vertical-align:top; padding:6px 8px; border-bottom:1px solid var(--line); }
+  th { font-size:12px; text-transform:uppercase; letter-spacing:.03em; color:var(--muted); }
+  tbody tr { cursor:pointer; }
+  tbody tr:hover { background:rgba(127,127,127,.08); }
+  tbody tr[aria-selected="true"] { outline:2px solid var(--accent); outline-offset:-2px; background:rgba(31,78,140,.08); }
+  tbody tr:focus-visible { outline:3px dashed var(--accent); outline-offset:-3px; }
+  .kind { display:inline-block; border:1px solid var(--line); border-radius:3px; padding:0 4px; margin:1px 2px 1px 0; font-size:11px; white-space:nowrap; }
+  .status-res { font-weight:600; }
+  .status-unres { font-weight:700; border:1px dashed var(--warn-line); background:var(--warn-bg); padding:0 4px; }
+  .filters { display:flex; flex-wrap:wrap; gap:6px 14px; align-items:center; margin:8px 0; }
+  .filters button { font:inherit; padding:3px 9px; border:1px solid var(--line); background:var(--panel); color:var(--fg); cursor:pointer; border-radius:3px; }
+  .filters button[aria-pressed="true"] { border:2px solid var(--accent); font-weight:700; text-decoration:underline; }
+  .block { border:1px solid var(--line); padding:8px 10px; margin:8px 0; }
+  .block.est { border-left:5px solid var(--est-line); background:var(--est-bg); }
+  .block.interp { border-left:5px dashed var(--interp-line); background:var(--interp-bg); }
+  .block.unk { border-left:5px dotted var(--warn-line); background:var(--warn-bg); }
+  .block h3 { margin-top:0; }
+  .tag { font-size:11px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; }
+  ul.tight { margin:4px 0; padding-left:20px; }
+  ul.tight li { margin:3px 0; }
+  .ref { font-size:12px; }
+  .ev { border:1px solid var(--line); padding:6px 8px; margin:6px 0; background:var(--panel); }
+  .ev:target, .ev.flash { outline:3px solid var(--accent); }
+  .ev pre { margin:4px 0 0; white-space:pre-wrap; font-size:12px; background:rgba(127,127,127,.08); padding:4px 6px; }
+  .muted { color:var(--muted); }
+  details summary { cursor:pointer; font-weight:600; }
+  #detail-empty { color:var(--muted); }
+  .sticky { position:sticky; top:8px; max-height:calc(100vh - 16px); overflow:auto; }
+  @media (max-width: 1000px) { .sticky { position:static; max-height:none; } }
+  a { color:var(--accent); }
+</style>
+</head>
+<body>
+<header>
+  <h1>Binding picture: moving Catalog Management to Apache Kafka</h1>
+  <div class="qbox" id="question">
+    <p><strong>Question (supplied):</strong> When moving Catalog Management (Catalog and Image) to Apache Kafka, which bindings are configured across the boundary and what is not established?</p>
+    <p><strong>Selected side (task definition, not inferred from source):</strong> Catalog Management = <code>ecommerce-catalog-service</code> + <code>ecommerce-image-service</code>.
+       No ownership or architecture record in the inspected inputs defines this as a team or bounded-context boundary. It is treated here as the boundary <em>the task defines</em>.</p>
+    <p><strong>Known counterparts (found by tracing topics in code and config, not by name similarity):</strong>
+       <code>ecommerce-product-query-service</code>, <code>ecommerce-category-query-service</code>, <code>ecommerce-tenant-service</code>, and the shared broker
+       (local: Redpanda container <code>redpanda</code>). Inventory basis: the five Go services listed in <code>GO_SERVICES</code> of the local Tiltfile
+       (<a href="#ev-E-tilt">E-tilt</a>). Not inspected: Nuxt UIs, the seeder, production.</p>
+    <p><strong>Environment:</strong> local (k3d + Tilt + docker-compose, Helm values under <code>ecommerce-infrastructure/environments/local/values/</code>).
+       Standalone configs (<code>configs/config.standalone.yaml</code>) appear only where they differ and are labelled.
+       <strong>Inspection date:</strong> 2026-11-01. <strong>No runtime observation was made</strong>: nothing here says that a message was actually produced, delivered, or consumed.</p>
+    <p class="muted">Scope: only Kafka-related bindings relevant to the question. Synchronous gRPC/Connect bindings (e.g. tenant gRPC client, seeder → catalog/image gRPC) are out of scope and not listed. This is not a whole-system inventory.</p>
+  </div>
+</header>
+
+<main>
+  <div class="grid">
+    <section aria-labelledby="h-bindings">
+      <h2 id="h-bindings">Bindings</h2>
+      <div class="filters" role="group" aria-label="Filter by direction">
+        <span class="muted">Direction:</span>
+        <button type="button" data-dir="all" aria-pressed="true">All</button>
+        <button type="button" data-dir="outbound" aria-pressed="false">▲ Outbound</button>
+        <button type="button" data-dir="inbound" aria-pressed="false">▼ Inbound</button>
+        <button type="button" data-dir="internal" aria-pressed="false">↻ Internal (both sides inside boundary)</button>
+        <button type="button" data-dir="shared" aria-pressed="false">◆ Shared resource / platform</button>
+      </div>
+      <div class="filters">
+        <label><input type="checkbox" id="f-unres"> Show only bindings with an <strong>unresolved</strong> association or element</label>
+        <span id="count" class="muted" aria-live="polite"></span>
+      </div>
+      <table aria-describedby="h-bindings">
+        <thead><tr>
+          <th>ID</th><th>Dir.</th><th>Selected-side participant</th><th>Counterpart</th><th>Interface / destination</th><th>Evidence kinds</th><th>Association</th>
+        </tr></thead>
+        <tbody id="rows"></tbody>
+      </table>
+      <p class="muted ref">Evidence-kind labels are source-specific and deliberately not merged into a single status scale:
+        <span class="kind">CODE</span> source code reference ·
+        <span class="kind">CONTRACT</span> contract repo (proto / topic registry) declaration ·
+        <span class="kind">CONFIG-local</span> local Helm values declaration ·
+        <span class="kind">CONFIG-standalone</span> standalone YAML declaration ·
+        <span class="kind">COMPOSE</span> docker-compose / Tiltfile declaration ·
+        <span class="kind">DOC</span> project documentation (AGENTS.md; documentation, <em>not</em> an owner promise) ·
+        <span class="kind">RUNTIME</span> runtime capture (none available) ·
+        <span class="kind">PROVIDER</span> architecture-knowledge provider (none available).</p>
+
+      <h2 id="h-inputs">Inspected inputs</h2>
+      <div class="panel">
+        <table>
+          <thead><tr><th>Repository (under ./src)</th><th>Revision (from .git/HEAD, detached)</th><th>Role here</th></tr></thead>
+          <tbody id="repos"></tbody>
+        </table>
+        <p class="muted ref">Revisions were read from each repo's <code>.git/HEAD</code> file. Whether the working trees had uncommitted changes was <strong>not checked</strong> (no shell or git access in this session).</p>
+      </div>
+
+      <h2 id="h-missing">Unavailable or incomplete inputs</h2>
+      <div class="panel"><ul class="tight" id="missing"></ul></div>
+    </section>
+
+    <aside aria-labelledby="h-detail">
+      <div class="sticky panel" id="detail-panel">
+        <h2 id="h-detail">Selected binding</h2>
+        <div id="detail"><p id="detail-empty">Select a row (click, or focus it and press Enter) to see its exact references, scope, limitations, interpretation and next question.</p></div>
+      </div>
+    </aside>
+  </div>
+
+  <h2 id="h-evidence">Evidence index</h2>
+  <p class="muted ref">Every factual statement links to one of these items. Paths are relative to the workspace. Excerpts were copied from the files at the revisions listed above. Links open the raw file. Line numbers are given as text because browsers cannot jump to a line in a plain file.</p>
+  <div id="evidence"></div>
+</main>
+
+<footer class="muted ref">
+  Investigation artifact (not a deterministic tool). Generated 2026-11-01. Provider input: none. Runtime input: none.
+</footer>
+
+<script>
+"use strict";
+// ---------------------------------------------------------------- data
+const REPOS = [
+  {repo:"ecommerce-catalog-service", rev:"e9f147483e6e33ec512851d478169d2985614b09", role:"Selected side (producer of catalog.* events; consumer of tenant events)"},
+  {repo:"ecommerce-image-service", rev:"f1b97e8402e8183b131847f8a4db8bb00dddb33a", role:"Selected side (consumer of catalog.product.events; producer of ProductImagePromotedEvent; consumer of tenant events)"},
+  {repo:"ecommerce-catalog-service-api", rev:"7cecb3e1131dbd5199ce25e9cf101d75d3365171", role:"Contract: catalog event protos + topic registry"},
+  {repo:"ecommerce-image-service-api", rev:"2167948573ced4b2854d8aed93fb83b242cf2e7f", role:"Contract: image event proto + topic registry"},
+  {repo:"ecommerce-tenant-service-api", rev:"d9b90972f77b6a2df7ebee0f52e0cd8124937fe7", role:"Contract + shared tenant-events consumer module"},
+  {repo:"ecommerce-commons", rev:"d54bf55eba79566286b57b630f5d5b0d68b64302", role:"Shared Kafka producer/consumer/outbox implementation"},
+  {repo:"ecommerce-product-query-service", rev:"b8f5137b9e6fae3bacbe0319e0c23edfd0d25f19", role:"Counterpart (consumer)"},
+  {repo:"ecommerce-category-query-service", rev:"6cb5373dd90ae57512e96a03893a3a3e9b75450d", role:"Counterpart (consumer)"},
+  {repo:"ecommerce-tenant-service", rev:"dbeacdbfff49c84c74f042d5e981461ec373bc1b", role:"Counterpart (producer of tenant events)"},
+  {repo:"ecommerce-infrastructure", rev:"07c059908b99e08448cf1c2c7dad6a865fe5ccf0", role:"Local environment: Helm values, compose broker, Tiltfile"}
+];
+
+const MISSING = [
+  "Runtime captures (broker topic listings, consumer-group offsets, traces, logs): none were found or supplied. All bindings are declared or referenced, never observed.",
+  "Architecture-knowledge provider (API/MCP): none available in this session. No provider findings are shown anywhere.",
+  "Ownership / architecture records defining Catalog Management as a team or bounded context: none found. The boundary is the task's definition.",
+  "Topic provisioning (partitions, replication factor, retention, cleanup policy): no declaration found in the inspected files (see B10). Not found is not the same as absent.",
+  "The file implementing tenant.SaveToHeaders / tenant.ContextFromKafkaHeaders in ecommerce-commons/pkg/tenant was not located, so the tenant header key name is unknown (see B13).",
+  "The NoopDLQHandler implementation file was not located. Only its selection is evidenced (see B7).",
+  "Production environment (environments/production/values): not inspected. Environment in scope is local.",
+  "Nuxt UIs, cmd/seeder, and any repository outside the Tiltfile GO_SERVICES list: not inspected for Kafka use.",
+  "Working-tree cleanliness (git status) and commit dates: not checked (no shell/git access). Revisions are HEAD object IDs only.",
+  "File discovery: no directory-listing or search tool was available. Files were opened by paths named in AGENTS.md or by the wiring code. Other relevant files may exist."
+];
+
+const R = (repo, path) => "../src/" + repo + "/" + path;
+const EV = {
+  "E-cat-prod-factory": {kind:"CODE", repo:"ecommerce-catalog-service", path:"internal/infrastructure/outbound/kafka/product_event_factory.go", lines:"67-85",
+    excerpt:"func (f *productEventFactory) NewProductUpdatedOutboxMessage(...) outbox.Message {\n\tevent := f.newProductUpdatedEvent(p)\n\treturn outbox.Message{ Event: event, Key: p.ID, Topic: apiEvents.TopicFor(event) }\n...\nfunc (f *productEventFactory) NewProductDeletedOutboxMessage(...)\n\tevent := &eventsv1.ProductDeletedEvent{ ProductId: productID }\n\t... Key: productID, Topic: apiEvents.TopicFor(event)"},
+  "E-cat-cat-factory": {kind:"CODE", repo:"ecommerce-catalog-service", path:"internal/infrastructure/outbound/kafka/category_event_factory.go", lines:"59-66",
+    excerpt:"func (f *categoryEventFactory) NewCategoryUpdatedOutboxMessage(...) outbox.Message {\n\tevent := f.newCategoryUpdatedEvent(c)\n\treturn outbox.Message{ Event: event, Key: c.ID, Topic: apiEvents.TopicFor(event) }"},
+  "E-cat-attr-factory": {kind:"CODE", repo:"ecommerce-catalog-service", path:"internal/infrastructure/outbound/kafka/attribute_event_factory.go", lines:"63-70",
+    excerpt:"func (f *attributeEventFactory) NewAttributeUpdatedOutboxMessage(...) outbox.Message {\n\tevent := f.newAttributeUpdatedEvent(a)\n\treturn outbox.Message{ Event: event, Key: a.ID, Topic: apiEvents.TopicFor(event) }"},
+  "E-cat-upd-tx": {kind:"CODE", repo:"ecommerce-catalog-service", path:"internal/application/product/update_product.go", lines:"150-177",
+    excerpt:"res, err := mongo.WithTransaction(ctx, h.txManager, func(txCtx ...) {\n\tupdated, err := h.repo.Update(txCtx, p)\n\tmsg := h.eventFactory.NewProductUpdatedOutboxMessage(txCtx, updated)\n\tsend, err := h.outbox.Create(txCtx, msg)\n...\n_ = res.Send(ctx) //nolint:errcheck // best-effort send"},
+  "E-cat-topics": {kind:"CONTRACT", repo:"ecommerce-catalog-service-api", path:"pkg/events/topics.go", lines:"11-13, 17-22, 26-32",
+    excerpt:"TopicCatalogProductEvents   = \"catalog.product.events\"\nTopicCatalogCategoryEvents  = \"catalog.category.events\"\nTopicCatalogAttributeEvents = \"catalog.attribute.events\"\n...ProductUpdatedEvent -> TopicCatalogProductEvents\n...ProductDeletedEvent -> TopicCatalogProductEvents\n...CategoryUpdatedEvent -> TopicCatalogCategoryEvents\n...AttributeUpdatedEvent -> TopicCatalogAttributeEvents\n// Panics if the message type is not registered in topicMap."},
+  "E-cat-proto": {kind:"CONTRACT", repo:"ecommerce-catalog-service-api", path:"proto/catalog/events/v1/product_events.proto", lines:"3, 34-52",
+    excerpt:"package catalog.events.v1;\nmessage ProductUpdatedEvent { string product_id = 1; ... optional string image_id = 6; ... int64 version = 9; ... }\nmessage ProductDeletedEvent { string product_id = 1; }"},
+  "E-cat-standalone": {kind:"CONFIG-standalone", repo:"ecommerce-catalog-service", path:"configs/config.standalone.yaml", lines:"10-11",
+    excerpt:"kafka:\n  brokers: \"localhost:9092\""},
+  "E-cat-local": {kind:"CONFIG-local", repo:"ecommerce-infrastructure", path:"environments/local/values/ecommerce-catalog-service.yaml", lines:"31-42",
+    excerpt:"kafka:\n  brokers: \"redpanda:29092\"\n  consumers-config:\n    default-group-id: \"ecommerce-catalog-service\"\n    default-auto-offset-reset: \"earliest\"\n    consumers:\n      - name: \"tenant-events\"\n        topic: \"tenant.tenant.events\"\n        max-retries: 5 ... enable-dlq: true"},
+  "E-cat-infra-fx": {kind:"CODE", repo:"ecommerce-catalog-service", path:"internal/infrastructure/fxconfig/module.go", lines:"13",
+    excerpt:"fx_tenant_api.NewKafkaConsumerModule(),"},
+  "E-img-factory": {kind:"CODE", repo:"ecommerce-image-service", path:"internal/infrastructure/outbound/kafka/event_factory.go", lines:"18-30",
+    excerpt:"event := &eventsv1.ProductImagePromotedEvent{\n\tProductId: productID, ImageId: imageID, SmallImageUrl: smallImageURL, LargeImageUrl: largeImageURL,\n}\nreturn outbox.Message{ Event: event, Topic: apiEvents.TopicFor(event), Key: productID }"},
+  "E-img-topics": {kind:"CONTRACT", repo:"ecommerce-image-service-api", path:"pkg/events/topics.go", lines:"11, 16",
+    excerpt:"TopicCatalogProductEvents = \"catalog.product.events\"\n(&eventsv1.ProductImagePromotedEvent{})...FullName(): TopicCatalogProductEvents,"},
+  "E-img-proto": {kind:"CONTRACT", repo:"ecommerce-image-service-api", path:"proto/image/events/v1/image_events.proto", lines:"11-20",
+    excerpt:"// Emitted when a product image is promoted to the main image.\n// Topic: catalog.product.events (partition key: product_id)\nmessage ProductImagePromotedEvent { string image_id = 1; string product_id = 2; string small_image_url = 3; string large_image_url = 4; google.protobuf.Timestamp promoted_at = 5; }"},
+  "E-img-promote": {kind:"CODE", repo:"ecommerce-image-service", path:"internal/application/image/promote_images.go", lines:"197, 318-329, 339-342",
+    excerpt:"tenantSlug := tenant.MustSlugFromContext(ctx)   // line 197 (copyImage)\n...\nmsgs, err := h.eventFactory.BuildPromotionMessages(ctx, cmd.OwnerType, cmd.OwnerID, promotedInfos)\nfor _, msg := range msgs { send, err := h.outbox.Create(ctx, msg) ... }\n...\n_ = send(ctx) //nolint:errcheck // best-effort send"},
+  "E-img-consumer-fx": {kind:"CODE", repo:"ecommerce-image-service", path:"internal/infrastructure/inbound/kafka/fxconfig/module.go", lines:"14, 18-23",
+    excerpt:"fx_consumer.RegisterHandlerAndConsumer(\"catalog-events\", newProductRouter),\n...\nconsumer.Register(r, h.HandleProductUpdated)\nconsumer.Register(r, h.HandleProductDeleted)"},
+  "E-img-handler": {kind:"CODE", repo:"ecommerce-image-service", path:"internal/infrastructure/inbound/kafka/product_handler.go", lines:"22-45",
+    excerpt:"func (h *ProductHandler) HandleProductUpdated(ctx, e *eventsv1.ProductUpdatedEvent) error {\n\tif e.ImageId == nil { return h.cleanupImagesHandler.Handle(...OwnerID: e.ProductId) }\n\tcmd := image.PromoteImagesCommand{ ImageIDs: &[]string{*e.ImageId}, OwnerType: image.OwnerTypeProduct, OwnerID: e.ProductId }\n...\nfunc (h *ProductHandler) HandleProductDeleted(...) error { return h.cleanupImagesHandler.Handle(...) }"},
+  "E-img-local": {kind:"CONFIG-local", repo:"ecommerce-infrastructure", path:"environments/local/values/ecommerce-image-service.yaml", lines:"23-36",
+    excerpt:"kafka:\n  brokers: \"redpanda:29092\"\n  consumers-config:\n    default-group-id: \"ecommerce-image-service\"\n    default-auto-offset-reset: \"earliest\"\n    consumers:\n      - name: \"catalog-events\"\n        topic: \"catalog.product.events\"\n      - name: \"tenant-events\"\n        topic: \"tenant.tenant.events\"\n        max-retries: 5\n        initial-backoff: 2s\n        max-backoff: 30s\n        enable-dlq: true"},
+  "E-img-standalone": {kind:"CONFIG-standalone", repo:"ecommerce-image-service", path:"configs/config.standalone.yaml", lines:"14-21",
+    excerpt:"kafka:\n  brokers: \"localhost:29092\"\n  consumers-config:\n    default-group-id: \"ecommerce-image-service\"\n    default-auto-offset-reset: \"earliest\"\n    consumers:\n      - name: \"catalog-events\"\n        topic: \"catalog.product.events\""},
+  "E-img-infra-fx": {kind:"CODE", repo:"ecommerce-image-service", path:"internal/infrastructure/fxconfig/module.go", lines:"27-28, 34-39",
+    excerpt:"fx_inbound_kafka.NewKafkaModule(),\nfx_outbound_kafka.NewKafkaModule(),\n...\nfunc NewTenantModule() fx.Option {\n\treturn fx.Options(\n\t\tfx_tenant_api.NewKafkaConsumerModule(), ..."},
+  "E-img-doc": {kind:"DOC", repo:"ecommerce-image-service", path:"AGENTS.md", lines:"54-63",
+    excerpt:"## Kafka is the second entry point\n... consumes `catalog.product.events`:\n- `ProductUpdatedEvent` with an `ImageId` => promote ...\n- `ProductUpdatedEvent` with no `ImageId`, or `ProductDeletedEvent` => cleanup ..."},
+  "E-pq-local": {kind:"CONFIG-local", repo:"ecommerce-infrastructure", path:"environments/local/values/ecommerce-product-query-service.yaml", lines:"21-44",
+    excerpt:"kafka:\n  brokers: \"redpanda:29092\"\n  consumers-config:\n    default-group-id: \"ecommerce-product-query-service\"\n    default-auto-offset-reset: \"earliest\"\n    consumers:\n      - name: \"catalog-events\"\n        topic: \"catalog.product.events\"\n        max-retries: 5 ... enable-dlq: true\n      - name: \"catalog-attribute-events\"\n        topic: \"catalog.attribute.events\"\n        max-retries: 5 ... enable-dlq: true\n      - name: \"tenant-events\"\n        topic: \"tenant.tenant.events\" ... enable-dlq: true"},
+  "E-pq-fx": {kind:"CODE", repo:"ecommerce-product-query-service", path:"internal/infrastructure/inbound/kafka/fxconfig/module.go", lines:"14-15, 19-31",
+    excerpt:"fx_consumer.RegisterHandlerAndConsumer(\"catalog-events\", newProductRouter),\nfx_consumer.RegisterHandlerAndConsumer(\"catalog-attribute-events\", newAttributeRouter),\n...\nconsumer.Register(r, h.HandleProductUpdated)\nconsumer.Register(r, h.HandleProductDeleted)\nconsumer.Register(r, h.HandleProductImagePromoted)\n...\nconsumer.Register(r, h.HandleAttributeUpdated)"},
+  "E-pq-handler": {kind:"CODE", repo:"ecommerce-product-query-service", path:"internal/infrastructure/inbound/kafka/product_handler.go", lines:"6-8, 130-146",
+    excerpt:"catalog_eventsv1 \"github.com/Sokol111/ecommerce-catalog-service-api/gen/go/catalog/events/v1\"\nimage_eventsv1 \"github.com/Sokol111/ecommerce-image-service-api/gen/go/image/events/v1\"\n...\nfunc (h *ProductHandler) HandleProductImagePromoted(ctx, e *image_eventsv1.ProductImagePromotedEvent) error {\n\tcmd := productview.UpdateImageURLsCommand{ ProductID: e.ProductId, ImageID: e.ImageId, SmallImageURL: e.SmallImageUrl, LargeImageURL: e.LargeImageUrl }"},
+  "E-cq-local": {kind:"CONFIG-local", repo:"ecommerce-infrastructure", path:"environments/local/values/ecommerce-category-query-service.yaml", lines:"21-44",
+    excerpt:"kafka:\n  brokers: \"redpanda:29092\"\n  consumers-config:\n    default-group-id: \"ecommerce-category-query-service\"\n    default-auto-offset-reset: \"earliest\"\n    consumers:\n      - name: \"category-events\"\n        topic: \"catalog.category.events\" ... enable-dlq: true\n      - name: \"attribute-events\"\n        topic: \"catalog.attribute.events\" ... enable-dlq: true\n      - name: \"tenant-events\"\n        topic: \"tenant.tenant.events\" ... enable-dlq: true"},
+  "E-cq-fx": {kind:"CODE", repo:"ecommerce-category-query-service", path:"internal/infrastructure/inbound/kafka/fxconfig/module.go", lines:"14-15, 19-29",
+    excerpt:"fx_consumer.RegisterHandlerAndConsumer(\"category-events\", newCategoryRouter),\nfx_consumer.RegisterHandlerAndConsumer(\"attribute-events\", newAttributeRouter),\n...\nconsumer.Register(r, h.HandleCategoryUpdated)\n...\nconsumer.Register(r, h.HandleAttributeUpdated)"},
+  "E-tenant-factory": {kind:"CODE", repo:"ecommerce-tenant-service", path:"internal/infrastructure/outbound/kafka/event_factory.go", lines:"19-43",
+    excerpt:"Event: &eventsv1.TenantUpdatedEvent{ Id: t.ID, Slug: t.Slug, ... },\nTopic: events.TopicFor(&eventsv1.TenantUpdatedEvent{}),\nKey:   t.Slug,\n...\nEvent: &eventsv1.TenantDeletedEvent{ Slug: slug },\nTopic: events.TopicFor(&eventsv1.TenantDeletedEvent{}),"},
+  "E-tenant-topics": {kind:"CONTRACT", repo:"ecommerce-tenant-service-api", path:"pkg/events/topics.go", lines:"11, 16-17",
+    excerpt:"TopicTenantTenantEvents = \"tenant.tenant.events\"\n...TenantUpdatedEvent -> TopicTenantTenantEvents\n...TenantDeletedEvent -> TopicTenantTenantEvents"},
+  "E-tenant-consumer-fx": {kind:"CODE", repo:"ecommerce-tenant-service-api", path:"pkg/fxconfig/consumer.go", lines:"13, 25-36",
+    excerpt:"const tenantEventsConsumer = \"tenant-events\"\n...\nfx_consumer.RegisterHandlerAndConsumer(tenantEventsConsumer, newTenantRouter),\n...\ncommons_consumer.Register(r, h.HandleTenantUpdated)\ncommons_consumer.Register(r, h.HandleTenantDeleted)"},
+  "E-tenant-handler": {kind:"CODE", repo:"ecommerce-tenant-service-api", path:"pkg/consumer/handler.go", lines:"25-47",
+    excerpt:"HandleTenantUpdated: if !evt.GetEnabled() { skip } ... h.lifecycle.Create(ctx, evt.GetSlug())\nHandleTenantDeleted: h.lifecycle.Delete(ctx, evt.GetSlug())"},
+  "E-tenant-local": {kind:"CONFIG-local", repo:"ecommerce-infrastructure", path:"environments/local/values/ecommerce-tenant-service.yaml", lines:"23-24",
+    excerpt:"kafka:\n  brokers: \"redpanda:29092\""},
+  "E-c-types": {kind:"CODE", repo:"ecommerce-commons", path:"pkg/kafka/config/types.go", lines:"7, 31-34",
+    excerpt:"Brokers string `koanf:\"brokers\"` // Comma-separated list of Kafka broker addresses\n...\nEnableDLQ bool `koanf:\"enable-dlq\"`\nDLQTopic string `koanf:\"dlq-topic\"` // DLQ topic name (defaults to \"{topic}.dlq\" if EnableDLQ is true)\nReadinessTimeoutSeconds int ...\nFailOnTopicError bool `koanf:\"fail-on-topic-error\"`"},
+  "E-c-defaults": {kind:"CODE", repo:"ecommerce-commons", path:"pkg/kafka/config/defaults.go", lines:"11-13, 55-64, 70-72",
+    excerpt:"if cfg.ConsumersConfig.DefaultMaxRetries == nil { ... = ptrUint(defaultMaxRetries) }\n...\nif consumer.GroupID == \"\" { consumer.GroupID = globalConfig.DefaultGroupID }\n...\nif consumer.EnableDLQ && consumer.DLQTopic == \"\" { consumer.DLQTopic = consumer.Topic + \".dlq\" }\n...\nif consumer.MaxRetries == nil { consumer.MaxRetries = globalConfig.DefaultMaxRetries }"},
+  "E-c-constants": {kind:"CODE", repo:"ecommerce-commons", path:"pkg/kafka/config/constants.go", lines:"7-9, 13",
+    excerpt:"defaultMaxRetries               = uint(2)\ndefaultInitialBackoff           = 1 * time.Second\ndefaultMaxBackoff               = 30 * time.Second\n...\ndefaultConsumerReadinessTimeout = 60"},
+  "E-c-consumer-fx": {kind:"CODE", repo:"ecommerce-commons", path:"pkg/kafka/consumer/fxconfig/module.go", lines:"15-22, 84-89",
+    excerpt:"func getConsumerConfig(conf config.Config, consumerName string) (config.ConsumerConfig, error) {\n\tfor _, c := range conf.ConsumersConfig.ConsumerConfig { if c.Name == consumerName { return c, nil } }\n\treturn ..., fmt.Errorf(\"no consumer config found for consumer name: %s\", consumerName)\n}\n...\nif consumerConf.EnableDLQ { return consumer.NewDLQHandler(dlqProducer, consumerConf.DLQTopic, tracer, logger) }\nreturn consumer.NewNoopDLQHandler(logger)"},
+  "E-c-consumer-client": {kind:"CODE", repo:"ecommerce-commons", path:"pkg/kafka/consumer/fxconfig/consumer.go", lines:"17-31, 70-76",
+    excerpt:"brokers := strings.Split(conf.Brokers, \",\")\n...\nkgo.SeedBrokers(brokers...),\nkgo.ConsumerGroup(consumerConf.GroupID),\nkgo.ConsumeTopics(consumerConf.Topic),\nkgo.ConsumeResetOffset(resetOffset),\nkgo.AutoCommitInterval(3 * time.Second),\nkgo.AutoCommitMarks(),\n...\nif err := verifyTopicAvailable(ctx, client, consumerConf.Topic, log); err != nil {\n\tif consumerConf.FailOnTopicError { return err }\n\tlog.Warn(\"topic verification failed, continuing anyway\", zap.Error(err))"},
+  "E-c-producer": {kind:"CODE", repo:"ecommerce-commons", path:"pkg/kafka/producer/fxconfig/module.go", lines:"28-40",
+    excerpt:"brokers := strings.Split(conf.Brokers, \",\")\n...\nclient, err := kgo.NewClient(\n\tkgo.SeedBrokers(brokers...),\n\tkgo.AllowAutoTopicCreation(),\n\tkgo.ProducerLinger(...), kgo.ProducerBatchCompression(compression), ..."},
+  "E-c-reader": {kind:"CODE", repo:"ecommerce-commons", path:"pkg/kafka/consumer/reader.go", lines:"57-61",
+    excerpt:"if errors.Is(fe.Err, kerr.UnknownTopicOrPartition) {\n\tr.throttler.Warn(\"topic_not_available\", \"topic not available, waiting for topic creation\", ...)\n\tcontinue\n}"},
+  "E-c-router": {kind:"CODE", repo:"ecommerce-commons", path:"pkg/kafka/consumer/router.go", lines:"38-46",
+    excerpt:"handler, ok := r.handlers[eventType]\nif !ok {\n\tr.log.Warn(\"no handler registered for event type, skipping\", ...)\n\treturn fmt.Errorf(\"no handler for event type %T: %w\", event, ErrSkipMessage)\n}"},
+  "E-c-result": {kind:"CODE", repo:"ecommerce-commons", path:"pkg/kafka/consumer/result_handler.go", lines:"38-65",
+    excerpt:"defer h.offsetMarker.MarkCommitRecords(record)\nswitch {\ncase err == nil: ...\ncase errors.Is(err, ErrSkipMessage): ... h.log.Info(\"skipping message\", ...)\ncase errors.Is(err, ErrPermanent): ... h.dlqHandler.SendToDLQ(ctx, record, err)\ndefault: // Retry exhausted or context cancelled\n\t... h.dlqHandler.SendToDLQ(ctx, record, err)"},
+  "E-c-processor": {kind:"CODE", repo:"ecommerce-commons", path:"pkg/kafka/consumer/processor.go", lines:"75-78, 141-152",
+    excerpt:"ctx = p.tracer.ExtractContext(ctx, envelope.Record)\n// tenant context from Kafka headers\nctx = tenant.ContextFromKafkaHeaders(ctx, envelope.Record.Headers)\n...\nif rec := recover(); rec != nil { ... err = fmt.Errorf(\"%w: %v\", ErrPermanent, &panicError{...}) }"},
+  "E-c-deser": {kind:"CODE", repo:"ecommerce-commons", path:"pkg/kafka/kafkaproto/deserializer.go", lines:"19-28",
+    excerpt:"eventTypeBytes, ok := headers[\"event_type\"]\nif !ok { return nil, fmt.Errorf(\"missing required header: event_type\") }\nmsgType, err := protoregistry.GlobalTypes.FindMessageByName(protoreflect.FullName(eventTypeBytes))"},
+  "E-c-headers": {kind:"CODE", repo:"ecommerce-commons", path:"pkg/kafka/kafkaproto/header_populator.go", lines:"28-35",
+    excerpt:"headers[\"event_id\"] = eventID\nheaders[\"event_type\"] = string(event.ProtoReflect().Descriptor().FullName())\nheaders[\"source\"] = p.source\nheaders[\"timestamp\"] = strconv.FormatInt(time.Now().UTC().UnixMilli(), 10)"},
+  "E-c-outbox": {kind:"CODE", repo:"ecommerce-commons", path:"pkg/kafka/outbox/outbox.go", lines:"56-63",
+    excerpt:"eventID := o.headerPopulator.PopulateHeaders(msg.Event, msg.Headers)\nmsg.Headers = o.tracePropagator.SaveTraceContext(ctx, msg.Headers)\n// Save tenant context into headers for cross-service propagation\nmsg.Headers = tenant.SaveToHeaders(ctx, msg.Headers)"},
+  "E-c-sender": {kind:"CODE", repo:"ecommerce-commons", path:"pkg/kafka/outbox/sender.go", lines:"59-70",
+    excerpt:"record := &kgo.Record{ Topic: entity.Topic, Key: []byte(entity.Key), Value: entity.Payload, Headers: kafkaHeaders }\n...\ns.producer.Produce(ctx, record, func(_ *kgo.Record, err error) { confirmChan <- ConfirmResult{ID: entityID, Err: err} })"},
+  "E-compose": {kind:"COMPOSE", repo:"ecommerce-infrastructure", path:"environments/local/compose/kafka.yml", lines:"4-19",
+    excerpt:"redpanda:\n  image: redpandadata/redpanda:v24.3.1\n  command: [ redpanda, start, --mode=dev-container, ...,\n    --kafka-addr=PLAINTEXT://0.0.0.0:29092,PLAINTEXT_HOST://0.0.0.0:9092,\n    --advertise-kafka-addr=PLAINTEXT://redpanda:29092,PLAINTEXT_HOST://localhost:9092 ]\n  ports:\n    - 9092:9092   # Kafka API"},
+  "E-tilt": {kind:"COMPOSE", repo:"ecommerce-infrastructure", path:"environments/local/Tiltfile", lines:"50, 57, 83-104, 221",
+    excerpt:"docker_compose(COMPOSE_DIR + '/kafka.yml', project_name='ecommerce')\ndc_resource('redpanda', labels=['infrastructure'])\nGO_SERVICES = { 'ecommerce-catalog-service', 'ecommerce-product-query-service', 'ecommerce-category-query-service', 'ecommerce-image-service', 'ecommerce-tenant-service' }\nsvc_resource_deps = ['mongo', 'redpanda', 'logto-credentials']"}
+};
+
+// ---------------------------------------------------------------- bindings
+// association: "resolved" = both endpoints traced by exact topic string/constant + exact consumer-name match; "unresolved" = an endpoint or element is not traceable in inspected inputs.
+const B = [
+ {id:"B1", dir:"outbound", participant:"ecommerce-catalog-service (outbox producer)", counterpart:"ecommerce-product-query-service (group ecommerce-product-query-service, consumer \"catalog-events\")",
+  iface:"topic catalog.product.events · ProductUpdatedEvent, ProductDeletedEvent · key = product ID", kinds:["CODE","CONTRACT","CONFIG-local"], association:"resolved",
+  entry:["ecommerce-catalog-service/internal/application/product/update_product.go:150-177 (persistAndPublish)","ecommerce-product-query-service/internal/infrastructure/inbound/kafka/product_handler.go:32,118 (HandleProductUpdated / HandleProductDeleted)"],
+  est:[
+   {t:"Catalog builds ProductUpdatedEvent and ProductDeletedEvent outbox messages with Topic = apiEvents.TopicFor(event) and Key = product ID.", r:["E-cat-prod-factory"]},
+   {t:"The update use case writes the outbox entry in the same Mongo transaction as the product update, then attempts a best-effort send after commit.", r:["E-cat-upd-tx"]},
+   {t:"The catalog topic registry maps both event types to \"catalog.product.events\".", r:["E-cat-topics"]},
+   {t:"Product-query's local config declares consumer \"catalog-events\" on topic catalog.product.events (default group ecommerce-product-query-service, earliest, max-retries 5, enable-dlq true).", r:["E-pq-local"]},
+   {t:"Product-query registers ProductUpdatedEvent and ProductDeletedEvent handlers on the consumer named \"catalog-events\". Code is linked to config by exact name match in getConsumerConfig.", r:["E-pq-fx","E-c-consumer-fx"]}
+  ],
+  scope:"local env; revisions as listed; config = local Helm values", provider:[],
+  limits:["No runtime capture: not established that any record was produced or consumed.","Outbox relay success is not established. The send is best-effort and its error is ignored at the call site."],
+  interp:{t:"product-query projects from this topic, so whichever cluster holds catalog.product.events after the move must also be the cluster product-query reads. Each service has a single kafka.brokers value, used by its producer and by all of its consumers.", premises:["E-c-types","E-c-producer","E-c-consumer-client","E-pq-local"]},
+  next:"Does product-query move to the Apache Kafka cluster together with Catalog Management, or must catalog.product.events be mirrored back to the existing broker?"},
+
+ {id:"B2", dir:"outbound", participant:"ecommerce-image-service (outbox producer, promote saga)", counterpart:"ecommerce-product-query-service (consumer \"catalog-events\")",
+  iface:"topic catalog.product.events · ProductImagePromotedEvent · key = product ID", kinds:["CODE","CONTRACT","CONFIG-local"], association:"resolved",
+  entry:["ecommerce-image-service/internal/application/image/promote_images.go:318-329","ecommerce-product-query-service/internal/infrastructure/inbound/kafka/product_handler.go:130-146"],
+  est:[
+   {t:"Image service builds a ProductImagePromotedEvent outbox message with Topic = apiEvents.TopicFor(event) and Key = productID.", r:["E-img-factory"]},
+   {t:"The image API topic registry maps ProductImagePromotedEvent to \"catalog.product.events\", a topic name the catalog contract also defines. The proto comment states the same topic and partition key.", r:["E-img-topics","E-img-proto","E-cat-topics"]},
+   {t:"Promotion writes outbox messages inside the Mongo transaction and sends them best-effort afterwards.", r:["E-img-promote"]},
+   {t:"Product-query registers HandleProductImagePromoted (image_eventsv1.ProductImagePromotedEvent) on the same \"catalog-events\" consumer.", r:["E-pq-fx","E-pq-handler"]}
+  ],
+  scope:"local env; revisions as listed", provider:[],
+  limits:["No runtime capture.","The proto declares promoted_at (field 5), but the factory shown does not set PromotedAt. This is observed in code. Consumer impact was not examined.","catalog.product.events therefore has two producing services. Only the inspected repos were checked for further producers."],
+  interp:{t:"Catalog and image events share one topic and the same key (product ID). That puts them on the same partition only while both producers use the same partitioner and partition count. Moving one producer without the other would split this topic.", premises:["E-cat-prod-factory","E-img-factory","E-img-proto"]},
+  next:"Must catalog and image move at the same time? Which partition count and partitioner will the Apache Kafka topic use?"},
+
+ {id:"B3", dir:"outbound", participant:"ecommerce-catalog-service", counterpart:"ecommerce-category-query-service (group ecommerce-category-query-service, consumer \"category-events\")",
+  iface:"topic catalog.category.events · CategoryUpdatedEvent · key = category ID", kinds:["CODE","CONTRACT","CONFIG-local"], association:"resolved",
+  entry:["ecommerce-catalog-service/internal/infrastructure/outbound/kafka/category_event_factory.go:59-66","ecommerce-category-query-service/internal/infrastructure/inbound/kafka/fxconfig/module.go:19-23"],
+  est:[
+   {t:"Catalog builds a CategoryUpdatedEvent outbox message with Topic = TopicFor(event) and Key = category ID.", r:["E-cat-cat-factory"]},
+   {t:"The registry maps CategoryUpdatedEvent to \"catalog.category.events\".", r:["E-cat-topics"]},
+   {t:"Category-query's local config declares consumer \"category-events\" on catalog.category.events with enable-dlq true. Its code registers HandleCategoryUpdated on that consumer name.", r:["E-cq-local","E-cq-fx"]}
+  ],
+  scope:"local env", provider:[], limits:["No runtime capture.","No other consumer of catalog.category.events was found in the inspected local values."],
+  interp:{t:"category-query has to follow the topic to the new cluster, or the topic has to be mirrored back to it.", premises:["E-c-types","E-cq-local"]},
+  next:"Is category-query part of the migration scope, or does it stay on the existing broker?"},
+
+ {id:"B4", dir:"outbound", participant:"ecommerce-catalog-service", counterpart:"ecommerce-product-query-service (\"catalog-attribute-events\") and ecommerce-category-query-service (\"attribute-events\")",
+  iface:"topic catalog.attribute.events · AttributeUpdatedEvent · key = attribute ID", kinds:["CODE","CONTRACT","CONFIG-local"], association:"resolved",
+  entry:["ecommerce-catalog-service/internal/infrastructure/outbound/kafka/attribute_event_factory.go:63-70"],
+  est:[
+   {t:"Catalog builds an AttributeUpdatedEvent outbox message with Topic = TopicFor(event) and Key = attribute ID.", r:["E-cat-attr-factory"]},
+   {t:"The registry maps AttributeUpdatedEvent to \"catalog.attribute.events\".", r:["E-cat-topics"]},
+   {t:"Both query services declare a consumer on catalog.attribute.events in their local config, each in its own default group, with enable-dlq true. Each registers HandleAttributeUpdated.", r:["E-pq-local","E-pq-fx","E-cq-local","E-cq-fx"]}
+  ],
+  scope:"local env", provider:[], limits:["No runtime capture."],
+  interp:{t:"With two independent consumer groups, this one topic ties the move to both query services.", premises:["E-pq-local","E-cq-local"]},
+  next:"Can both query services consume catalog.attribute.events from the Apache Kafka cluster?"},
+
+ {id:"B5", dir:"inbound", participant:"ecommerce-catalog-service (consumer \"tenant-events\", group ecommerce-catalog-service)", counterpart:"ecommerce-tenant-service (outbox producer)",
+  iface:"topic tenant.tenant.events · TenantUpdatedEvent, TenantDeletedEvent · key = tenant slug", kinds:["CODE","CONTRACT","CONFIG-local"], association:"resolved",
+  entry:["ecommerce-tenant-service/internal/infrastructure/outbound/kafka/event_factory.go:19-43","ecommerce-tenant-service-api/pkg/consumer/handler.go:25-47"],
+  est:[
+   {t:"Tenant service builds TenantUpdatedEvent/TenantDeletedEvent outbox messages with Topic = TopicFor(...) and Key = slug.", r:["E-tenant-factory"]},
+   {t:"The tenant registry maps both event types to \"tenant.tenant.events\".", r:["E-tenant-topics"]},
+   {t:"Catalog composes fx_tenant_api.NewKafkaConsumerModule(), which registers the consumer named \"tenant-events\" (HandleTenantUpdated / HandleTenantDeleted).", r:["E-cat-infra-fx","E-tenant-consumer-fx"]},
+   {t:"Catalog's local config declares consumer \"tenant-events\" on tenant.tenant.events with max-retries 5 and enable-dlq true.", r:["E-cat-local"]},
+   {t:"The handler runs tenant lifecycle Create on an enabled TenantUpdated event and Delete on TenantDeleted.", r:["E-tenant-handler"]}
+  ],
+  scope:"local env", provider:[],
+  limits:["No runtime capture.","Catalog's standalone config declares no consumers. getConsumerConfig returns an error when the named consumer is missing, so standalone start-up with this module may fail. Not executed."],
+  interp:{t:"This is an inbound dependency on a topic produced outside the boundary. If Catalog Management alone points kafka.brokers at a new Apache Kafka cluster, it stops receiving tenant events unless tenant.tenant.events is also available there. Without them, new tenants' databases would not be migrated in catalog.", premises:["E-c-types","E-cat-local","E-tenant-local","E-tenant-handler"]},
+  next:"Will tenant-service publish to the Apache Kafka cluster, or will tenant.tenant.events be mirrored into it?"},
+
+ {id:"B6", dir:"inbound", participant:"ecommerce-image-service (consumer \"tenant-events\", group ecommerce-image-service)", counterpart:"ecommerce-tenant-service",
+  iface:"topic tenant.tenant.events · TenantUpdatedEvent, TenantDeletedEvent", kinds:["CODE","CONTRACT","CONFIG-local"], association:"resolved",
+  entry:["ecommerce-image-service/internal/infrastructure/fxconfig/module.go:34-39"],
+  est:[
+   {t:"Image service composes fx_tenant_api.NewKafkaConsumerModule() in NewTenantModule.", r:["E-img-infra-fx","E-tenant-consumer-fx"]},
+   {t:"Image's local config declares consumer \"tenant-events\" on tenant.tenant.events with max-retries 5 and enable-dlq true.", r:["E-img-local"]},
+   {t:"The producer side is the same as in B5.", r:["E-tenant-factory","E-tenant-topics"]}
+  ],
+  scope:"local env", provider:[],
+  limits:["No runtime capture.","Image's standalone config declares only \"catalog-events\", not \"tenant-events\". Standalone start-up may fail, as in B5. Not executed.","AGENTS.md says image registers an S3 tenant cleaner into the tenant_cleaners group. The registration code was not opened."],
+  interp:{t:"Same consequence as B5. Image also uses tenant deletion to wipe the tenant's S3 prefix (per documentation only), so lost TenantDeleted events would leave storage behind.", premises:["E-img-local","E-tenant-handler"]},
+  next:"Same as B5: which cluster will carry tenant.tenant.events?"},
+
+ {id:"B7", dir:"internal", participant:"ecommerce-catalog-service (producer)", counterpart:"ecommerce-image-service (consumer \"catalog-events\", group ecommerce-image-service). Both inside the boundary.",
+  iface:"topic catalog.product.events · ProductUpdatedEvent → promote / cleanup; ProductDeletedEvent → cleanup", kinds:["CODE","CONTRACT","CONFIG-local","DOC"], association:"resolved",
+  entry:["ecommerce-image-service/internal/infrastructure/inbound/kafka/product_handler.go:22-45","ecommerce-image-service/internal/application/image/promote_images.go:77-111"],
+  est:[
+   {t:"Image registers HandleProductUpdated and HandleProductDeleted on the consumer named \"catalog-events\".", r:["E-img-consumer-fx"]},
+   {t:"HandleProductUpdated promotes ImageId to the product when it is set, and cleans up the product's images otherwise. HandleProductDeleted cleans up.", r:["E-img-handler","E-img-doc"]},
+   {t:"Image's local config declares \"catalog-events\" on catalog.product.events with no max-retries, backoff, or enable-dlq keys. The other consumers declared in the inspected local values do set them.", r:["E-img-local","E-pq-local","E-cq-local","E-cat-local"]},
+   {t:"When keys are absent: MaxRetries falls back to the global default (default-max-retries, unset → 2). EnableDLQ is a bool with no default (false), which selects NewNoopDLQHandler.", r:["E-c-defaults","E-c-constants","E-c-types","E-c-consumer-fx"]},
+   {t:"ResultHandler marks the record for commit on every outcome (deferred), including after retries are exhausted.", r:["E-c-result"]},
+   {t:"The promote path calls tenant.MustSlugFromContext. The consumer derives tenant context from Kafka headers. A recovered panic becomes ErrPermanent.", r:["E-img-promote","E-c-processor"]}
+  ],
+  scope:"local env", provider:[],
+  limits:["No runtime capture.","The NoopDLQHandler implementation was not located, so its exact behaviour (log only?) is unverified.","Inside the task's boundary, but it crosses a process and deployment boundary."],
+  interp:{t:"In the local config, a promote or cleanup that still fails after the default retries is committed and has no DLQ copy. During the migration, broker or connectivity errors on this path could drop image promotions with only a log line. Since both ends are inside the boundary, the move can relocate this binding as a unit.", premises:["E-img-local","E-c-defaults","E-c-constants","E-c-consumer-fx","E-c-result"]},
+  next:"Should image's catalog-events consumer get explicit retry/DLQ settings before cut-over? Confirm what NoopDLQHandler does."},
+
+ {id:"B8", dir:"internal", participant:"ecommerce-image-service (producer of ProductImagePromotedEvent)", counterpart:"ecommerce-image-service's own \"catalog-events\" consumer (same topic)",
+  iface:"topic catalog.product.events · ProductImagePromotedEvent read back by its producer", kinds:["CODE","CONTRACT","CONFIG-local"], association:"resolved",
+  entry:["ecommerce-commons/pkg/kafka/consumer/router.go:38-46"],
+  est:[
+   {t:"Image publishes ProductImagePromotedEvent to catalog.product.events.", r:["E-img-factory","E-img-topics"]},
+   {t:"Image consumes catalog.product.events with a router that registers only ProductUpdatedEvent and ProductDeletedEvent.", r:["E-img-local","E-img-consumer-fx"]},
+   {t:"The router returns ErrSkipMessage for unregistered types. ResultHandler logs \"skipping message\" and commits.", r:["E-c-router","E-c-result"]},
+   {t:"Deserialisation resolves the type via the event_type header and the global proto registry. Image links the image-api event package, which is imported by its event factory.", r:["E-c-deser","E-img-factory"]}
+  ],
+  scope:"local env; derived from code paths", provider:[],
+  limits:["Derived from code. Whether these skips occur at runtime is not observed.","That the type is registered in image's proto registry is inferred from the import in event_factory.go."],
+  interp:{t:"Harmless by design here. It still means image's consumer group reads its own output, so lag and throughput on the new cluster include those records.", premises:["E-c-router","E-img-local"]},
+  next:"None blocking. Note it when sizing the topic and consumer."},
+
+ {id:"B9", dir:"shared", participant:"All Kafka clients of catalog + image (one producer client plus one client per consumer)", counterpart:"Local broker: Redpanda v24.3.1 container \"redpanda\" (dev-container mode)",
+  iface:"bootstrap redpanda:29092 (in-cluster) · single kafka.brokers value per service", kinds:["CODE","CONFIG-local","COMPOSE"], association:"resolved",
+  entry:["ecommerce-commons/pkg/kafka/producer/fxconfig/module.go:28","ecommerce-commons/pkg/kafka/consumer/fxconfig/consumer.go:17"],
+  est:[
+   {t:"All five services' local configs set kafka.brokers: \"redpanda:29092\".", r:["E-cat-local","E-img-local","E-pq-local","E-cq-local","E-tenant-local"]},
+   {t:"Compose runs redpandadata/redpanda:v24.3.1 with --mode=dev-container, advertising PLAINTEXT://redpanda:29092 and PLAINTEXT_HOST://localhost:9092. Tilt starts it and makes every Go service depend on it.", r:["E-compose","E-tilt"]},
+   {t:"Config has one Brokers string. Both the producer client and every consumer client are seeded from it.", r:["E-c-types","E-c-producer","E-c-consumer-client"]},
+   {t:"No security settings (TLS/SASL) appear in the Kafka config type or in the client options shown.", r:["E-c-types","E-c-producer","E-c-consumer-client"]}
+  ],
+  scope:"local env", provider:[],
+  limits:["\"No TLS/SASL options\" covers only the files shown, not every possible kgo option source.","The local broker is Redpanda (Kafka API), not Apache Kafka. Behavioural differences are not established by these inputs."],
+  interp:{t:"A service cannot be split across two clusters through config alone. This turns the per-topic bindings (B1–B6) into one all-or-mirror decision. If the target Apache Kafka cluster requires TLS/SASL, the shared commons client likely needs changes, which affects all five services.", premises:["E-c-types","E-c-producer","E-c-consumer-client"]},
+  next:"Does the target Apache Kafka cluster need authentication or TLS? Does ecommerce-commons support them anywhere not inspected?"},
+
+ {id:"B10", dir:"shared", participant:"catalog + image producers and consumers", counterpart:"Topic provisioning for catalog.product.events, catalog.category.events, catalog.attribute.events, tenant.tenant.events, and *.dlq: no owner or definition found",
+  iface:"topic existence, partitions, replication, retention", kinds:["CODE"], association:"unresolved",
+  entry:["ecommerce-commons/pkg/kafka/producer/fxconfig/module.go:35"],
+  est:[
+   {t:"The producer client enables kgo.AllowAutoTopicCreation().", r:["E-c-producer"]},
+   {t:"Consumers verify topic availability at start but continue unless fail-on-topic-error is set. None of the inspected local configs set it. While fetching, they log and wait on UnknownTopicOrPartition.", r:["E-c-consumer-client","E-c-types","E-c-reader","E-cat-local","E-img-local"]}
+  ],
+  scope:"local env", provider:[],
+  limits:["No topic declaration (script, manifest, or Redpanda rpk config) was found in the inspected files. This does not show that none exists.","Whether the local broker auto-creates topics is a broker setting not visible in the inspected inputs."],
+  interp:{t:"Current local behaviour may rely on topics being auto-created on first produce. On Apache Kafka that depends on auto.create.topics.enable. If it is disabled, consumers would start and wait silently, and producers would fail.", premises:["E-c-producer","E-c-consumer-client","E-c-reader"]},
+  next:"Who creates these topics, with which partition count and retention? Is auto-creation enabled on the target cluster?"},
+
+ {id:"B11", dir:"shared", participant:"consumers with enable-dlq: true (catalog & image \"tenant-events\")", counterpart:"DLQ topics (derived names). Readers of DLQ topics: none found",
+  iface:"tenant.tenant.events.dlq (written by catalog, image, product-query, category-query); catalog.product.events.dlq (product-query); catalog.attribute.events.dlq (product-query, category-query); catalog.category.events.dlq (category-query)", kinds:["CODE","CONFIG-local"], association:"unresolved",
+  entry:["ecommerce-commons/pkg/kafka/config/defaults.go:62-64"],
+  est:[
+   {t:"When enable-dlq is true and dlq-topic is empty, the DLQ topic defaults to \"{topic}.dlq\".", r:["E-c-defaults","E-c-types"]},
+   {t:"None of the inspected local configs set dlq-topic. The enable-dlq consumers are listed in each config.", r:["E-cat-local","E-img-local","E-pq-local","E-cq-local"]},
+   {t:"With DLQ enabled, a DLQ handler is built on the shared producer.", r:["E-c-consumer-fx"]}
+  ],
+  scope:"local env", provider:[],
+  limits:["Derived names follow from code plus config. No DLQ topic was observed.","No consumer or tooling that reads DLQ topics was found in the inspected inputs."],
+  interp:{t:"tenant.tenant.events.dlq would collect failures from four services. Moving catalog and image only would split that DLQ across two clusters.", premises:["E-c-defaults","E-cat-local","E-img-local","E-pq-local","E-cq-local"]},
+  next:"Is anyone responsible for DLQ topics? Should they move, be renamed per service, or stay?"},
+
+ {id:"B12", dir:"shared", participant:"consumer groups ecommerce-catalog-service, ecommerce-image-service", counterpart:"Broker-side committed offsets (state lives on the current broker)",
+  iface:"group offsets; auto-offset-reset earliest; marks committed every 3 s", kinds:["CODE","CONFIG-local"], association:"resolved",
+  entry:["ecommerce-commons/pkg/kafka/consumer/fxconfig/consumer.go:20-31"],
+  est:[
+   {t:"Both selected-side services set default-group-id to their service name and default-auto-offset-reset \"earliest\".", r:["E-cat-local","E-img-local"]},
+   {t:"With \"earliest\", consumers reset to the start of the topic when no committed offset exists. Offsets are auto-committed from marks every 3 s.", r:["E-c-consumer-client"]}
+  ],
+  scope:"local env", provider:[],
+  limits:["The groups' current offsets on the existing broker were not observed."],
+  interp:{t:"On a fresh cluster with no migrated offsets, these groups would replay whatever the topics retain. The image service would re-run promote/cleanup, which the promote handler treats as idempotent (skips images already promoted to the same owner). Catalog would re-run tenant lifecycle Create.", premises:["E-c-consumer-client","E-cat-local","E-img-local","E-img-promote"]},
+  next:"Will offsets be migrated (e.g. via a mirroring tool) or replays accepted? Is tenant lifecycle Create idempotent?"},
+
+ {id:"B13", dir:"shared", participant:"catalog + image outbox producers and consumers", counterpart:"Kafka record header contract (event_type, event_id, source, timestamp, trace, tenant)",
+  iface:"record headers", kinds:["CODE"], association:"unresolved",
+  entry:["ecommerce-commons/pkg/kafka/outbox/outbox.go:56-63","ecommerce-commons/pkg/kafka/consumer/processor.go:78"],
+  est:[
+   {t:"The outbox populates the event_id, event_type, source, and timestamp headers, saves trace context, and saves tenant context into headers.", r:["E-c-headers","E-c-outbox"]},
+   {t:"The sender produces records with those headers.", r:["E-c-sender"]},
+   {t:"The consumer requires the event_type header to deserialise, and derives tenant context from headers.", r:["E-c-deser","E-c-processor"]}
+  ],
+  scope:"all environments (shared library code)", provider:[],
+  limits:["The tenant header key name is unresolved: the implementing file was not located."],
+  interp:{t:"Any bridge, mirror, or replay tool used during the move must preserve record headers. A record without event_type would fail deserialisation and go to DLQ, or be dropped where DLQ is off (B7). A record without the tenant header would break tenant-scoped handlers.", premises:["E-c-deser","E-c-processor","E-img-promote"]},
+  next:"What is the tenant header key, and does the chosen migration tooling copy headers?"},
+
+ {id:"B14", dir:"shared", participant:"catalog + image when run standalone (outside k3d)", counterpart:"Host-published broker listener",
+  iface:"catalog standalone localhost:9092 vs image standalone localhost:29092", kinds:["CONFIG-standalone","COMPOSE"], association:"unresolved",
+  entry:["ecommerce-image-service/configs/config.standalone.yaml:15"],
+  est:[
+   {t:"Catalog standalone config: brokers \"localhost:9092\".", r:["E-cat-standalone"]},
+   {t:"Image standalone config: brokers \"localhost:29092\".", r:["E-img-standalone"]},
+   {t:"Compose publishes only host port 9092 and advertises PLAINTEXT_HOST://localhost:9092. Listener 29092 is advertised as redpanda:29092.", r:["E-compose"]}
+  ],
+  scope:"standalone run against local compose infra (not the k3d environment)", provider:[],
+  limits:["The two standalone configs disagree. Whether image standalone can reach the broker was not tested, and other overrides (env vars) may exist."],
+  interp:{t:"There is already an inconsistency in how the two selected-side services address the broker outside the cluster. A migration should define broker addresses once, per environment.", premises:["E-cat-standalone","E-img-standalone","E-compose"]},
+  next:"Which address is intended for standalone runs? Is the image value stale?"}
+];
+
+// ---------------------------------------------------------------- render
+const DIRSYM = {outbound:"▲ out", inbound:"▼ in", internal:"↻ internal", shared:"◆ shared"};
+const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));
+const revOf = repo => (REPOS.find(r => r.repo === repo) || {}).rev || "unknown";
+const refLink = id => `<a class="ref mono" href="#ev-${esc(id)}" data-ev="${esc(id)}">${esc(id)}</a>`;
+
+let state = {dir:"all", unres:false, sel:null};
+
+function renderRepos() {
+  document.getElementById("repos").innerHTML = REPOS.map(r =>
+    `<tr><td class="mono">${esc(r.repo)}</td><td class="mono">${esc(r.rev)}</td><td>${esc(r.role)}</td></tr>`).join("");
+  document.getElementById("missing").innerHTML = MISSING.map(m => `<li>${esc(m)}</li>`).join("");
+}
+
+function renderEvidence() {
+  const used = {};
+  B.forEach(b => { b.est.forEach(s => s.r.forEach(id => (used[id] = used[id] || new Set()).add(b.id))); b.interp.premises.forEach(id => (used[id] = used[id] || new Set()).add(b.id)); });
+  document.getElementById("evidence").innerHTML = Object.keys(EV).map(id => {
+    const e = EV[id];
+    const users = used[id] ? [...used[id]].join(", ") : "—";
+    return `<div class="ev" id="ev-${esc(id)}">
+      <div><strong class="mono">${esc(id)}</strong> <span class="kind">${esc(e.kind)}</span>
+      <a class="mono" href="${esc(R(e.repo, e.path))}">src/${esc(e.repo)}/${esc(e.path)}</a> <span class="mono">lines ${esc(e.lines)}</span>
+      <span class="muted ref">· rev ${esc(revOf(e.repo).slice(0,12))} · used by ${esc(users)}</span></div>
+      <pre>${esc(e.excerpt)}</pre></div>`;
+  }).join("");
+}
+
+function visible(b) {
+  if (state.dir !== "all" && b.dir !== state.dir) return false;
+  if (state.unres && b.association !== "unresolved") return false;
+  return true;
+}
+
+function renderRows() {
+  const rows = B.filter(visible);
+  document.getElementById("rows").innerHTML = rows.map(b => `
+    <tr tabindex="0" data-id="${b.id}" aria-selected="${state.sel === b.id}">
+      <td class="mono"><strong>${b.id}</strong></td>
+      <td class="mono">${esc(DIRSYM[b.dir])}</td>
+      <td>${esc(b.participant)}</td>
+      <td>${esc(b.counterpart)}</td>
+      <td class="mono">${esc(b.iface)}</td>
+      <td>${b.kinds.map(k => `<span class="kind">${esc(k)}</span>`).join("")}<span class="kind">RUNTIME: none</span></td>
+      <td>${b.association === "resolved" ? '<span class="status-res">✔ resolved</span>' : '<span class="status-unres">? UNRESOLVED</span>'}</td>
+    </tr>`).join("") || `<tr><td colspan="7" class="muted">No bindings match the current filter.</td></tr>`;
+  document.getElementById("count").textContent = `${rows.length} of ${B.length} bindings shown`;
+}
+
+function renderDetail() {
+  const el = document.getElementById("detail");
+  const b = B.find(x => x.id === state.sel);
+  if (!b) { el.innerHTML = '<p id="detail-empty">Select a row (click, or focus it and press Enter) to see its exact references, scope, limitations, interpretation and next question.</p>'; return; }
+  const allRefs = [...new Set(b.est.flatMap(s => s.r))];
+  el.innerHTML = `
+    <p><strong class="mono">${b.id}</strong> · <span class="mono">${esc(DIRSYM[b.dir])}</span> ·
+      ${b.association === "resolved" ? '<span class="status-res">✔ association resolved</span>' : '<span class="status-unres">? association / element UNRESOLVED</span>'}</p>
+    <p><strong>Selected side:</strong> ${esc(b.participant)}<br><strong>Counterpart:</strong> ${esc(b.counterpart)}<br>
+       <strong>Interface / destination:</strong> <span class="mono">${esc(b.iface)}</span></p>
+    <div class="block est"><h3><span class="tag">Established by sources</span></h3>
+      <ul class="tight">${b.est.map(s => `<li>${esc(s.t)} <span class="ref">[${s.r.map(refLink).join(", ")}]</span></li>`).join("")}</ul></div>
+    <h3>Exact references</h3>
+    <ul class="tight">${allRefs.map(id => { const e = EV[id]; return `<li>${refLink(id)} <span class="kind">${esc(e.kind)}</span> <a class="mono ref" href="${esc(R(e.repo,e.path))}">${esc(e.repo)}/${esc(e.path)}:${esc(e.lines)}</a></li>`; }).join("")}</ul>
+    <h3>Source entry points</h3>
+    <ul class="tight">${b.entry.map(x => `<li class="mono ref">${esc(x)}</li>`).join("")}</ul>
+    <h3>Revision / time / scope</h3>
+    <p class="ref">${esc(b.scope)}. Revisions: ${[...new Set(allRefs.map(id => EV[id].repo))].map(r => `<span class="mono">${esc(r)}@${esc(revOf(r).slice(0,12))}</span>`).join(", ")}. Inspected 2026-11-01. No runtime observation.</p>
+    <h3>Provider findings</h3>
+    <p class="ref">${b.provider.length ? "" : "No architecture-knowledge provider was available. Nothing on this binding comes from a provider."}</p>
+    <div class="block unk"><h3><span class="tag">Limitations / not established</span></h3>
+      <ul class="tight">${b.limits.map(l => `<li>${esc(l)}</li>`).join("")}</ul></div>
+    <div class="block interp"><h3><span class="tag">Interpretation, not evidence</span>: why it may matter</h3>
+      <p>${esc(b.interp.t)}</p>
+      <p class="ref">Supporting premises: ${b.interp.premises.map(refLink).join(", ")}</p></div>
+    <p><strong>Next question to investigate:</strong> ${esc(b.next)}</p>`;
+}
+
+function select(id, scroll) {
+  state.sel = id;
+  if (history.replaceState) history.replaceState(null, "", "#" + id);
+  renderRows(); renderDetail();
+  if (scroll) document.getElementById("detail-panel").scrollIntoView({block:"nearest"});
+}
+
+function flashEvidence(id) {
+  const t = document.getElementById("ev-" + id);
+  if (!t) return;
+  t.classList.add("flash"); t.scrollIntoView({block:"center"});
+  setTimeout(() => t.classList.remove("flash"), 1600);
+}
+
+document.addEventListener("click", e => {
+  const a = e.target.closest("a[data-ev]");
+  if (a) { e.preventDefault(); flashEvidence(a.dataset.ev); return; }
+  const tr = e.target.closest("tbody#rows tr[data-id]");
+  if (tr) select(tr.dataset.id, true);
+  const btn = e.target.closest("button[data-dir]");
+  if (btn) {
+    state.dir = btn.dataset.dir;
+    document.querySelectorAll("button[data-dir]").forEach(x => x.setAttribute("aria-pressed", String(x === btn)));
+    renderRows();
+  }
+});
+document.addEventListener("keydown", e => {
+  const tr = e.target.closest && e.target.closest("tbody#rows tr[data-id]");
+  if (tr && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); select(tr.dataset.id, true); }
+});
+document.getElementById("f-unres").addEventListener("change", e => { state.unres = e.target.checked; renderRows(); });
+
+// integrity self-check: every referenced evidence id must exist
+(function selfCheck() {
+  const missing = [];
+  B.forEach(b => { b.est.forEach(s => { if (!s.r.length) missing.push(b.id + ": statement without reference"); s.r.forEach(id => { if (!EV[id]) missing.push(b.id + " -> " + id); }); });
+    b.interp.premises.forEach(id => { if (!EV[id]) missing.push(b.id + " premise -> " + id); }); });
+  if (missing.length) {
+    const p = document.createElement("p"); p.className = "status-unres";
+    p.textContent = "Integrity check FAILED: " + missing.join("; ");
+    document.querySelector("header").appendChild(p);
+  }
+})();
+
+renderRepos(); renderEvidence();
+const initial = location.hash.replace("#", "");
+if (B.some(b => b.id === initial)) state.sel = initial;
+renderRows(); renderDetail();
+</script>
+</body>
+</html>
