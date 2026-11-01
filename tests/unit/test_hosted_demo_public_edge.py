@@ -23,7 +23,8 @@ from app.mcp.server import build_mcp_server, mcp_server
 from app.sources.owner_ids import topic_owned_id
 
 REPO = Path(__file__).resolve().parents[2]
-DEMO_DIR = REPO / "examples" / "pitstop-demo"
+DEMO_DIR = REPO / "examples" / "sokol111-demo"
+PITSTOP_DIR = REPO / "examples" / "pitstop-demo"
 C1_BINDING_PICTURE = REPO / "docs" / "specifications" / "0.8.0" / "i2-vectors" / "c1-expected.json"
 _spec = importlib.util.spec_from_file_location(
     "verify_public_edge", DEMO_DIR / "hosted" / "verify_public_edge.py"
@@ -340,8 +341,9 @@ def test_current_user_facing_docs_do_not_call_the_hosted_demo_token_gated():
     for path in (
         REPO / "README.md",
         DEMO_DIR / "README.md",
+        PITSTOP_DIR / "README.md",
         DEMO_DIR / "TRY_IT_HOSTED.md",
-        DEMO_DIR / "claude" / "plugin" / ".claude-plugin" / "plugin.json",
+        PITSTOP_DIR / "claude" / "plugin" / ".claude-plugin" / "plugin.json",
     ):
         assert not re.search(r"token[- ]gated", path.read_text(), re.IGNORECASE), path.name
 

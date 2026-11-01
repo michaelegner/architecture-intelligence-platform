@@ -60,7 +60,7 @@ The one exception is a deliberately constrained **public read-only demo profile*
 access to `POST /mcp` only, made safe by the deployment edge (route allowlist, rate and size limits, timeouts and
 Host/Origin checks), not by AIP. AIP still provides no public-internet authentication or tenancy, and this is not a
 general public-hosting capability. Because the edge cannot distinguish tools, the exposed tool inventory is a hard
-boundary, verified by `examples/pitstop-demo/hosted/verify_public_edge.py`.
+boundary, verified by `examples/sokol111-demo/hosted/verify_public_edge.py`.
 
 Within that boundary, every MCP tool call is read-only by the same architectural constraint as the
 LLM query layer above: the MCP adapter package (`app/mcp/`) has no graph-session or write-repository

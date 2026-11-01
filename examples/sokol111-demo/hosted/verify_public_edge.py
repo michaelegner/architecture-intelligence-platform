@@ -3,7 +3,7 @@ v0.8 Sokol111 binding picture).
 
 Run from OUTSIDE the demo's network, with no credentials:
 
-    python examples/pitstop-demo/hosted/verify_public_edge.py --url https://<host>/mcp \
+    python examples/sokol111-demo/hosted/verify_public_edge.py --url https://<host>/mcp \
         [--profile pitstop|sokol111|sokol111-v08] [--date YYYY-MM-DD] [--expect-429-within N] [--local-app]
 
 AIP itself has no public-internet authentication; the safety of the anonymous deployment is owned by the
@@ -50,7 +50,7 @@ import sys
 import urllib.parse
 
 # Frozen public-demo tool inventory. Changing the MCP surface must be a deliberate edit here
-# (tests/unit/test_pitstop_demo_public_edge.py compares it with the registry).
+# (tests/unit/test_hosted_demo_public_edge.py compares it with the registry).
 PUBLIC_TOOL_ALLOWLIST = frozenset(
     {
         "get_api_consumer_usage",

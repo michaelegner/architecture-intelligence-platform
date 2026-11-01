@@ -11,6 +11,20 @@
 
 AIP distinguishes documented promises, observed broker attachments, and unresolved claims. A captured topic attachment does not by itself establish message delivery, event handling, or the current live state.
 
+## Hosted configuration and verification
+
+The [v0.8 hosted configuration](hosted/config.sokol111-v08.yaml) and
+[public-edge acceptance checker](hosted/verify_public_edge.py) belong to Sokol111.
+To check the anonymous, read-only hosted MCP endpoint from outside the deployment:
+
+```bash
+python examples/sokol111-demo/hosted/verify_public_edge.py --url https://mcp.daip.io/mcp --profile sokol111-v08
+```
+
+The checker retains the `pitstop` and `sokol111` profiles to reproduce historical
+acceptance checks. The current hosted dataset is `sokol111-v08`; specifying the
+profile explicitly avoids accidentally checking the wrong dataset.
+
 ## Other demo
 
 For the independently runnable .NET/RabbitMQ example, see the [Pitstop demo](../pitstop-demo/README.md).
