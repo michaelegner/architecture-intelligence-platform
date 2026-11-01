@@ -73,5 +73,6 @@ four declared-architecture fixture services:
 - [`runtime-demo/`](runtime-demo/) walks through the Collector-based runtime telemetry demo.
 - [`quarkus-super-heroes-demo/`](quarkus-super-heroes-demo/) replays qualified evidence for a real Kafka and REST system.
 - [`pitstop-demo/`](pitstop-demo/) replays an authored window over a real RabbitMQ system (v0.6.2).
+- [`sokol111-demo/`](sokol111-demo/) offers an anonymous, hosted Redpanda-to-Kafka migration-planning walkthrough and links to the recorded v0.8 agent-run showcase.
 - [`mcp-clients/`](mcp-clients/) contains candidate setup guides for connecting coding-agent client
   families to AIP's MCP endpoint.
