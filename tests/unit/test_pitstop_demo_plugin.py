@@ -235,10 +235,16 @@ def test_no_skill_asserts_field_usage_per_queue_qualification_or_completeness():
 def test_tryout_guides_document_local_and_hosted_agent_setup():
     readme = (DEMO_DIR / "README.md").read_text()
     local = (DEMO_DIR / "TRY_IT_LOCALLY.md").read_text()
-    hosted = (DEMO_DIR / "TRY_IT_HOSTED.md").read_text()
+    sokol111_dir = REPO / "examples" / "sokol111-demo"
+    sokol111_readme = (sokol111_dir / "README.md").read_text()
+    hosted = (sokol111_dir / "TRY_IT_HOSTED.md").read_text()
+    forwarding = (DEMO_DIR / "TRY_IT_HOSTED.md").read_text()
 
     assert "[Try locally](TRY_IT_LOCALLY.md)" in readme
-    assert "[Try hosted](TRY_IT_HOSTED.md)" in readme
+    # the hosted demo is Sokol111, a sibling of the Pitstop demo; the old Pitstop URL forwards to it
+    assert "(../sokol111-demo/README.md)" in readme
+    assert "(TRY_IT_HOSTED.md)" in sokol111_readme
+    assert "(../sokol111-demo/TRY_IT_HOSTED.md)" in forwarding
 
     # the hosted instance serves the frozen Sokol111 dataset since v0.7.2 I2: its guide names the exact
     # Topic id the public check queries, and the Pitstop plugin path is the local one
@@ -260,7 +266,7 @@ def test_tryout_guides_document_local_and_hosted_agent_setup():
     assert "No credentials are required" in hosted
     assert "CAPTURE_SCOPE_LIMITED" in hosted
     assert "429 Too Many Requests" in hosted
-    assert "[run locally](TRY_IT_LOCALLY.md)" in hosted
+    assert "[run locally](../pitstop-demo/TRY_IT_LOCALLY.md)" in hosted
 
 
 def test_skills_state_the_inclusive_whole_day_window_and_never_guess_why_a_day_is_empty():

@@ -92,5 +92,5 @@ def test_server_json_website_anchor_points_at_hosted_mcp_demo():
     assert (
         readme.index("\n## Try AIP\n")
         < readme.index(anchor)
-        < readme.index("\n### Hosted MCP demo\n")
+        < readme.index("\n### Sokol111 hosted MCP demo\n")
     )
