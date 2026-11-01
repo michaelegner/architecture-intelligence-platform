@@ -1,6 +1,6 @@
 # Sokol111 demo: the architecture you thought you had
 
-**Status:** Draft 0.6 — proposal, pending owner approval.
+**Status:** Accepted (owner, 2026-11-01), from Draft 0.6.
 **Basis:** AIP v0.8.0 and the frozen Sokol111 evidence before wave 1
 ([v0.8 §3.5](../0.8.0/specification.md#35-expected-assessment-of-c1)).
 The recorded after-wave-1 state ([§3.6](../0.8.0/specification.md#36-expected-assessment-after-wave-1))
@@ -281,7 +281,7 @@ are clearly labeled **recorded** until a supported execution route exists.
 
 | # | Decision | Status |
 |---|---|---|
-| D1 | Primary story: documented belief → C1 discovery → wave-1 impact decision | proposed |
-| D2 | Use one nine-row binding picture throughout the primary story | proposed |
-| D3 | Use the existing hosted C1 endpoint and Sokol111 walkthrough; no new deployment/replay | proposed |
-| D4 | Present wave-1 after-state, wave-2 and agent comparison as optional recorded exhibits, not hosted interactive demos | proposed |
+| D1 | Primary story: documented belief → C1 discovery → wave-1 impact decision | accepted |
+| D2 | Use one nine-row binding picture throughout the primary story | accepted |
+| D3 | Use the existing hosted C1 endpoint and Sokol111 walkthrough; no new deployment/replay | accepted |
+| D4 | Present wave-1 after-state, wave-2 and agent comparison as optional recorded exhibits, not hosted interactive demos | accepted |
