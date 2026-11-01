@@ -48,13 +48,13 @@ planned from the documentation alone could overlook these relationships.
 event relationships with observed broker attachments, its binding picture helps architects
 and coding agents identify which services to investigate—and where the documented view is incomplete.
 
-[Explore the hosted binding picture](examples/pitstop-demo/TRY_IT_HOSTED.md) ·
+[Explore the hosted binding picture](examples/sokol111-demo/TRY_IT_HOSTED.md) ·
 [Follow the v0.8 migration showcase](docs/release-validation/v0.8.0-release-notes.md)
 ## Try AIP
 
 <a id="connect-aip-to-your-coding-agent"></a>
 
-### Hosted MCP demo
+### Sokol111 hosted MCP demo
 
 The public, read-only endpoint serves the frozen **v0.8.0 Sokol111 C1** dataset, not live
 monitoring. It requires no local AIP server or server credentials. With **Claude Code installed**,
@@ -71,7 +71,7 @@ In Claude Code, check `/mcp` and ask:
 > unresolved, and resolve the relevant evidence at the same snapshot.
 
 Use `get_binding_picture` with `bounded_context_id: catalog-management` and
-`broker_ids: [kafka:sokol111-local]`. See the [hosted walkthrough](examples/pitstop-demo/TRY_IT_HOSTED.md)
+`broker_ids: [kafka:sokol111-local]`. See the [hosted walkthrough](examples/sokol111-demo/TRY_IT_HOSTED.md)
 for the exact request, expected findings, limitations, and troubleshooting.
 
 ### Quick Start
@@ -90,7 +90,8 @@ This separate example demonstrates `get_architecture_drift` and `get_evidence`.
 Clean up with `examples/runtime-demo/mcp-demo.sh --down`.
 For the full platform, see the [development guide](docs/development.md).
 
-Other real-system examples: [Pitstop (.NET/RabbitMQ)](examples/pitstop-demo/README.md) and
+Real-system showcases: [Sokol111 (Redpanda/Kafka)](examples/sokol111-demo/README.md),
+[Pitstop (.NET/RabbitMQ)](examples/pitstop-demo/README.md) and
 [Quarkus Super Heroes](examples/quarkus-super-heroes-demo/README.md).
 The [MCP client setup guide](examples/mcp-clients/README.md) covers Codex, Claude Code,
 Cursor, and VS Code; previous end-to-end client qualification was performed against v0.4.2,
@@ -133,7 +134,7 @@ on a trusted network. See the [security model](docs/security-model.md).
 
 ## Documentation
 
-**Try and integrate:** [Hosted walkthrough](examples/pitstop-demo/TRY_IT_HOSTED.md) ·
+**Try and integrate:** [Hosted walkthrough](examples/sokol111-demo/TRY_IT_HOSTED.md) ·
 [MCP reference](docs/mcp.md) · [Client setup](examples/mcp-clients/README.md) ·
 [Architecture](docs/architecture.md) · [Development](docs/development.md)
 
