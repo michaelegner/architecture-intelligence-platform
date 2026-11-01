@@ -1,0 +1,1413 @@
+{
+  "question": "When moving Catalog Management (Catalog and Image) to Apache Kafka, which bindings are configured across the boundary and what is not established?",
+  "boundary": {
+    "id": "catalog-management",
+    "inside": [
+      "ecommerce-catalog-service",
+      "ecommerce-image-service"
+    ],
+    "source": "Experiment task definition, not inferred from source"
+  },
+  "environment": "local",
+  "source_snapshots": "Sokol111 independent 2026-10-21 pinned repository revisions",
+  "sources": [
+    {
+      "kind": "consumer_config",
+      "repo": "Sokol111/ecommerce-infrastructure",
+      "revision": "07c059908b99e08448cf1c2c7dad6a865fe5ccf0",
+      "path": "environments/local/values/ecommerce-catalog-service.yaml",
+      "owner_service": "ecommerce-catalog-service",
+      "lines": [
+        {
+          "line": 31,
+          "text": "  kafka:"
+        },
+        {
+          "line": 32,
+          "text": "    brokers: \"redpanda:29092\""
+        },
+        {
+          "line": 33,
+          "text": "    consumers-config:"
+        },
+        {
+          "line": 34,
+          "text": "      default-group-id: \"ecommerce-catalog-service\""
+        },
+        {
+          "line": 35,
+          "text": "      default-auto-offset-reset: \"earliest\""
+        },
+        {
+          "line": 36,
+          "text": "      consumers:"
+        },
+        {
+          "line": 37,
+          "text": "        - name: \"tenant-events\""
+        },
+        {
+          "line": 38,
+          "text": "          topic: \"tenant.tenant.events\""
+        },
+        {
+          "line": 39,
+          "text": "          max-retries: 5"
+        },
+        {
+          "line": 40,
+          "text": "          initial-backoff: 2s"
+        },
+        {
+          "line": 41,
+          "text": "          max-backoff: 30s"
+        },
+        {
+          "line": 42,
+          "text": "          enable-dlq: true"
+        }
+      ]
+    },
+    {
+      "kind": "consumer_config",
+      "repo": "Sokol111/ecommerce-infrastructure",
+      "revision": "07c059908b99e08448cf1c2c7dad6a865fe5ccf0",
+      "path": "environments/local/values/ecommerce-image-service.yaml",
+      "owner_service": "ecommerce-image-service",
+      "lines": [
+        {
+          "line": 23,
+          "text": "  kafka:"
+        },
+        {
+          "line": 24,
+          "text": "    brokers: \"redpanda:29092\""
+        },
+        {
+          "line": 25,
+          "text": "    consumers-config:"
+        },
+        {
+          "line": 26,
+          "text": "      default-group-id: \"ecommerce-image-service\""
+        },
+        {
+          "line": 27,
+          "text": "      default-auto-offset-reset: \"earliest\""
+        },
+        {
+          "line": 28,
+          "text": "      consumers:"
+        },
+        {
+          "line": 29,
+          "text": "        - name: \"catalog-events\""
+        },
+        {
+          "line": 30,
+          "text": "          topic: \"catalog.product.events\""
+        },
+        {
+          "line": 31,
+          "text": "        - name: \"tenant-events\""
+        },
+        {
+          "line": 32,
+          "text": "          topic: \"tenant.tenant.events\""
+        },
+        {
+          "line": 33,
+          "text": "          max-retries: 5"
+        },
+        {
+          "line": 34,
+          "text": "          initial-backoff: 2s"
+        },
+        {
+          "line": 35,
+          "text": "          max-backoff: 30s"
+        },
+        {
+          "line": 36,
+          "text": "          enable-dlq: true"
+        }
+      ]
+    },
+    {
+      "kind": "consumer_config",
+      "repo": "Sokol111/ecommerce-infrastructure",
+      "revision": "07c059908b99e08448cf1c2c7dad6a865fe5ccf0",
+      "path": "environments/local/values/ecommerce-product-query-service.yaml",
+      "owner_service": "ecommerce-product-query-service",
+      "lines": [
+        {
+          "line": 21,
+          "text": "  kafka:"
+        },
+        {
+          "line": 22,
+          "text": "    brokers: \"redpanda:29092\""
+        },
+        {
+          "line": 23,
+          "text": "    consumers-config:"
+        },
+        {
+          "line": 24,
+          "text": "      default-group-id: \"ecommerce-product-query-service\""
+        },
+        {
+          "line": 25,
+          "text": "      default-auto-offset-reset: \"earliest\""
+        },
+        {
+          "line": 26,
+          "text": "      consumers:"
+        },
+        {
+          "line": 27,
+          "text": "        - name: \"catalog-events\""
+        },
+        {
+          "line": 28,
+          "text": "          topic: \"catalog.product.events\""
+        },
+        {
+          "line": 29,
+          "text": "          max-retries: 5"
+        },
+        {
+          "line": 30,
+          "text": "          initial-backoff: 2s"
+        },
+        {
+          "line": 31,
+          "text": "          max-backoff: 30s"
+        },
+        {
+          "line": 32,
+          "text": "          enable-dlq: true"
+        },
+        {
+          "line": 33,
+          "text": "        - name: \"catalog-attribute-events\""
+        },
+        {
+          "line": 34,
+          "text": "          topic: \"catalog.attribute.events\""
+        },
+        {
+          "line": 35,
+          "text": "          max-retries: 5"
+        },
+        {
+          "line": 36,
+          "text": "          initial-backoff: 2s"
+        },
+        {
+          "line": 37,
+          "text": "          max-backoff: 30s"
+        },
+        {
+          "line": 38,
+          "text": "          enable-dlq: true"
+        },
+        {
+          "line": 39,
+          "text": "        - name: \"tenant-events\""
+        },
+        {
+          "line": 40,
+          "text": "          topic: \"tenant.tenant.events\""
+        },
+        {
+          "line": 41,
+          "text": "          max-retries: 5"
+        },
+        {
+          "line": 42,
+          "text": "          initial-backoff: 2s"
+        },
+        {
+          "line": 43,
+          "text": "          max-backoff: 30s"
+        },
+        {
+          "line": 44,
+          "text": "          enable-dlq: true"
+        }
+      ]
+    },
+    {
+      "kind": "consumer_config",
+      "repo": "Sokol111/ecommerce-infrastructure",
+      "revision": "07c059908b99e08448cf1c2c7dad6a865fe5ccf0",
+      "path": "environments/local/values/ecommerce-category-query-service.yaml",
+      "owner_service": "ecommerce-category-query-service",
+      "lines": [
+        {
+          "line": 21,
+          "text": "  kafka:"
+        },
+        {
+          "line": 22,
+          "text": "    brokers: \"redpanda:29092\""
+        },
+        {
+          "line": 23,
+          "text": "    consumers-config:"
+        },
+        {
+          "line": 24,
+          "text": "      default-group-id: \"ecommerce-category-query-service\""
+        },
+        {
+          "line": 25,
+          "text": "      default-auto-offset-reset: \"earliest\""
+        },
+        {
+          "line": 26,
+          "text": "      consumers:"
+        },
+        {
+          "line": 27,
+          "text": "        - name: \"category-events\""
+        },
+        {
+          "line": 28,
+          "text": "          topic: \"catalog.category.events\""
+        },
+        {
+          "line": 29,
+          "text": "          max-retries: 5"
+        },
+        {
+          "line": 30,
+          "text": "          initial-backoff: 2s"
+        },
+        {
+          "line": 31,
+          "text": "          max-backoff: 30s"
+        },
+        {
+          "line": 32,
+          "text": "          enable-dlq: true"
+        },
+        {
+          "line": 33,
+          "text": "        - name: \"attribute-events\""
+        },
+        {
+          "line": 34,
+          "text": "          topic: \"catalog.attribute.events\""
+        },
+        {
+          "line": 35,
+          "text": "          max-retries: 5"
+        },
+        {
+          "line": 36,
+          "text": "          initial-backoff: 2s"
+        },
+        {
+          "line": 37,
+          "text": "          max-backoff: 30s"
+        },
+        {
+          "line": 38,
+          "text": "          enable-dlq: true"
+        },
+        {
+          "line": 39,
+          "text": "        - name: \"tenant-events\""
+        },
+        {
+          "line": 40,
+          "text": "          topic: \"tenant.tenant.events\""
+        },
+        {
+          "line": 41,
+          "text": "          max-retries: 5"
+        },
+        {
+          "line": 42,
+          "text": "          initial-backoff: 2s"
+        },
+        {
+          "line": 43,
+          "text": "          max-backoff: 30s"
+        },
+        {
+          "line": 44,
+          "text": "          enable-dlq: true"
+        }
+      ]
+    },
+    {
+      "kind": "event_topic_map",
+      "repo": "Sokol111/ecommerce-catalog-service-api",
+      "revision": "7cecb3e1131dbd5199ce25e9cf101d75d3365171",
+      "path": "pkg/events/topics.go",
+      "owner_service": null,
+      "lines": [
+        {
+          "line": 1,
+          "text": "package events"
+        },
+        {
+          "line": 2,
+          "text": ""
+        },
+        {
+          "line": 3,
+          "text": "import ("
+        },
+        {
+          "line": 4,
+          "text": "\teventsv1 \"github.com/Sokol111/ecommerce-catalog-service-api/gen/go/catalog/events/v1\""
+        },
+        {
+          "line": 5,
+          "text": "\t\"google.golang.org/protobuf/proto\""
+        },
+        {
+          "line": 6,
+          "text": "\t\"google.golang.org/protobuf/reflect/protoreflect\""
+        },
+        {
+          "line": 7,
+          "text": ")"
+        },
+        {
+          "line": 8,
+          "text": ""
+        },
+        {
+          "line": 9,
+          "text": "// Topic constants"
+        },
+        {
+          "line": 10,
+          "text": "const ("
+        },
+        {
+          "line": 11,
+          "text": "\tTopicCatalogProductEvents   = \"catalog.product.events\""
+        },
+        {
+          "line": 12,
+          "text": "\tTopicCatalogCategoryEvents  = \"catalog.category.events\""
+        },
+        {
+          "line": 13,
+          "text": "\tTopicCatalogAttributeEvents = \"catalog.attribute.events\""
+        },
+        {
+          "line": 14,
+          "text": ")"
+        },
+        {
+          "line": 15,
+          "text": ""
+        },
+        {
+          "line": 16,
+          "text": "// topicMap maps proto message full names to their Kafka topics."
+        },
+        {
+          "line": 17,
+          "text": "var topicMap = map[protoreflect.FullName]string{"
+        },
+        {
+          "line": 18,
+          "text": "\t(&eventsv1.ProductUpdatedEvent{}).ProtoReflect().Descriptor().FullName():   TopicCatalogProductEvents,"
+        },
+        {
+          "line": 19,
+          "text": "\t(&eventsv1.ProductDeletedEvent{}).ProtoReflect().Descriptor().FullName():   TopicCatalogProductEvents,"
+        },
+        {
+          "line": 20,
+          "text": "\t(&eventsv1.CategoryUpdatedEvent{}).ProtoReflect().Descriptor().FullName():  TopicCatalogCategoryEvents,"
+        },
+        {
+          "line": 21,
+          "text": "\t(&eventsv1.AttributeUpdatedEvent{}).ProtoReflect().Descriptor().FullName(): TopicCatalogAttributeEvents,"
+        },
+        {
+          "line": 22,
+          "text": "}"
+        },
+        {
+          "line": 23,
+          "text": ""
+        },
+        {
+          "line": 24,
+          "text": "// TopicFor returns the Kafka topic for the given proto message."
+        },
+        {
+          "line": 25,
+          "text": "// Panics if the message type is not registered in topicMap."
+        },
+        {
+          "line": 26,
+          "text": "func TopicFor(msg proto.Message) string {"
+        },
+        {
+          "line": 27,
+          "text": "\tfullName := msg.ProtoReflect().Descriptor().FullName()"
+        },
+        {
+          "line": 28,
+          "text": "\ttopic, ok := topicMap[fullName]"
+        },
+        {
+          "line": 29,
+          "text": "\tif !ok {"
+        },
+        {
+          "line": 30,
+          "text": "\t\tpanic(\"events: no topic registered for \" + string(fullName))"
+        },
+        {
+          "line": 31,
+          "text": "\t}"
+        },
+        {
+          "line": 32,
+          "text": "\treturn topic"
+        },
+        {
+          "line": 33,
+          "text": "}"
+        },
+        {
+          "line": 34,
+          "text": ""
+        }
+      ]
+    },
+    {
+      "kind": "event_topic_map",
+      "repo": "Sokol111/ecommerce-image-service-api",
+      "revision": "2167948573ced4b2854d8aed93fb83b242cf2e7f",
+      "path": "pkg/events/topics.go",
+      "owner_service": null,
+      "lines": [
+        {
+          "line": 1,
+          "text": "package events"
+        },
+        {
+          "line": 2,
+          "text": ""
+        },
+        {
+          "line": 3,
+          "text": "import ("
+        },
+        {
+          "line": 4,
+          "text": "\teventsv1 \"github.com/Sokol111/ecommerce-image-service-api/gen/go/image/events/v1\""
+        },
+        {
+          "line": 5,
+          "text": "\t\"google.golang.org/protobuf/proto\""
+        },
+        {
+          "line": 6,
+          "text": "\t\"google.golang.org/protobuf/reflect/protoreflect\""
+        },
+        {
+          "line": 7,
+          "text": ")"
+        },
+        {
+          "line": 8,
+          "text": ""
+        },
+        {
+          "line": 9,
+          "text": "// Topic constants"
+        },
+        {
+          "line": 10,
+          "text": "const ("
+        },
+        {
+          "line": 11,
+          "text": "\tTopicCatalogProductEvents = \"catalog.product.events\""
+        },
+        {
+          "line": 12,
+          "text": ")"
+        },
+        {
+          "line": 13,
+          "text": ""
+        },
+        {
+          "line": 14,
+          "text": "// topicMap maps proto message full names to their Kafka topics."
+        },
+        {
+          "line": 15,
+          "text": "var topicMap = map[protoreflect.FullName]string{"
+        },
+        {
+          "line": 16,
+          "text": "\t(&eventsv1.ProductImagePromotedEvent{}).ProtoReflect().Descriptor().FullName(): TopicCatalogProductEvents,"
+        },
+        {
+          "line": 17,
+          "text": "}"
+        },
+        {
+          "line": 18,
+          "text": ""
+        },
+        {
+          "line": 19,
+          "text": "// TopicFor returns the Kafka topic for the given proto message."
+        },
+        {
+          "line": 20,
+          "text": "// Panics if the message type is not registered in topicMap."
+        },
+        {
+          "line": 21,
+          "text": "func TopicFor(msg proto.Message) string {"
+        },
+        {
+          "line": 22,
+          "text": "\tfullName := msg.ProtoReflect().Descriptor().FullName()"
+        },
+        {
+          "line": 23,
+          "text": "\ttopic, ok := topicMap[fullName]"
+        },
+        {
+          "line": 24,
+          "text": "\tif !ok {"
+        },
+        {
+          "line": 25,
+          "text": "\t\tpanic(\"events: no topic registered for \" + string(fullName))"
+        },
+        {
+          "line": 26,
+          "text": "\t}"
+        },
+        {
+          "line": 27,
+          "text": "\treturn topic"
+        },
+        {
+          "line": 28,
+          "text": "}"
+        },
+        {
+          "line": 29,
+          "text": ""
+        }
+      ]
+    },
+    {
+      "kind": "event_topic_map",
+      "repo": "Sokol111/ecommerce-tenant-service-api",
+      "revision": "d9b90972f77b6a2df7ebee0f52e0cd8124937fe7",
+      "path": "pkg/events/topics.go",
+      "owner_service": null,
+      "lines": [
+        {
+          "line": 1,
+          "text": "package events"
+        },
+        {
+          "line": 2,
+          "text": ""
+        },
+        {
+          "line": 3,
+          "text": "import ("
+        },
+        {
+          "line": 4,
+          "text": "\teventsv1 \"github.com/Sokol111/ecommerce-tenant-service-api/gen/go/tenant/events/v1\""
+        },
+        {
+          "line": 5,
+          "text": "\t\"google.golang.org/protobuf/proto\""
+        },
+        {
+          "line": 6,
+          "text": "\t\"google.golang.org/protobuf/reflect/protoreflect\""
+        },
+        {
+          "line": 7,
+          "text": ")"
+        },
+        {
+          "line": 8,
+          "text": ""
+        },
+        {
+          "line": 9,
+          "text": "// Topic constants"
+        },
+        {
+          "line": 10,
+          "text": "const ("
+        },
+        {
+          "line": 11,
+          "text": "\tTopicTenantTenantEvents = \"tenant.tenant.events\""
+        },
+        {
+          "line": 12,
+          "text": ")"
+        },
+        {
+          "line": 13,
+          "text": ""
+        },
+        {
+          "line": 14,
+          "text": "// topicMap maps proto message full names to their Kafka topics."
+        },
+        {
+          "line": 15,
+          "text": "var topicMap = map[protoreflect.FullName]string{"
+        },
+        {
+          "line": 16,
+          "text": "\t(&eventsv1.TenantUpdatedEvent{}).ProtoReflect().Descriptor().FullName(): TopicTenantTenantEvents,"
+        },
+        {
+          "line": 17,
+          "text": "\t(&eventsv1.TenantDeletedEvent{}).ProtoReflect().Descriptor().FullName(): TopicTenantTenantEvents,"
+        },
+        {
+          "line": 18,
+          "text": "}"
+        },
+        {
+          "line": 19,
+          "text": ""
+        },
+        {
+          "line": 20,
+          "text": "// TopicFor returns the Kafka topic for the given proto message."
+        },
+        {
+          "line": 21,
+          "text": "// Panics if the message type is not registered in topicMap."
+        },
+        {
+          "line": 22,
+          "text": "func TopicFor(msg proto.Message) string {"
+        },
+        {
+          "line": 23,
+          "text": "\tfullName := msg.ProtoReflect().Descriptor().FullName()"
+        },
+        {
+          "line": 24,
+          "text": "\ttopic, ok := topicMap[fullName]"
+        },
+        {
+          "line": 25,
+          "text": "\tif !ok {"
+        },
+        {
+          "line": 26,
+          "text": "\t\tpanic(\"events: no topic registered for \" + string(fullName))"
+        },
+        {
+          "line": 27,
+          "text": "\t}"
+        },
+        {
+          "line": 28,
+          "text": "\treturn topic"
+        },
+        {
+          "line": 29,
+          "text": "}"
+        },
+        {
+          "line": 30,
+          "text": ""
+        }
+      ]
+    },
+    {
+      "kind": "event_factory",
+      "repo": "Sokol111/ecommerce-catalog-service",
+      "revision": "e9f147483e6e33ec512851d478169d2985614b09",
+      "path": "internal/infrastructure/outbound/kafka/product_event_factory.go",
+      "owner_service": null,
+      "lines": [
+        {
+          "line": 64,
+          "text": "\t}"
+        },
+        {
+          "line": 65,
+          "text": "}"
+        },
+        {
+          "line": 66,
+          "text": ""
+        },
+        {
+          "line": 67,
+          "text": "func (f *productEventFactory) NewProductUpdatedOutboxMessage(ctx context.Context, p *product.Product) outbox.Message {"
+        },
+        {
+          "line": 68,
+          "text": "\tevent := f.newProductUpdatedEvent(p)"
+        },
+        {
+          "line": 69,
+          "text": "\treturn outbox.Message{"
+        },
+        {
+          "line": 70,
+          "text": "\t\tEvent: event,"
+        },
+        {
+          "line": 71,
+          "text": "\t\tKey:   p.ID,"
+        },
+        {
+          "line": 72,
+          "text": "\t\tTopic: apiEvents.TopicFor(event),"
+        },
+        {
+          "line": 73,
+          "text": "\t}"
+        },
+        {
+          "line": 74,
+          "text": "}"
+        },
+        {
+          "line": 75,
+          "text": ""
+        },
+        {
+          "line": 76,
+          "text": "func (f *productEventFactory) NewProductDeletedOutboxMessage(ctx context.Context, productID string) outbox.Message {"
+        },
+        {
+          "line": 77,
+          "text": "\tevent := &eventsv1.ProductDeletedEvent{"
+        },
+        {
+          "line": 78,
+          "text": "\t\tProductId: productID,"
+        },
+        {
+          "line": 79,
+          "text": "\t}"
+        },
+        {
+          "line": 80,
+          "text": "\treturn outbox.Message{"
+        },
+        {
+          "line": 81,
+          "text": "\t\tEvent: event,"
+        },
+        {
+          "line": 82,
+          "text": "\t\tKey:   productID,"
+        },
+        {
+          "line": 83,
+          "text": "\t\tTopic: apiEvents.TopicFor(event),"
+        },
+        {
+          "line": 84,
+          "text": "\t}"
+        },
+        {
+          "line": 85,
+          "text": "}"
+        },
+        {
+          "line": 86,
+          "text": ""
+        }
+      ]
+    },
+    {
+      "kind": "event_factory",
+      "repo": "Sokol111/ecommerce-catalog-service",
+      "revision": "e9f147483e6e33ec512851d478169d2985614b09",
+      "path": "internal/infrastructure/outbound/kafka/category_event_factory.go",
+      "owner_service": null,
+      "lines": [
+        {
+          "line": 56,
+          "text": "\t}"
+        },
+        {
+          "line": 57,
+          "text": "}"
+        },
+        {
+          "line": 58,
+          "text": ""
+        },
+        {
+          "line": 59,
+          "text": "func (f *categoryEventFactory) NewCategoryUpdatedOutboxMessage(ctx context.Context, c *category.Category) outbox.Message {"
+        },
+        {
+          "line": 60,
+          "text": "\tevent := f.newCategoryUpdatedEvent(c)"
+        },
+        {
+          "line": 61,
+          "text": "\treturn outbox.Message{"
+        },
+        {
+          "line": 62,
+          "text": "\t\tEvent: event,"
+        },
+        {
+          "line": 63,
+          "text": "\t\tKey:   c.ID,"
+        },
+        {
+          "line": 64,
+          "text": "\t\tTopic: apiEvents.TopicFor(event),"
+        },
+        {
+          "line": 65,
+          "text": "\t}"
+        },
+        {
+          "line": 66,
+          "text": "}"
+        },
+        {
+          "line": 67,
+          "text": ""
+        }
+      ]
+    },
+    {
+      "kind": "event_factory",
+      "repo": "Sokol111/ecommerce-catalog-service",
+      "revision": "e9f147483e6e33ec512851d478169d2985614b09",
+      "path": "internal/infrastructure/outbound/kafka/attribute_event_factory.go",
+      "owner_service": null,
+      "lines": [
+        {
+          "line": 60,
+          "text": "\t}"
+        },
+        {
+          "line": 61,
+          "text": "}"
+        },
+        {
+          "line": 62,
+          "text": ""
+        },
+        {
+          "line": 63,
+          "text": "func (f *attributeEventFactory) NewAttributeUpdatedOutboxMessage(ctx context.Context, a *attribute.Attribute) outbox.Message {"
+        },
+        {
+          "line": 64,
+          "text": "\tevent := f.newAttributeUpdatedEvent(a)"
+        },
+        {
+          "line": 65,
+          "text": "\treturn outbox.Message{"
+        },
+        {
+          "line": 66,
+          "text": "\t\tEvent: event,"
+        },
+        {
+          "line": 67,
+          "text": "\t\tKey:   a.ID,"
+        },
+        {
+          "line": 68,
+          "text": "\t\tTopic: apiEvents.TopicFor(event),"
+        },
+        {
+          "line": 69,
+          "text": "\t}"
+        },
+        {
+          "line": 70,
+          "text": "}"
+        },
+        {
+          "line": 71,
+          "text": ""
+        }
+      ]
+    },
+    {
+      "kind": "event_factory",
+      "repo": "Sokol111/ecommerce-image-service",
+      "revision": "f1b97e8402e8183b131847f8a4db8bb00dddb33a",
+      "path": "internal/infrastructure/outbound/kafka/event_factory.go",
+      "owner_service": null,
+      "lines": [
+        {
+          "line": 15,
+          "text": "\treturn &imageEventFactory{}"
+        },
+        {
+          "line": 16,
+          "text": "}"
+        },
+        {
+          "line": 17,
+          "text": ""
+        },
+        {
+          "line": 18,
+          "text": "func (f *imageEventFactory) NewProductImagePromotedOutboxMessage(ctx context.Context, productID string, imageID string, smallImageURL string, largeImageURL string) outbox.Message {"
+        },
+        {
+          "line": 19,
+          "text": "\tevent := &eventsv1.ProductImagePromotedEvent{"
+        },
+        {
+          "line": 20,
+          "text": "\t\tProductId:     productID,"
+        },
+        {
+          "line": 21,
+          "text": "\t\tImageId:       imageID,"
+        },
+        {
+          "line": 22,
+          "text": "\t\tSmallImageUrl: smallImageURL,"
+        },
+        {
+          "line": 23,
+          "text": "\t\tLargeImageUrl: largeImageURL,"
+        },
+        {
+          "line": 24,
+          "text": "\t}"
+        },
+        {
+          "line": 25,
+          "text": "\treturn outbox.Message{"
+        },
+        {
+          "line": 26,
+          "text": "\t\tEvent: event,"
+        },
+        {
+          "line": 27,
+          "text": "\t\tTopic: apiEvents.TopicFor(event),"
+        },
+        {
+          "line": 28,
+          "text": "\t\tKey:   productID,"
+        },
+        {
+          "line": 29,
+          "text": "\t}"
+        },
+        {
+          "line": 30,
+          "text": "}"
+        },
+        {
+          "line": 31,
+          "text": ""
+        },
+        {
+          "line": 32,
+          "text": "func (f *imageEventFactory) BuildPromotionMessages(ctx context.Context, ownerType image.OwnerType, ownerID string, images []image.PromotedImage) ([]outbox.Message, error) {"
+        },
+        {
+          "line": 34,
+          "text": "\tcase image.OwnerTypeProduct:"
+        },
+        {
+          "line": 35,
+          "text": "\t\tmsgs := make([]outbox.Message, 0, len(images))"
+        },
+        {
+          "line": 36,
+          "text": "\t\tfor _, img := range images {"
+        },
+        {
+          "line": 37,
+          "text": "\t\t\tmsgs = append(msgs, f.NewProductImagePromotedOutboxMessage(ctx, ownerID, img.ImageID, img.SmallImageURL, img.LargeImageURL))"
+        },
+        {
+          "line": 38,
+          "text": "\t\t}"
+        },
+        {
+          "line": 39,
+          "text": "\t\treturn msgs, nil"
+        },
+        {
+          "line": 40,
+          "text": "\tdefault:"
+        },
+        {
+          "line": 41,
+          "text": "\t\treturn nil, nil"
+        },
+        {
+          "line": 42,
+          "text": "\t}"
+        }
+      ]
+    },
+    {
+      "kind": "event_factory",
+      "repo": "Sokol111/ecommerce-tenant-service",
+      "revision": "dbeacdbfff49c84c74f042d5e981461ec373bc1b",
+      "path": "internal/infrastructure/outbound/kafka/event_factory.go",
+      "owner_service": null,
+      "lines": [
+        {
+          "line": 16,
+          "text": "\treturn &tenantEventFactory{}"
+        },
+        {
+          "line": 17,
+          "text": "}"
+        },
+        {
+          "line": 18,
+          "text": ""
+        },
+        {
+          "line": 19,
+          "text": "func (f *tenantEventFactory) NewTenantUpdatedOutboxMessage(_ context.Context, t *tenant.Tenant) outbox.Message {"
+        },
+        {
+          "line": 20,
+          "text": "\treturn outbox.Message{"
+        },
+        {
+          "line": 21,
+          "text": "\t\tEvent: &eventsv1.TenantUpdatedEvent{"
+        },
+        {
+          "line": 22,
+          "text": "\t\t\tId:         t.ID,"
+        },
+        {
+          "line": 23,
+          "text": "\t\t\tSlug:       t.Slug,"
+        },
+        {
+          "line": 24,
+          "text": "\t\t\tName:       t.Name,"
+        },
+        {
+          "line": 25,
+          "text": "\t\t\tEnabled:    t.Enabled,"
+        },
+        {
+          "line": 27,
+          "text": "\t\t\tCreatedAt:  timestamppb.New(t.CreatedAt),"
+        },
+        {
+          "line": 28,
+          "text": "\t\t\tModifiedAt: timestamppb.New(t.ModifiedAt),"
+        },
+        {
+          "line": 29,
+          "text": "\t\t},"
+        },
+        {
+          "line": 30,
+          "text": "\t\tTopic: events.TopicFor(&eventsv1.TenantUpdatedEvent{}),"
+        },
+        {
+          "line": 31,
+          "text": "\t\tKey:   t.Slug,"
+        },
+        {
+          "line": 32,
+          "text": "\t}"
+        },
+        {
+          "line": 33,
+          "text": "}"
+        },
+        {
+          "line": 34,
+          "text": ""
+        },
+        {
+          "line": 35,
+          "text": "func (f *tenantEventFactory) NewTenantDeletedOutboxMessage(_ context.Context, slug string) outbox.Message {"
+        },
+        {
+          "line": 36,
+          "text": "\treturn outbox.Message{"
+        },
+        {
+          "line": 37,
+          "text": "\t\tEvent: &eventsv1.TenantDeletedEvent{"
+        },
+        {
+          "line": 38,
+          "text": "\t\t\tSlug: slug,"
+        },
+        {
+          "line": 39,
+          "text": "\t\t},"
+        },
+        {
+          "line": 40,
+          "text": "\t\tTopic: events.TopicFor(&eventsv1.TenantDeletedEvent{}),"
+        },
+        {
+          "line": 41,
+          "text": "\t\tKey:   slug,"
+        },
+        {
+          "line": 42,
+          "text": "\t}"
+        },
+        {
+          "line": 43,
+          "text": "}"
+        },
+        {
+          "line": 44,
+          "text": ""
+        }
+      ]
+    },
+    {
+      "kind": "architecture_document",
+      "repo": "Sokol111/ecommerce-workspace",
+      "revision": "f6b4c1ce723cb3be83eda73d74b2bacb9c584f17",
+      "path": "docs/architecture/product-update-flow.md",
+      "owner_service": null,
+      "lines": [
+        {
+          "line": 20,
+          "text": "    Merchant->>Admin: Edit product details or selected image"
+        },
+        {
+          "line": 21,
+          "text": "    Admin->>Catalog: UpdateProduct (Connect-RPC)"
+        },
+        {
+          "line": 22,
+          "text": "    Catalog->>CatalogDB: Commit product state + event to outbox"
+        },
+        {
+          "line": 23,
+          "text": "    Catalog-->>Admin: Product updated"
+        },
+        {
+          "line": 24,
+          "text": ""
+        },
+        {
+          "line": 25,
+          "text": "    Catalog->>Events: Publish ProductUpdated event"
+        },
+        {
+          "line": 26,
+          "text": ""
+        },
+        {
+          "line": 27,
+          "text": "    par Update product read model"
+        },
+        {
+          "line": 28,
+          "text": "        Events->>ProductQuery: Consume ProductUpdated event"
+        },
+        {
+          "line": 29,
+          "text": "        ProductQuery->>ProductDB: Upsert versioned product projection"
+        },
+        {
+          "line": 30,
+          "text": "    and Promote selected image when supplied"
+        },
+        {
+          "line": 31,
+          "text": "        Events->>Image: Consume ProductUpdated event"
+        },
+        {
+          "line": 32,
+          "text": "        Image->>Image: Promote draft image for product"
+        },
+        {
+          "line": 33,
+          "text": "        Image->>Events: Publish ProductImagePromoted event"
+        },
+        {
+          "line": 34,
+          "text": "        Events->>ProductQuery: Consume image promotion event"
+        },
+        {
+          "line": 35,
+          "text": "        ProductQuery->>ProductDB: Update image delivery URLs"
+        },
+        {
+          "line": 36,
+          "text": "    end"
+        }
+      ]
+    },
+    {
+      "kind": "architecture_document",
+      "repo": "Sokol111/ecommerce-workspace",
+      "revision": "f6b4c1ce723cb3be83eda73d74b2bacb9c584f17",
+      "path": "docs/architecture/platform-overview.md",
+      "owner_service": null,
+      "lines": [
+        {
+          "line": 22,
+          "text": "    subgraph launch[1. Launch a store]"
+        },
+        {
+          "line": 23,
+          "text": "        direction TB"
+        },
+        {
+          "line": 24,
+          "text": "        platformPortal[Platform Portal<br/>platform.sokolshop.com]:::ui"
+        },
+        {
+          "line": 25,
+          "text": "        tenant[Tenant Service<br/>provisions an isolated tenant]:::service"
+        },
+        {
+          "line": 26,
+          "text": "        platformPortal -->|create store| tenant"
+        },
+        {
+          "line": 27,
+          "text": "    end"
+        },
+        {
+          "line": 28,
+          "text": ""
+        },
+        {
+          "line": 29,
+          "text": "    subgraph operate[2. Manage products]"
+        },
+        {
+          "line": 30,
+          "text": "        direction TB"
+        },
+        {
+          "line": 31,
+          "text": "        admin[Admin Portal<br/>admin.sokolshop.com]:::ui"
+        },
+        {
+          "line": 32,
+          "text": "        catalog[Catalog Service<br/>products, categories, attributes]:::service"
+        },
+        {
+          "line": 33,
+          "text": "        images[Image Service<br/>product media]:::service"
+        },
+        {
+          "line": 34,
+          "text": "        admin -->|manage catalog| catalog"
+        },
+        {
+          "line": 35,
+          "text": "        admin -->|upload images| images"
+        },
+        {
+          "line": 36,
+          "text": "    end"
+        },
+        {
+          "line": 37,
+          "text": ""
+        },
+        {
+          "line": 38,
+          "text": "    subgraph shop[3. Shop]"
+        },
+        {
+          "line": 39,
+          "text": "        direction TB"
+        },
+        {
+          "line": 40,
+          "text": "        broker[Redpanda<br/>domain event bus]:::event"
+        },
+        {
+          "line": 41,
+          "text": "        readModels[Product and Category<br/>Query Services]:::query"
+        },
+        {
+          "line": 42,
+          "text": "        storefront[Storefront<br/>your-store.sokolshop.com]:::ui"
+        },
+        {
+          "line": 43,
+          "text": "        broker -->|build projections| readModels -->|fast reads| storefront"
+        },
+        {
+          "line": 44,
+          "text": "    end"
+        },
+        {
+          "line": 45,
+          "text": ""
+        },
+        {
+          "line": 46,
+          "text": "    platformOperator --> platformPortal"
+        },
+        {
+          "line": 47,
+          "text": "    merchant --> admin"
+        },
+        {
+          "line": 48,
+          "text": "    shopper --> storefront"
+        },
+        {
+          "line": 49,
+          "text": ""
+        },
+        {
+          "line": 50,
+          "text": "    tenant -. TenantUpdated event .-> broker"
+        },
+        {
+          "line": 51,
+          "text": "    catalog -. Product and category events .-> broker"
+        },
+        {
+          "line": 52,
+          "text": "    images -. ProductImagePromoted event .-> broker"
+        },
+        {
+          "line": 53,
+          "text": ""
+        }
+      ]
+    }
+  ]
+}
