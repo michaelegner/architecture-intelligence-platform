@@ -1,0 +1,45 @@
+{
+  "reference_check": "PASS",
+  "rows": 9,
+  "promised_and_observed": 2,
+  "unresolved": 7,
+  "crossing_counts": {
+    "INBOUND": 2,
+    "OUTBOUND": 4,
+    "INSIDE": 1,
+    "NONE": 2
+  },
+  "evidence_refs_retained": 21,
+  "limitations_retained": [
+    "CAPTURE_SCOPE_LIMITED",
+    "EVENT_HANDLING_NOT_ESTABLISHED",
+    "PRODUCER_SIDE_DECLARED_ONLY",
+    "PROMISES_ASSUMED_CONFIRMED"
+  ],
+  "snapshot_id": "aip:snapshot:v1:4d8db6483e03a6564e593a3cbcf07bd1bcb7795c22bd975e95dd9e5ab11313a6",
+  "capture_at": "2026-10-28T11:55:58Z",
+  "raw_rows_unchanged": true,
+  "raw_limitations_unchanged": true,
+  "raw_snapshot_unchanged": true,
+  "no_provider_row_count": 0,
+  "deterministic_html": true,
+  "negative_cases": [
+    {
+      "label": "changed status",
+      "detected": true
+    },
+    {
+      "label": "removed attachment refs",
+      "detected": true
+    },
+    {
+      "label": "removed limitation",
+      "detected": true
+    }
+  ],
+  "ui_structure_present": true,
+  "browser_interactions": "NOT_RUN",
+  "handler_source_analysis": "NOT_RUN",
+  "live_MCP": "NOT_RUN",
+  "evidence_mode_resolution": "NOT_RUN"
+}
