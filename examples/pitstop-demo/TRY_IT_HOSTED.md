@@ -65,58 +65,20 @@ Ask:
 > *"What does the available evidence establish about the bindings crossing Catalog Management's
 > boundary, including relationships not covered by the EventCatalog?"*
 
-The agent calls `get_binding_picture`. This diagram shows the rows that cross the Catalog
-Management boundary. It separates three kinds of statement:
+The agent calls `get_binding_picture`. The illustration below is the same **high-level
+binding picture** used in the repository README. It highlights the documented product
+flow alongside the additional tenant-topic and attribute-topic consumer attachments.
+It is not a visualization of every row or the complete EventCatalog assessment; use
+the nine-row table immediately below for the exact consumer, crossing and promise status.
 
-- **Captured attachment:** every consumer line. A consumer group was attached at T.
-- **Documented flow:** a thick line. The architecture documents describe the flow.
-- **Catalog promise:** only the line labelled *promised in catalog*. Product Query ×
-  `catalog.product.events` is the only crossing consumer line with a matching EventCatalog promise.
-  The documented category flow has none.
+![Sokol111 binding picture: Store Provisioning, Catalog Management and Storefront, with documented product events and additional captured tenant and attribute topic attachments.](../../images/sokol111-binding-picture.svg)
 
-```mermaid
-flowchart LR
-    subgraph SP[Store Provisioning]
-        tenant[Tenant]
-    end
-    subgraph CM[Catalog Management: moves to Kafka]
-        catalog[Catalog]
-        image[Image]
-    end
-    subgraph SF[Storefront]
-        pq[Product Query]
-        cq[Category Query]
-    end
-
-    subgraph RP[Redpanda topics]
-        t_tenant[["tenant.tenant.events"]]
-        t_product[["catalog.product.events"]]
-        t_category[["catalog.category.events"]]
-        t_attribute[["catalog.attribute.events"]]
-    end
-
-    tenant --> t_tenant
-    catalog --> t_product
-    image --> t_product
-    catalog --> t_category
-    catalog --> t_attribute
-
-    t_product ==>|promised in catalog| pq
-    t_category ==> cq
-    t_tenant -.-> catalog
-    t_tenant -.-> image
-    t_attribute -.-> pq
-    t_attribute -.-> cq
-```
-
-| Line | Meaning |
-|---|---|
-| Service → Topic, thin | The Service is a declared producer of the Topic (authored from source and configuration) |
-| Topic ⇒ Service, thick | A consumer group of the Service was attached at T. The architecture documents describe this flow |
-| Topic ⇢ Service, dashed | A consumer group of the Service was attached at T. The architecture documents do not name this flow |
-
-Each consumer line is a captured **topic attachment**. It does not show which event types the Service
-handles, or that messages were delivered.
+In this illustration, **solid teal** indicates a documented relationship and **dashed amber**
+indicates additional consumer attachments in the broker capture. The diagram intentionally
+simplifies the source evidence: documentation is **not** identical to a generated EventCatalog
+promise. In particular, Category Query's category-topic attachment is unresolved in the
+catalog despite the documented category flow. Every attachment refers to the frozen capture
+at T; it does not establish event-type handling or message delivery.
 
 The full answer is `PARTIAL`, with nine rows. Each row is one consumer Service × Topic:
 
