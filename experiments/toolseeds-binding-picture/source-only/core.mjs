@@ -18,8 +18,9 @@ function topicMaps(sources) {
       const m = x.text.match(/^\s*(Topic\w+)\s*=\s*"([^"]+)"/);
       if (m) constants.set(m[1], {topic:m[2], line:x.line});
     }
-    const owners = s.repo.replace(/-api$/, "");
-    const factoryFiles = sources.filter(x => x.kind === "event_factory" && x.repo === owners);
+    const ownersRepo = s.repo.replace(/-api$/, "");
+    const owners = ownersRepo.split("/").at(-1);
+    const factoryFiles = sources.filter(x => x.kind === "event_factory" && x.repo === ownersRepo);
     if (!factoryFiles.some(x => x.lines.some(z => z.text.includes("TopicFor(") && x.lines.some(w => w.text.includes("outbox.Message{")))))
       throw Error("No outbox factory evidence for " + owners);
     for (const x of s.lines) {
