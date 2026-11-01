@@ -15,7 +15,7 @@ aren't yet guaranteed stable pre-1.0.
   experimental `get_binding_picture` tool (seven tools), on the frozen v0.8 Sokol111 C1 package
   ([record](docs/release-validation/v0.8.0-hosted-record.md)). `verify_public_edge.py` has a new
   `sokol111-v08` profile and a `--local-app` rehearsal mode.
-- The [hosted walkthrough](examples/pitstop-demo/TRY_IT_HOSTED.md) tells one story, from the
+- The [hosted walkthrough](examples/sokol111-demo/TRY_IT_HOSTED.md) tells one story, from the
   documented architecture to the binding picture and a migration checklist for Catalog Management
   ([spec](docs/specifications/evaluation/sokol111-v08-demo.md)).
 
