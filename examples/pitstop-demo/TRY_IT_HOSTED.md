@@ -66,7 +66,13 @@ Ask:
 > boundary, including relationships not covered by the EventCatalog?"*
 
 The agent calls `get_binding_picture`. This diagram shows the rows that cross the Catalog
-Management boundary:
+Management boundary. It separates three kinds of statement:
+
+- **Captured attachment:** every consumer line. A consumer group was attached at T.
+- **Documented flow:** a thick line. The architecture documents describe the flow.
+- **Catalog promise:** only the line labelled *promised in catalog*. Product Query ×
+  `catalog.product.events` is the only crossing consumer line with a matching EventCatalog promise.
+  The documented category flow has none.
 
 ```mermaid
 flowchart LR
@@ -95,7 +101,7 @@ flowchart LR
     catalog --> t_category
     catalog --> t_attribute
 
-    t_product ==> pq
+    t_product ==>|promised in catalog| pq
     t_category ==> cq
     t_tenant -.-> catalog
     t_tenant -.-> image
@@ -108,9 +114,6 @@ flowchart LR
 | Service → Topic, thin | The Service is a declared producer of the Topic (authored from source and configuration) |
 | Topic ⇒ Service, thick | A consumer group of the Service was attached at T. The architecture documents describe this flow |
 | Topic ⇢ Service, dashed | A consumer group of the Service was attached at T. The architecture documents do not name this flow |
-
-Line style follows the architecture documents, not the EventCatalog. Only the Product Query ×
-`catalog.product.events` line is also promised in the catalog.
 
 Each consumer line is a captured **topic attachment**. It does not show which event types the Service
 handles, or that messages were delivered.
@@ -148,12 +151,13 @@ What this means:
 
 ## Step 3 — Why it matters for the migration
 
-Now add the planned change: Catalog and Image move from Redpanda to Kafka. Ask:
+Now add the planned change: Catalog and Image move from Redpanda to Kafka. This step makes **no new
+tool call**. Ask the agent to interpret the Step 2 answer:
 
 > *"Which observed inbound and outbound attachments need investigation if Catalog Management changes
 > brokers, and which ones are internal or outside this boundary?"*
 
-Use the same answer. The rows sort into three groups:
+The nine rows from Step 2 sort into three groups:
 
 - **Inbound.** Catalog and Image are attached to `tenant.tenant.events`, which Store Provisioning
   produces. The moved services need a plan for this input.
