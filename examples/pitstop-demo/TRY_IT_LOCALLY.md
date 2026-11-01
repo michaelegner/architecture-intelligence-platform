@@ -76,6 +76,6 @@ From the AIP repository:
 examples/pitstop-demo/run.sh --down
 ```
 
-The public hosted instance now serves a Sokol111 dataset ([Try hosted](TRY_IT_HOSTED.md)). For expected answers,
+The separate public hosted instance serves a Sokol111 dataset ([Sokol111 hosted walkthrough](../sokol111-demo/TRY_IT_HOSTED.md)). For expected answers,
 provenance and live-mode details, see the [Pitstop demo README](README.md) and the
 [walkthrough](walkthrough.md).
