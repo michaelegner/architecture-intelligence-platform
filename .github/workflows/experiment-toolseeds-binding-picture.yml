@@ -1,0 +1,27 @@
+name: ToolSeeds binding-picture experiment
+on:
+  push:
+    branches:
+      - experiment/toolseeds-binding-picture
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify frozen C1 data and negative cases
+        run: node --test experiments/toolseeds-binding-picture/test.mjs
+      - name: Generate presentation from recorded provider response
+        run: node experiments/toolseeds-binding-picture/build.mjs
+      - name: Verify generated output has not drifted
+        run: git diff --exit-code -- experiments/toolseeds-binding-picture/results/binding-picture.json experiments/toolseeds-binding-picture/results/binding-picture.html
+      - name: Verify no-provider behavior
+        run: node experiments/toolseeds-binding-picture/build.mjs --without-provider
+      - name: Verify no-provider output has not drifted
+        run: git diff --exit-code -- experiments/toolseeds-binding-picture/results/without-provider.json
