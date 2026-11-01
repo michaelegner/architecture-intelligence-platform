@@ -11,7 +11,7 @@ v0.7.2 I2 and now serves a Sokol111 dataset.
 ## Try it
 
 - **[Try locally](TRY_IT_LOCALLY.md)** — reproducible replay, no credentials required.
-- **[Try hosted](TRY_IT_HOSTED.md)** — the public read-only MCP endpoint `https://mcp.daip.io/mcp`, now serving the frozen Sokol111 dataset (not Pitstop); no credentials required.
+- **[Separate Sokol111 hosted demo](../sokol111-demo/README.md)** — the public read-only MCP endpoint for the Redpanda-to-Kafka migration scenario.
 
 ## Ask the questions
 
