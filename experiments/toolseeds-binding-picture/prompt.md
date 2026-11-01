@@ -22,8 +22,8 @@ SOURCES AND EVIDENCE
 - Reuse the project's available tools and records: source code, configuration,
   interface/event contracts, architecture documents, and existing runtime or
   deployment captures. Do not require every source type or install new
-  monitoring infrastructure. Keep inspected systems read-only; write only the
-  investigation artifact.
+  monitoring infrastructure. Keep inspected systems read-only; write only
+  investigation outputs.
 - If a read-only architecture-knowledge provider is available (for example,
   through an API or MCP), use its qualified answers as supplied. Preserve its
   exact statuses, reasons, snapshot identifiers, evidence references and
@@ -43,8 +43,8 @@ BINDINGS AND MEANING
   declares, what a runtime capture observes, and what an external provider
   qualifies. An explicit owner promise may be shown as a promise; an ordinary
   schema or document is not automatically one. Source findings beyond a
-  provider's coverage supplement, but do not change, its assessment. Do not
-  merge different evidence kinds into a universal status.
+  provider's coverage are additional findings, not changes to its
+  assessment. Do not merge different evidence kinds into a universal status.
 - Resolve identities using explicit mappings or traceable implementation and
   configuration paths, not similar names. An unresolved association stays
   unresolved. Do not infer execution, delivery, completeness or absence from
@@ -55,8 +55,9 @@ BINDINGS AND MEANING
 
 PRESENTATION
 - Put the question and selected boundary first. Show a compact inbound /
-  outbound binding list or table, with evidence kinds and unresolved items
-  visible. Prefer this over a large node-link graph.
+  outbound binding list or table (including internal or shared dependencies
+  when relevant), with evidence kinds and unknowns visible. Prefer this over
+  a large node-link graph.
 - Selecting a binding shows its exact references, relevant source entry
   points where available, applicable revision/time/scope, provider findings if
   present, limitations, and the next question to investigate. Separate facts
@@ -74,8 +75,7 @@ VERIFY, THEN PUBLISH
 - Check that every displayed factual claim has an inspectable reference.
   Cross-check at least three different bindings directly against the inputs,
   or all if fewer; include an unresolved or ambiguous case when available.
-  Verify the stated
-  boundary and direction against the underlying sources.
+  Verify the stated boundary and direction against the underlying sources.
 - When a qualified provider is used, compare the displayed findings with the
   provider's response; do not strengthen its conclusions. If provider-off
   behavior exists, check its rendered output, including explanations and logs.
