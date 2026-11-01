@@ -15,7 +15,7 @@ move to Sokol111 is I2.
 
 ## External check
 
-Run with `examples/sokol111-demo/hosted/verify_public_edge.py --url https://mcp.daip.io/mcp`, from
+Run with `examples/pitstop-demo/hosted/verify_public_edge.py --url https://mcp.daip.io/mcp`, from
 outside the demo network with no credentials. The completed UTC day was 2026-10-20. The rate-limit
 check was not enforced, because no threshold was given; the edge configuration is unchanged.
 

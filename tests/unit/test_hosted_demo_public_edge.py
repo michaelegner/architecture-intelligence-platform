@@ -348,6 +348,11 @@ def test_current_user_facing_docs_do_not_call_the_hosted_demo_token_gated():
         assert not re.search(r"token[- ]gated", path.read_text(), re.IGNORECASE), path.name
 
 
+def test_the_default_profile_is_the_current_hosted_dataset():
+    args = verify.build_parser().parse_args(["--url", "https://mcp.daip.io/mcp"])
+    assert args.profile == "sokol111-v08"
+
+
 def test_the_sokol111_topic_id_is_the_frozen_package_topic():
     assert verify.SOKOL111_TOPIC_ID == topic_owned_id(
         stable_broker_id=verify.SOKOL111_BROKER,

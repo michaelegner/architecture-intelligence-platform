@@ -4,7 +4,7 @@ v0.8 Sokol111 binding picture).
 Run from OUTSIDE the demo's network, with no credentials:
 
     python examples/sokol111-demo/hosted/verify_public_edge.py --url https://<host>/mcp \
-        [--profile pitstop|sokol111|sokol111-v08] [--date YYYY-MM-DD] [--expect-429-within N] [--local-app]
+        [--profile sokol111-v08|sokol111|pitstop] [--date YYYY-MM-DD] [--expect-429-within N] [--local-app]
 
 AIP itself has no public-internet authentication; the safety of the anonymous deployment is owned by the
 deployment edge. This script is the evidence that the edge does its job. Checks:
@@ -13,13 +13,13 @@ deployment edge. This script is the evidence that the edge does its job. Checks:
   (`PUBLIC_TOOL_ALLOWLIST`, plus `get_binding_picture` for `sokol111-v08`; the edge only knows `POST /mcp`;
   it cannot tell a safe `tools/call` from a future mutating tool, so the tool inventory is a hard
   acceptance boundary - any extra or missing tool fails; no name heuristics);
-- `--profile pitstop` (default): a `get_service_dependencies` call and a `get_evidence` drill-down on its
+- `--profile pitstop`: a `get_service_dependencies` call and a `get_evidence` drill-down on its
   own snapshot succeed;
 - `--profile sokol111`: `get_destination_consumers` for the frozen Sokol111 Topic `catalog.product.events`
   answers `PARTIAL` with `CAPTURE_SCOPE_LIMITED`, exactly the frozen C1 `RESOLVED` Services, and every row
   at the C1 capture time T; the same-snapshot evidence drill-down returns exactly the requested refs, each
   `RESOLVED` with its `kind` and `evidence` (a frozen observation at T, not live use);
-- `--profile sokol111-v08`: the `sokol111` check, and `get_binding_picture` for the Catalog Management
+- `--profile sokol111-v08` (default, the current hosted dataset): the `sokol111` check, and `get_binding_picture` for the Catalog Management
   boundary answers `PARTIAL` with exactly the four frozen limitations and the nine frozen C1 rows
   (docs/specifications/0.8.0/i2-vectors/c1-expected.json), one capture at T; each row is observed at T
   with its own attachment and mapping refs, and promise refs exactly on the `PROMISED_AND_OBSERVED` rows;
@@ -592,7 +592,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--profile",
         choices=tuple(PROFILE_TOOL_ALLOWLISTS),
-        default="pitstop",
+        default="sokol111-v08",
         help="which hosted dataset the supported-answer check expects",
     )
     parser.add_argument(

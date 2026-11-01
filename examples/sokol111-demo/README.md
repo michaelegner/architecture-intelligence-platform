@@ -21,9 +21,8 @@ To check the anonymous, read-only hosted MCP endpoint from outside the deploymen
 python examples/sokol111-demo/hosted/verify_public_edge.py --url https://mcp.daip.io/mcp --profile sokol111-v08
 ```
 
-The checker retains the `pitstop` and `sokol111` profiles to reproduce historical
-acceptance checks. The current hosted dataset is `sokol111-v08`; specifying the
-profile explicitly avoids accidentally checking the wrong dataset.
+The default profile is `sokol111-v08`, the current hosted dataset. The checker keeps the
+`pitstop` and `sokol111` profiles to reproduce historical acceptance checks.
 
 ## Other demo
 
