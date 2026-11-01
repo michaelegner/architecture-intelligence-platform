@@ -1,0 +1,17 @@
+{
+  "question": "What bindings matter when Catalog Management moves to Kafka?",
+  "boundary": "catalog-management",
+  "provider": null,
+  "outcome": "NOT_AVAILABLE",
+  "snapshot": null,
+  "context": null,
+  "rows": [],
+  "limitations": [],
+  "capture_sources": [],
+  "catalog_source": null,
+  "missing": [
+    "No architecture-knowledge provider input",
+    "No independent source-analysis input"
+  ],
+  "source_url": null
+}
