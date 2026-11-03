@@ -1,25 +1,15 @@
-# AIP × Glamorous Toolkit — v0.8 contract / proposed v0.9 integration
+# AIP × Glamorous Toolkit — v0.8 contract reference experiment
 
-**Status:** specification draft only; no implementation or qualification claimed  
+**Status:** lightweight **pre-v0.9** experiment to inform future decisions; specification draft only, not implemented or qualified  
 **GT baseline:** official v1.1.657, bundled gt4llm v0.7.341  
-**Initial source:** the public read-only Sokol111 MCP endpoint, `https://mcp.daip.io/mcp`
+**Initial source:** public read-only Sokol111 MCP endpoint, `https://mcp.daip.io/mcp` (frozen pre-wave-1 evidence)
 
-This reference integration asks whether an architect can use GT and AIP's evidence-qualified distributed architecture knowledge to **build situational awareness, explore established and candidate distributed boundaries, and reason about a proposed change**—beyond GT alone, the existing engineering tools, or a coding agent with direct AIP access.
+Can GT help an architect **gain situational awareness, investigate established and candidate distributed boundaries, and understand change-relevant relationships** beyond what existing tools or AIP alone provide?
 
-**[Read the draft specification](specification.md)** for requirements, the initial Sokol111 scenario, dataset-extension rules, three lightweight increments and a pragmatic value comparison.
+**[Read the draft specification](specification.md)** — a three-increment experiment (scenario + connection → interactive investigation → evaluate + publish).
 
-## Key constraints
+**Starting scenario:** reuse the accepted [Sokol111 demo spec](../../../specifications/evaluation/sokol111-v08-demo.md), especially the next-wave question **“Who relies on Store Provisioning?”** The available hosted C1 picture is a starting point, not an interactive after-wave-1 view. The recorded after-wave-1 answer is scoped to **Catalog Management**, not Store Provisioning. If richer exploration is needed, use a separately identified and source-grounded Sokol111 dataset, not an invented extension of the hosted snapshot.
 
-- **Not a v0.7/v0.8 failure replay:** The prior migration and agent experiments are historical evidence, not the workload for this case study.
-- **Dataset is flexible:** The hosted frozen v0.8 Sokol111 binding picture is a useful starting point. If it does not support interactive investigation, construct a *separately identified*, reproducible Sokol111 evidence package with documented real sources, provenance and qualification. Never relabel it as the existing hosted snapshot.
-- **Boundary authority stays with sources and AIP:** GT can help an architect propose and explore candidate groupings, but graph layout or shared dependencies cannot establish Bounded Context membership.
-- **Interoperability is a gate, not the goal:** A working MCP call and a nine-row table do not demonstrate architectural comprehension or decision value.
-- **No automatic AIP v0.9 release:** Meaningful AIP-side interoperability/qualification work must be demonstrated before proposing a versioned release.
+**Non-negotiables:** preserve AIP's scope, snapshot, evidence roles and limitations; candidate boundaries are hypotheses, not authoritative context membership; do not rerun the old migration/agent failures. Freeze independently checkable **answer keys before building GT views**. Report why if a planned comparison is not run.
 
-Historical [v0.4.2](../0.4.2/README.md) and [v0.5.1](../0.5.1/README.md) reference integrations remain unchanged. This is a new experiment using the existing v0.8 contract.
-
-## Status / next step
-
-**Increment 1 — Scenario + connection:** Pick one architect decision, check whether the hosted Sokol111 data is sufficient, and confirm GT can access the relevant AIP MCP answers. Then build one interactive investigation (increment 2) and evaluate/publish it (increment 3).
-
-No GT image, Sokol111 dataset extension, runbook, validation report or acceptance result is produced by this documentation-only change.
+Historical [v0.4.2](../0.4.2/README.md) and [v0.5.1](../0.5.1/README.md) references remain unchanged. No implementation, dataset extension, tests or qualification results are included in this documentation-only PR.
