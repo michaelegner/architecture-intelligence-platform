@@ -1,85 +1,88 @@
-# AIP × Glamorous Toolkit — v0.8 Contract Reference Integration
+# AIP × Glamorous Toolkit — v0.8 Contract Reference Experiment
 
-**Status:** Draft 0.3 — lightweight experiment, not implemented or qualified  
+**Status:** Draft 0.4 — specification only; not implemented or qualified  
 **Date:** 2026-11-03  
+**Experiment scope:** lightweight **pre-v0.9** investigation; its results may inform a future AIP release, but do not define or qualify one  
 **GT baseline:** official v1.1.657 (bundled gt4llm v0.7.341)  
-**Starting AIP source:** `https://mcp.daip.io/mcp` — read-only, frozen Sokol111 v0.8 dataset  
-**Purpose:** prepare the proposed AIP v0.9 contextual-tooling evaluation
+**Starting AIP source:** `https://mcp.daip.io/mcp` — read-only, frozen Sokol111 v0.8 pre-wave-1 dataset
 
-This folder is named `0.8.0` for the **AIP contract consumed**. It does not promise an AIP v0.9 release. Previous GT reference integrations remain untouched.
+The `0.8.0/` directory identifies the **AIP contract consumed**. Historical GT integrations remain unchanged.
 
-## 1. One question, one investigation
+## 1. One architect question
 
-**Can GT help an architect gain situational awareness of a distributed system, interactively explore its established and candidate boundaries, and understand which relationships matter to a proposed change—beyond what the same engineer could achieve without AIP or using AIP directly?**
+**Can GT help an architect gain situational awareness of a distributed system, explore established and candidate boundaries, and understand which relationships matter to a proposed change—beyond what the architect can achieve without AIP or by using AIP directly?**
 
-Start with a concrete Sokol111 architecture/change question (for example, moving Catalog Management between brokers), **not** a replay of the v0.7/v0.8 agent/migration failures.
+**Preferred Sokol111 scenario:** follow the accepted [Sokol111 demo specification](../../../specifications/evaluation/sokol111-v08-demo.md), especially its **optional next-wave question (`5B): “Who relies on Store Provisioning?”** Explore Store Provisioning's tenant-event dependents and the questions a subsequent broker change would raise. This reuses an established architectural decision context without reproducing historical migration failures.
 
-The intended experience is one continuous exploratory workflow:
+The accepted demo distinguishes **hosted pre-wave-1 C1** from **recorded after-wave-1** evidence. Its after-wave-1 `answers-after.json` was queried for **Catalog Management**, *not* for Store Provisioning. GT must not present those answers as a Store Provisioning-scoped AIP projection or pretend that the hosted endpoint serves the after-wave-1 captures. Use the hosted C1 data for the initial connection and what it actually establishes; if interactive investigation of the next wave needs after-wave-1 or Store Provisioning-scoped answers, explicitly supply a separate reproducible dataset/query route (see `2).
 
-1. **Orient:** start with a service or proposed change; navigate relevant services, topics, brokers, neighboring contexts and available evidence.
-2. **Explore boundaries:** follow relationships in either direction; distinguish established context membership from *candidate* groupings and unknowns.
-3. **Investigate implications:** identify relationships that may be affected, the actual documents/assumptions they challenge, evidence supporting each claim and outstanding owner/technical questions.
+Choose a different Sokol111 change question only if this one cannot support useful interactive exploration; record the reason **before implementing the views**.
 
-The goal is not another static nine-row binding table, a system-wide architecture database, or a new GT visualization framework.
+The user workflow is one short investigation:
+1. **Orient:** start with Store Provisioning or a proposed change, and navigate the relevant services, topics, brokers, contexts and evidence.
+2. **Explore:** follow dependencies in either direction, distinguishing **established** bounded-context membership from **candidate** groupings and unknowns.
+3. **Investigate:** determine which bindings matter to the change, what source assumptions they challenge, what supports each finding and which owner/technical questions remain.
 
-## 2. Approach and evidence rules
+A fixed nine-row table, re-running previous agent/migration failures and building a generic architecture visualization product are all out of scope.
 
-**Use what exists first.** Start with GT's bundled `GtLMcpClient` / `GtLMcpHttpTransport` and the hosted v0.8 `get_binding_picture` query/evidence interface. Preserve `structuredContent`, the complete AIP answer, source scope, outcome, limitations and snapshot. Other existing AIP capabilities or accessible Sokol111 documents may be used where they are relevant and independently attributable.
+## 2. Approach and evidence discipline
 
-**The dataset is not fixed.** Inspect whether the hosted C1 dataset supports a meaningful exploration of more than one established context and a real architectural question. If not, assemble a *separately identified*, reproducible Sokol111 dataset using traceable documentation/configuration and appropriately labeled observations. Capture source revisions and provenance. Do not invent source facts or mix snapshot-specific references; do not silently replace the public hosted data.
+**Use existing tooling first.** Connect with GT's bundled `GtLMcpClient` / `GtLMcpHttpTransport`. Invoke AIP's existing read-only MCP tools and preserve complete `structuredContent`, outcome, source scope, limitations and snapshot. AIP `get_binding_picture` is the starting point; other existing queries may be composed only within their documented scope.
 
-**Keep authority visible.** AIP owns qualified Current State, attributable promises, assessments and provenance. GT owns contextual views and investigator interpretation. A GT-selected group of services is a **candidate boundary**, not automatically a supported Bounded Context. AIP's `crossing` and `status` retain their original scope; never recompute an authoritative assessment for a speculative grouping.
+**Dataset is flexible, provenance is not.** Inventory what the hosted C1 answer, [accepted Sokol111 story](../../../specifications/evaluation/sokol111-v08-demo.md) and pinned Sokol111 sources support. The after-wave-1 evidence in the accepted demo is **recorded, not hosted or an existing Store Provisioning-scoped answer**. If the next-wave question needs a runnable cross-broker picture, build a separately identified, reproducible *read-only* Sokol111 package or local replay from traceable recorded captures/documents. Pin source revisions, broker IDs, capture times, mapping authorship, assumptions and snapshot IDs. Clearly identify whether evidence is observed, authored, recorded, illustrative or newly queried. No invented architectural facts, mixed snapshot-scoped refs or silent replacement of the public hosted dataset. Do **not** re-run historical migration failure experiments merely to prepare the dataset.
 
-**Preserve uncertainty.** For v0.8 `binding-evidence:` references, resolve with `get_binding_picture` in `mode: "evidence"` using the same snapshot, bounded context, environment and brokers. Keep promise, attachment and mapping references distinct; sort/deduplicate references and respect the 1–20-ref limit. Show unresolved refs/errors explicitly. Attachment does not prove event handling or delivery; authored mappings/producer declarations are not runtime observations; missing catalog coverage is not proof of absence.
+**Keep authority visible.** AIP owns qualified Current State, attributable promises, assessments and provenance. GT owns contextual navigation and investigator interpretations. An exploratory grouping is a **candidate boundary**, never automatically an established Bounded Context. Do not recalculate authoritative AIP `crossing` or `status` from a candidate grouping; do not reinterpret `NONE` relative to Catalog Management as a Store Provisioning boundary classification.
 
-**Stay small.** Build only the contextual Phlow views, simple domain objects and optional graph/list navigation that the chosen question needs. A single executable Lepiter story is sufficient. Do not import old customized GT images or local compatibility adapters.
+**Preserve uncertainty.** Resolve v0.8 `binding-evidence:` references through `get_binding_picture` in `mode: "evidence"`, not `get_evidence`. Reuse the exact original snapshot, bounded context, environment and broker IDs; keep promise/attachment/mapping ref roles distinct; deduplicate and sort the 1–20 requested refs. Show unresolved refs and errors. Broker attachment ≠ event handling or delivery; authored mappings and producer declarations ≠ observed traffic; missing catalog coverage ≠ absence of an agreement.
+
+**Keep GT small.** Prefer basic Phlow inspectors, linked objects and one executable Lepiter investigation. Add a graph only if a concrete task requires it. Never import historical customized GT images or local gt4llm adapters.
 
 ## 3. Three increments
 
 | Increment | Deliverable | Done when |
 |---|---|---|
-| **1 — Scenario + connection** | Pick one architect decision; list the evidence available in Sokol111; verify GT v1.1.657 can query the selected AIP MCP endpoint with full results. Decide whether a separately sourced dataset is actually needed. | A relevant investigation question, traceable sources and one working GT→AIP query exist. Any gap is explicit. |
-| **2 — Interactive investigation** | Build the smallest GT exploration connecting selected service/change → neighbors → established/candidate boundaries → source-qualified evidence → change questions. Add one executable Lepiter narrative. | An architect can explore at least one nontrivial change question, follow its evidence and identify uncertainties without interpreting guesses as AIP facts. |
-| **3 — Evaluate + publish** | Try the same bounded question using existing tools, GT without AIP, GT+AIP and (where practical) an agent using AIP directly. Re-run the GT slice in a clean image and summarize findings. | A short report records what GT+AIP actually adds, unsupported claims, missing evidence, setup/owner effort and whether the result is useful, inconclusive or negative. |
+| **1 — Scenario, evidence + connection** | Select the Store Provisioning next-wave question (or document why not); inventory/pin sources, snapshots and dataset limitations; connect clean GT v1.1.657 to the applicable AIP MCP endpoint. **Freeze source-grounded task answer keys before increment 2.** | One concrete decision, independently checkable answer keys, a valid GT→AIP query and an explicit choice of hosted C1 versus separately identified data. |
+| **2 — One interactive investigation** | Build the minimum GT navigation for selected service/change → dependents → established/candidate boundaries → qualified evidence → unanswered change questions, plus one executable Lepiter page. | Architect can explore the question, inspect evidence and distinguish facts, hypotheses and unknowns without upgraded claims. |
+| **3 — Evaluate + publish** | Run feasible comparisons on the **prewritten** answer keys, reproduce the GT workflow in a fresh image and publish a short report. | Report records comparative findings, unsupported claims, setup/owner effort and a positive, negative or inconclusive result. **If a comparison is not run, state why in one line.** |
 
-The increments are **thin, end-to-end steps**, not six separately qualified workstreams. Avoid further decomposition unless an observed blocker makes it necessary.
+These are three thin steps, not separate feature workstreams. Add no infrastructure unless the selected architectural question requires it.
 
-## 4. Evaluation
+## 4. Fair evaluation
 
-Use one or two specific architecture tasks with source-grounded answer keys: discover relevant relationships/boundaries, follow the evidence and explain implications/unknowns for the change.
+Before increment 2, write one or two **source-grounded answer keys**, pinned to the chosen evidence state and observation time. Include expected relationships, boundary membership and scope, which assertions are supported, and explicit unknowns. Base them on independently inspectable source records and the accepted Sokol111 demo where applicable; do not derive or change them to match GT's finished views. A different dataset requires its own pinned key.
 
-Compare, where feasible:
+Use the same bounded question across available conditions:
 
-| Approach | What it isolates |
+| Condition | What it tests |
 |---|---|
-| Existing docs / engineering tools | Current investigation capability |
-| GT without AIP | Value of moldable exploration itself |
-| GT + AIP | Incremental value of qualified distributed architecture context |
-| Coding agent + AIP | Whether an additional GT layer is needed |
+| Existing documentation / engineering tools | What an architect can establish today |
+| GT without AIP | Incremental value from contextual exploration itself |
+| GT + AIP | Incremental value from qualified AIP context inside GT |
+| Coding agent + AIP directly | Whether GT contributes beyond direct AIP use |
 
-Record correctness, missed dependencies, confusion between established/candidate boundaries, unsupported conclusions, time/navigation effort and the effort to prepare/maintain the data. Keep comparisons fair about available source material and assistance; report negative or inconclusive results. **A public Sokol111 case study prepares a customer evaluation; it cannot prove AIP product value or real owner coordination savings.**
+Assess correct relationships and boundary distinctions, omissions, unsupported claims, useful change questions, interaction/time cost and source/owner maintenance effort. Record differences in access and assistance. **Do not assert product value from a public demo.** A comparison may be infeasible; explicitly log the reason instead of treating it as a pass.
 
-## 5. Minimal deliverables
+## 5. Small deliverables
 
-- `specification.md` — this draft.
-- `README.md` — brief setup, scenario/dataset choice, and status.
-- GT source export plus an executable Lepiter investigation **when implemented**.
-- A compact evaluation/reproduction note **when tested**.
+- `specification.md` — this draft and its three-step plan.
+- `README.md` — scoped setup, baseline and status.
+- GT source export + one executable Lepiter story **after implementation**.
+- Compact evidence/answer-key and evaluation/reproduction report **when available**.
 
-Keep artifacts in `docs/reference-integrations/glamorous-toolkit/0.8.0/`. Do not change `0.4.2/` or `0.5.1/`.
+Work under `docs/reference-integrations/glamorous-toolkit/0.8.0/`; leave `0.4.2/` and `0.5.1/` unchanged.
 
-## 6. Explicit exclusions and release decision
+## 6. Non-goals and release boundary
 
-No rerun of previous migration/agent failure studies; no hardcoded architecture inference from a nine-row table; no automatic promotion of candidate boundaries; no new AIP/GT core capability, MCP tool, custom graph engine or autonomous permanent code mutation without evidence of need.
+No re-running old migration/agent failures; no artificial proof of boundary ownership from graph clusters; no authoritative reinterpretation of bounded AIP answers; no new GT/AIP core capability, MCP tool, generalized graph engine or autonomous code mutation without an observed need.
 
-The proposed AIP v0.9 release remains **conditional**. If the existing v0.8 interface meets the experiment's needs, publish the reference integration independently rather than creating AIP-side work to justify a release.
+This is an **independent reference experiment**, not a release qualification. If the existing AIP contract suffices, publish the result without creating AIP-side work to justify a new release.
 
 ## References
 
-- [Proposed v0.9 roadmap](../../../../ROADMAP.md#v09--contextual-architecture-intelligence-integration-proposed)
+- [Accepted Sokol111 evaluation/demo specification](../../../specifications/evaluation/sokol111-v08-demo.md)
+- [Hosted Sokol111 walkthrough (pre-wave-1)](../../../../examples/sokol111-demo/TRY_IT_HOSTED.md)
 - [AIP product doctrine](../../../product-doctrine-and-strategic-direction.md)
-- [Hosted Sokol111 demonstration](../../../../examples/sokol111-demo/TRY_IT_HOSTED.md)
 - [v0.8 binding-picture request schema](../../../../schemas/architecture_intelligence/v0.8/binding-picture-request.schema.json)
 - [v0.8 binding-picture answer schema](../../../../schemas/architecture_intelligence/v0.8/binding-picture-answer.schema.json)
-- [Prior GT reference integration](../0.5.1/README.md)
+- [Historical GT reference integration](../0.5.1/README.md)
 - [GT v1.1.657 release](https://github.com/feenkcom/gtoolkit/releases/tag/v1.1.657)
