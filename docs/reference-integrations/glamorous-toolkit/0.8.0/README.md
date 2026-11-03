@@ -6,7 +6,7 @@
 
 This reference integration asks whether an architect can use GT and AIP's evidence-qualified distributed architecture knowledge to **build situational awareness, explore established and candidate distributed boundaries, and reason about a proposed change**—beyond GT alone, the existing engineering tools, or a coding agent with direct AIP access.
 
-**[Read the draft specification](SPEC.md)** for requirements, the initial Sokol111 scenario, dataset-extension rules, iterations I0–I5 and comparative evaluation gates.
+**[Read the draft specification](specification.md)** for requirements, the initial Sokol111 scenario, dataset-extension rules, iterations I0–I5 and comparative evaluation gates.
 
 ## Key constraints
 
