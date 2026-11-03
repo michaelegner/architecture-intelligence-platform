@@ -6,7 +6,7 @@
 
 This reference integration asks whether an architect can use GT and AIP's evidence-qualified distributed architecture knowledge to **build situational awareness, explore established and candidate distributed boundaries, and reason about a proposed change**—beyond GT alone, the existing engineering tools, or a coding agent with direct AIP access.
 
-**[Read the draft specification](specification.md)** for requirements, the initial Sokol111 scenario, dataset-extension rules, iterations I0–I5 and comparative evaluation gates.
+**[Read the draft specification](specification.md)** for requirements, the initial Sokol111 scenario, dataset-extension rules, three lightweight increments and a pragmatic value comparison.
 
 ## Key constraints
 
@@ -20,6 +20,6 @@ Historical [v0.4.2](../0.4.2/README.md) and [v0.5.1](../0.5.1/README.md) referen
 
 ## Status / next step
 
-**I0 — Scenario and dataset fitness** is the first implementation step. Define a representative architectural decision and source inventory, verify which boundary and dependency questions can be answered by the current hosted AIP tools, and decide if independently grounded extra Sokol111 data is needed. Record outcomes in a scenario card before expanding the GT UI.
+**Increment 1 — Scenario + connection:** Pick one architect decision, check whether the hosted Sokol111 data is sufficient, and confirm GT can access the relevant AIP MCP answers. Then build one interactive investigation (increment 2) and evaluate/publish it (increment 3).
 
 No GT image, Sokol111 dataset extension, runbook, validation report or acceptance result is produced by this documentation-only change.
