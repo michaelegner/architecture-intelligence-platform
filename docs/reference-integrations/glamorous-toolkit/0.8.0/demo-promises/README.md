@@ -8,7 +8,9 @@ Sokol111 is an **illustrative e-commerce codebase**, not a real customer whose s
 | [0002 — Image-promotion information](0002-image-promotion-information.md) | Image | `DEMO_ASSUMED_CONFIRMED` |
 | [0003 — Product Query acceptance and reads](0003-product-query-acceptance-and-reads.md) | Product Query | `DEMO_ASSUMED_CONFIRMED` |
 
-**Additional independent fictional offer:** [External marketplace withdrawal contract](marketplace-withdrawal-contract.md) — `DEMO_CONTRACT_ASSUMED` (not a real marketplace policy). It defines an outcome for **accepted, valid withdrawal requests** under modeled conditions. Its issuer is external to Sokol111, and it never creates a promise for a prospective Marketplace Connector.
+**Additional independent fictional offer:** [External marketplace withdrawal contract](marketplace-withdrawal-contract.md) — `DEMO_CONTRACT_ASSUMED` (not a real marketplace policy). It defines **accepted/rejected requests and completion/failure outcomes** under modeled conditions, **without a withdrawal-time SLA**. Its issuer is external to Sokol111, and it never creates a promise for a prospective Marketplace Connector.
+
+**Product Query has two distinct local promises:** `PQ-ACCEPT-01` (accepting specified Catalog change events for the shop projection) and `PQ-READ-01` (providing reads to separately provisioned, tenant-scoped product-display clients, potentially including approved new sales-channel integrations). Their audiences, conditions and evidence differ; one cannot extend or prove the other.
 
 **An ADR is a decision record, not automatically a promise.** Each ADR's *offered/accepted external behavior and its conditions* is the demo promise, and its rationale explains why the modeled owner chose it.
 
@@ -18,6 +20,6 @@ Sokol111 is an **illustrative e-commerce codebase**, not a real customer whose s
 
 **Input versus output:** The **three existing-service ADRs and the separate fictional marketplace contract** are available **before** investigation. Product Query independently accepts Catalog change events and offers a read capability; that does not assign a future connector's design. The merchant's **hypothetical 15-minute listing-withdrawal requirement** is also an input, but **no Marketplace Connector ADR, consumer acceptance, responsibility assignment or outward promise is supplied**. Each architect must independently decide whether compatible commitments can be proposed, by whom, and under which conditions—or explain why none is justified. An optional `DEMO_PROPOSED` consumer ADR is an **investigation output** to collect after completion, not a fixture to publish in this directory beforehand.
 
-**Evaluation:** provide the same ADRs, independent marketplace contract, business task and source/evidence to source-only, GT-only and AIP-enabled baselines. Compare the **independently produced** consumer decisions, including defensible decisions not to offer a guarantee. Do not pre-mark a failure as established or guarantee any solution. Pin source revisions and the AIP snapshot in the evidence manifest before interpreting results.
+**Evaluation:** provide the same ADRs, independent marketplace contract, business task and source/evidence to source-only, GT-only and AIP-enabled baselines. Evaluate the **initial belief → qualified finding → revised decision** for consequential insights; distinguish AIP's contribution from ADR discovery alone. Compare the **independently produced** consumer decisions, including defensible decisions not to offer a guarantee. Do not pre-mark a failure as established or guarantee any solution. Pin source revisions and the AIP snapshot in the evidence manifest before interpreting results.
 
 See the [reference experiment specification](../specification.md).
