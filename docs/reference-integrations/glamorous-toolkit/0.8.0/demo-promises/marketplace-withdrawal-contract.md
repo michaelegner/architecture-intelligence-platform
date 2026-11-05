@@ -3,24 +3,24 @@
 **Status:** `DEMO_CONTRACT_ASSUMED` — **independent fictional external marketplace offer**, not a contract or policy of any real marketplace  
 **Modeled offeror:** external marketplace platform role (separate from Sokol111)  
 **Audience:** permitted third-party listing publishers  
-**Scope and version:** hypothetical demonstration marketplace, fixture v1
+**Scope and version:** hypothetical demonstration marketplace, fixture v2
 
 ## Capability offered
 
-A permitted publisher may submit an authenticated withdrawal request for an existing listing within its authorized merchant/channel scope. The marketplace **accepts or rejects** the request according to the fictional interface contract and reports an outcome. **For an accepted, valid withdrawal during the modeled normal service conditions, the marketplace promises the listing will cease to be publicly visible no later than 5 minutes after request acceptance.**
+A permitted publisher may submit an authenticated withdrawal request for an existing listing within its authorized merchant/channel scope. The marketplace **accepts or rejects** the request according to this fictional contract. **For an accepted, valid request, the marketplace offers processing and a queryable outcome: completed (the listing is no longer publicly visible) or failed (with an indication that further action may be necessary).**
 
-The **5-minute period begins at acceptance**, not at the shop product change or when a caller first attempts to submit a request. This invented figure is solely a bounded promise for the exercise—not a fact about a real marketplace.
+This contract **does not promise a fixed time from request acceptance to completed withdrawal**. Request acceptance and externally visible listing removal are distinct stages; neither an acknowledgement nor a pending status establishes withdrawal. Any end-to-end merchant deadline therefore requires further locally attributable commitments and evidence, not subtraction from an invented marketplace SLA.
 
 ## Applicability, exclusions and independent authority
 
 - Only valid, authenticated, correctly scoped and accepted requests fall under the fictional processing promise.
-- A rejection, unavailable endpoint, request never received, or no accepted request does not activate the processing deadline; this contract supplies **no assertion about another service detecting changes or reaching the marketplace**.
+- A rejection, unavailable endpoint, request never received, or no accepted request creates no processing commitment under this offer; this contract supplies **no assertion about another service detecting changes or reaching the marketplace**.
 - The contract does not provide a promise from Catalog, Product Query, a future Marketplace Connector or any consumer. It does not establish what credentials a new consumer actually has.
-- Completion means **the external listing is no longer visible**, which is distinct from receiving an acknowledgement or merely initiating withdrawal.
+- Completion means **the external listing is no longer visible**, which is distinct from acceptance, a pending status, or merely initiating withdrawal. A failed outcome leaves the merchant's requested result unmet.
 
 ## Why this independent contract matters
 
-A marketplace is a separate autonomous participant. An end-to-end merchant requirement depends on commitments and behavior at **multiple** boundaries. The purpose of the fictional contract is to let architects inspect and assess that independence, **not** to prescribe events, polling, retries, request timing, an authorization arrangement or a guaranteed connector design.
+A marketplace is a separate autonomous participant. An end-to-end merchant requirement depends on commitments and behavior at **multiple** boundaries. This fictional contract allows the architect to distinguish a valid request, its acceptance, subsequent completion or failure, and what remains unpromised. It is **not** a preset SLA budget or a prescription to use events, polling, retries, an authorization arrangement or a particular connector design.
 
 ## Evidence and provenance
 
