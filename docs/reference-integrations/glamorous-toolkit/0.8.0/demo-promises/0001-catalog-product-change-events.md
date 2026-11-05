@@ -1,31 +1,30 @@
 # DEMO-ADR-001 — Catalog offers product-change events
 
-**Status:** `DEMO_ASSUMED_CONFIRMED` — fictional decision of modeled Catalog owner, **not** confirmation by Sokol111 maintainers  
-**Modeled promiser:** Catalog service role  
-**Audience:** existing shop product-projection consumers; any new marketplace consumer requires separate applicability review  
-**Scope:** simulated local e-commerce environment; demo fixture v1
+**Status:** `DEMO_ASSUMED_CONFIRMED` — fictional decision of the modeled Catalog owner; **not** Sokol111 maintainer confirmation  
+**Modeled decision owner:** Catalog service role  
+**Audience:** existing shop projection consumers  
+**Scope and version:** simulated local e-commerce environment, fixture v1
 
 ## Context
 
-The existing shop needs a current projection of catalog data across autonomous components. Source code shows Catalog building `ProductUpdatedEvent` with `ProductId`, `Enabled`, product attributes and other fields, plus `ProductDeletedEvent`; its application code uses a transactional outbox. This evidence suggests a plausible external capability but does **not** establish a real owner commitment.
+The existing shop needs product changes to reach independently maintained read projections. Sokol111's Catalog code builds versioned `ProductUpdatedEvent` and `ProductDeletedEvent` messages and uses a transactional outbox for updates and deletes. These are **source facts**, not real owner confirmation.
 
-## Decision and offered promise (+)
+## Decision and local offer (+)
 
-**For this fictional scenario only**, the modeled Catalog owner offers product-change events to the modeled existing shop projection consumers after successfully committed product updates/deletions, using the published event representation.
+**In this fictional experiment**, Catalog offers product-change event messages for successfully committed product updates and deletions to the modeled existing shop projection consumers through its asynchronous outgoing-event mechanism.
 
-**Applicability:** relevant product changes that commit successfully; asynchronous publication and broker operations are distinct from state commit. Audience expansion to an independent marketplace connector is **not assumed**.
-
-**Not promised by this ADR:** a specific end-to-end delivery deadline, perpetual recoverability, full historical replay/initial snapshot, third-party reuse authorization, or external marketplace withdrawal. These are **outside this fictional offer**, not assertions that the real Sokol111 owner explicitly declined them.
+**Conditions and scope:** The offer concerns the published event representation and existing shop projection use. Catalog transaction completion, event queuing and downstream processing are different stages. Additional consumers and changed purposes need their own applicability and acceptance examination.
 
 ## Rationale and consequences
 
-Event-based propagation lets downstream projections maintain state without synchronously calling Catalog on every read. A new consumer must investigate bootstrap, actual event meaning, permissions, recovery and timing before relying on this offer. The 15-minute marketplace withdrawal target does **not** follow from this ADR.
+A change-event interface lets separately owned projections evolve without requiring every read to call Catalog synchronously. This ADR describes the modeled provider's local offer; it does **not** decide what another service will consume, how a future connector will work or what an external marketplace will do. Any other externally relevant semantics must be established from an independently attributable commitment and appropriately scoped evidence.
 
-## Evidence / limitations
+## Evidence and limitations
 
 - [Catalog product event factory](https://github.com/Sokol111/ecommerce-catalog-service/blob/master/internal/infrastructure/outbound/kafka/product_event_factory.go)
 - [Catalog application overview](https://github.com/Sokol111/ecommerce-catalog-service/blob/master/AGENTS.md)
-- AIP's hosted C1 broker attachments are **separate evidence** and do not qualify this behavioral ADR promise.
-- Source commit SHAs and AIP snapshot identity are to be frozen in evaluation increment 1; these links are discovery references, not qualified evidence identifiers.
+- [Catalog update transaction/outbox use](https://github.com/Sokol111/ecommerce-catalog-service/blob/master/internal/application/product/update_product.go)
 
-**Evolution:** demo status changes only by explicitly revising this ADR as a fictional decision; no actual Sokol111 decision is implied.
+Implementation supports the **plausibility** of the fictional decision but does not establish service-wide delivery behavior, owner approval or any AIP-qualified semantic promise. The frozen AIP C1 bindings are separate, bounded evidence. Pin exact source SHAs and the AIP package/snapshot before evaluating.
+
+**Evolution:** Only the modeled Catalog owner can revise this fictional offer; other participants' acceptance remains independent.
