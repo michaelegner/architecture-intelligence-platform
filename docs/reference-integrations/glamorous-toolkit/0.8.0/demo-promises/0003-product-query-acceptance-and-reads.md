@@ -25,7 +25,7 @@ A read-optimized projection decouples storefront query load from Catalog writes.
 
 - [Product Query architecture and event-handler documentation](https://github.com/Sokol111/ecommerce-product-query-service/blob/master/AGENTS.md)
 - [Product Query API repository](https://github.com/Sokol111/ecommerce-product-query-service-api)
-- [Product Query registered event consumers](https://github.com/Sokol111/ecommerce-product-query-service/blob/master/internal/infrastructure/inbound/kafka/module.go)
+- [Product Query registered event consumers](https://github.com/Sokol111/ecommerce-product-query-service/blob/master/internal/infrastructure/inbound/kafka/fxconfig/module.go)
 - The frozen AIP v0.8 C1 binding picture has a qualified Product Query attachment to `catalog.product.events` relative to Catalog Management, with separate **demo-assumed EventCatalog** semantics. This can support **topic attachment** only; it does not validate the acceptance or read-offer behavior described here.
 
 Pin source revisions, AIP package/snapshot and actual evidence request before using these references in evaluation. `DEMO_ASSUMED_CONFIRMED` is not an AIP qualification status.
