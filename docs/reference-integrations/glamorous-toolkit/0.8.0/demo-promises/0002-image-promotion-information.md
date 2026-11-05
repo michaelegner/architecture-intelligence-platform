@@ -1,31 +1,29 @@
 # DEMO-ADR-002 — Image offers promoted-image information
 
-**Status:** `DEMO_ASSUMED_CONFIRMED` — fictional decision of modeled Image owner, **not** confirmation by Sokol111 maintainers  
-**Modeled promiser:** Image service role  
-**Audience:** existing shop read-model consumers; no automatic promise to a proposed marketplace connector  
-**Scope:** simulated local e-commerce environment; demo fixture v1
+**Status:** `DEMO_ASSUMED_CONFIRMED` — fictional decision of the modeled Image owner; **not** Sokol111 maintainer confirmation  
+**Modeled decision owner:** Image service role  
+**Audience:** existing shop image-read/projection consumers  
+**Scope and version:** simulated local e-commerce environment, fixture v1
 
 ## Context
 
-Catalog events carry product image identity, while the Image service manages promotion and delivery. The existing Product Query consumer handles `ProductImagePromotedEvent` to update stored image URLs. This supports a plausible external image-information capability, not real owner approval.
+Sokol111's Image service manages product-media promotion and delivery. Its documentation describes `ProductImagePromotedEvent`; Product Query handles these messages to update projected image URLs. This is **implementation evidence**, not a real promise.
 
-## Decision and offered promise (+)
+## Decision and local offer (+)
 
-**For this fictional scenario only**, the modeled Image owner offers an event with promoted product image information for the modeled existing projection consumers when image promotion succeeds.
+**In this fictional experiment**, Image offers information about successfully promoted product images to its modeled existing shop projection consumers through image-promotion events.
 
-**Applicability:** successful image promotion within the relevant tenant and event semantics; this offer does not imply that every product update produces an image event.
-
-**Not promised by this ADR:** image URLs embedded in each Catalog product event, a fixed delivery or availability deadline, third-party marketplace usage rights, permanent URL stability, or an end-to-end listing update guarantee. These are **outside the fictional offer**, not a documented refusal by real maintainers.
+**Conditions and scope:** Promotion succeeds for the relevant image/tenant; an image-promotion event concerns that lifecycle transition. The local offer is distinct from Catalog's product changes. It does not determine which new consumers may accept the interface or how their downstream presentation is implemented.
 
 ## Rationale and consequences
 
-Media lifecycle is managed separately from product attributes. A new consumer should check whether it needs Image's capability, whether the intended audience is covered and which additional conditions could support its own listing promises. This ADR deliberately does **not** settle the 15-minute withdrawal requirement.
+Separating media promotion from product writes allows an independent media lifecycle. A consumer evaluating an additional product presentation channel should examine the meaning, applicability and evidence of this offer alongside any other service capabilities, rather than treating product attributes as an all-in-one contract.
 
-## Evidence / limitations
+## Evidence and limitations
 
-- [Image service overview](https://github.com/Sokol111/ecommerce-image-service/blob/master/AGENTS.md)
-- [Product Query handling of image promotion](https://github.com/Sokol111/ecommerce-product-query-service/blob/master/internal/infrastructure/inbound/kafka/product_handler.go)
-- AIP's frozen broker evidence may help locate the existing participants but does **not** assess this fictional semantic promise.
-- Source SHAs and AIP snapshot identity must be frozen during increment 1.
+- [Image service architecture](https://github.com/Sokol111/ecommerce-image-service/blob/master/AGENTS.md)
+- [Product Query architecture and image-event handling](https://github.com/Sokol111/ecommerce-product-query-service/blob/master/AGENTS.md)
 
-**Evolution:** this demonstration decision may be revised/superseded only in the demo overlay; no upstream owner commitment is implied.
+These sources support a candidate service behavior, not real owner approval or a complete AIP promise assessment. Pin exact source SHAs and AIP snapshot before evaluation.
+
+**Evolution:** Only the modeled Image owner can revise this fictional offer; other participants' acceptance remains independent.
