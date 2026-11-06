@@ -1,25 +1,24 @@
-# Promise-bearing ADRs — Sokol111 demonstration only
+# Service-local Promise Contracts — Sokol111 demo
 
-Sokol111 is an **illustrative e-commerce codebase**, not a real customer whose service owners have accepted these commitments. These short Architecture Decision Records document **fictional decisions by modeled autonomous service roles**, with links to real source evidence where available.
+Sokol111 is a **sample codebase**, not a real customer whose owners have approved these commitments. Each YAML file is a fictional, independently modeled local offer or acceptance. The contracts are **not** an AIP schema, OpenAPI/AsyncAPI format, operational guarantee or real maintainer approval.
 
-| ADR | Modeled promiser | Demonstration status |
+| Promise | Modeled owner | Contract |
 |---|---|---|
-| [0001 — Product-change events](0001-catalog-product-change-events.md) | Catalog | `DEMO_ASSUMED_CONFIRMED` |
-| [0002 — Image-promotion information](0002-image-promotion-information.md) | Image | `DEMO_ASSUMED_CONFIRMED` |
-| [0003 — Product Query acceptance and reads](0003-product-query-acceptance-and-reads.md) | Product Query | `DEMO_ASSUMED_CONFIRMED` |
+| `CAT-OFFER-01` — product-change offer (+) | Catalog | [catalog/product-change-events.yaml](catalog/product-change-events.yaml) |
+| `IMG-OFFER-01` — image-promotion offer (+) | Image | [image/image-promotion-information.yaml](image/image-promotion-information.yaml) |
+| `PQ-ACCEPT-01` — Catalog event acceptance (−) | Product Query | [product-query/catalog-change-acceptance.yaml](product-query/catalog-change-acceptance.yaml) |
+| `PQ-READ-01` — read-model offer (+) | Product Query | [product-query/product-reads.yaml](product-query/product-reads.yaml) |
 
-**Additional independent fictional offer:** [External marketplace withdrawal contract](marketplace-withdrawal-contract.md) — `DEMO_CONTRACT_ASSUMED` (not a real marketplace policy). It defines **accepted/rejected requests and completion/failure outcomes** under modeled conditions, **without a withdrawal-time SLA**. Its issuer is external to Sokol111, and it never creates a promise for a prospective Marketplace Connector.
+The [independent fictional marketplace withdrawal contract](marketplace-withdrawal-contract.md), `DEMO_CONTRACT_ASSUMED`, is **not** a Sokol111 service promise. It separates authenticated withdrawal requests, acceptance/rejection and eventual completed/failed outcomes, **without any numeric processing deadline**.
 
-**Product Query has two distinct local promises:** `PQ-ACCEPT-01` (accepting specified Catalog change events for the shop projection) and `PQ-READ-01` (providing reads to separately provisioned, tenant-scoped product-display clients, potentially including approved new sales-channel integrations). Their audiences, conditions and evidence differ; one cannot extend or prove the other.
+## Local fixture convention
 
-**An ADR is a decision record, not automatically a promise.** Each ADR's *offered/accepted external behavior and its conditions* is the demo promise, and its rationale explains why the modeled owner chose it.
+Fields: `id`, `title`, `kind` (`offer`/`acceptance`), `status`, `promiser`, `audience`, `scope` (including `fixture_version`), `commitment`, `conditions`, `limitations`, `rationale`, `evidence` and `evolution`; acceptances also name the `counterparty`. The field vocabulary is **demo-only**, not a universal promise registry. Contract IDs and versions are scoped to their modeled service roles. Each contract can be inspected or evolved independently.
 
-**Status rules:** `DEMO_ASSUMED_CONFIRMED` means accepted **within the fictional experiment only**, not by real Sokol111 maintainers. `DEMO_PROPOSED` may be assigned to an investigator-authored decision **after** exploration, never to a consumer promise furnished as an input. These are **not AIP qualification enums**. Neither status is evidence that the real code works as described or that any real user is authorized. The existing AIP v0.8 C1 `sends`/`receives` assumptions remain separate from these ADRs.
+**`DEMO_ASSUMED_CONFIRMED`** means accepted **in the fictional exercise**, not by Sokol111 maintainers; it is **not** an AIP status. Source URLs establish possible implementation behavior, not owner confirmation. Freeze exact code and hosted AIP C1 evidence identities separately before evaluation. Existing AIP v0.8 does **not** ingest these contracts or qualify their promises as Intent.
 
-**Authority boundary:** The Catalog, Image and Product Query roles are modeled as **independent decision owners**, each with its own fixture version; the external marketplace owns its separate fictional contract. Their agreements must not be merged into a single authoritative promise. In an actual organization, each autonomous promiser would author, approve, change and retire its own ADR or other promise carrier. Here, the AIP reference integration holds a transparent **demo overlay**; it does not own a real Sokol111 promise or alter upstream repositories.
+**Input/output boundary:** the four existing-service contracts and the external-marketplace contract are furnished **before** investigation. The merchant's hypothetical **15-minute withdrawal target is a business requirement only**. The proposed Marketplace Connector has **no seeded Promise Contract, accepted reliance or externally offered guarantee**. An optional `DEMO_PROPOSED` consumer contract—or explicit refusal—is an **investigator-produced result** after exploring independent providers, conditions and missing agreements.
 
-**Input versus output:** The **three existing-service ADRs and the separate fictional marketplace contract** are available **before** investigation. Product Query independently accepts Catalog change events and offers a read capability; that does not assign a future connector's design. The merchant's **hypothetical 15-minute listing-withdrawal requirement** is also an input, but **no Marketplace Connector ADR, consumer acceptance, responsibility assignment or outward promise is supplied**. Each architect must independently decide whether compatible commitments can be proposed, by whom, and under which conditions—or explain why none is justified. An optional `DEMO_PROPOSED` consumer ADR is an **investigation output** to collect after completion, not a fixture to publish in this directory beforehand.
+All comparison conditions receive the same frozen contracts, source/broker evidence and task; only AIP qualification differs. Evaluate decision-changing insights, unsupported promises and fixture/GT maintenance cost separately from merely discovering documents.
 
-**Evaluation:** provide the same ADRs, independent marketplace contract, business task and source/evidence to source-only, GT-only and AIP-enabled baselines. Evaluate the **initial belief → qualified finding → revised decision** for consequential insights; distinguish AIP's contribution from ADR discovery alone. Compare the **independently produced** consumer decisions, including defensible decisions not to offer a guarantee. Do not pre-mark a failure as established or guarantee any solution. Pin source revisions and the AIP snapshot in the evidence manifest before interpreting results.
-
-See the [reference experiment specification](../specification.md).
+See the [experiment specification](../specification.md).

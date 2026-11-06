@@ -1,0 +1,30 @@
+id: "PQ-ACCEPT-01"
+title: "Product Query Catalog-change acceptance"
+kind: "acceptance"
+status: "DEMO_ASSUMED_CONFIRMED"
+promiser: "Product Query service role (fictional)"
+audience:
+  - "Catalog product-change producer for the existing shop projection"
+scope:
+  environment: "simulated local Sokol111 shop"
+  fixture_version: 2
+  purpose: "Existing configured read-projection input"
+commitment: "In this fictional experiment Product Query accepts and processes supported Catalog product-update/deletion event formats according to version and tenant semantics, when messages are delivered and processable."
+conditions:
+  - "Events arrive and can be processed for the configured shop projection"
+  - "Event format, version and tenant semantics are supported"
+limitations:
+  - "Does not prove actual event-type processing, complete projections, delivery latency or read freshness"
+  - "An observed topic attachment does not verify this semantic acceptance"
+  - "Does not authorize a new consumer or itself offer read APIs"
+  - "C1 PROMISED_AND_OBSERVED is based on the frozen demo EventCatalog assumption, not this Promise Contract"
+rationale: "Product Query independently accepts the relevant change events to maintain its read model. This acceptance is separate from its read offer."
+evidence:
+  -
+    source: "https://github.com/Sokol111/ecommerce-product-query-service/blob/master/AGENTS.md"
+    supports: "Projection design, not owner confirmation"
+  -
+    source: "https://github.com/Sokol111/ecommerce-product-query-service/blob/master/internal/infrastructure/inbound/kafka/fxconfig/module.go"
+    supports: "Registered event consumers, not runtime processing proof"
+evolution: "Only the modeled Product Query owner may revise this acceptance; keep PQ-READ-01 separately versioned and AIP evidence independently qualified."
+counterparty: "Catalog product-change offer (CAT-OFFER-01)"
