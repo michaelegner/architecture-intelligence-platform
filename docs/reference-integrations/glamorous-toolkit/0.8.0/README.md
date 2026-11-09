@@ -12,6 +12,8 @@
 
 **Central question:** Can an architect use the existing local offers and evidence to **derive a justified decision about whether the connector should accept and make any new promises**? The business deadline is the requirement—not an automatically accepted outward commitment. A valid outcome may be to defer or decline that promise.
 
+**[GT tooling (I2)](gt/README.md):** neutral GT 1.1.657 views, the participant-corpus builder and an empty investigation page. The I2 done-when is assessed in I3.
+
 **[Read the specification](specification.md)** — three increments: (1) freeze four existing-service Promise Contracts, one external-marketplace contract and evidence; (2) one promise-first GT/Lepiter investigation **that produces a consumer decision, not a seeded promise**; (3) fair comparison and findings. The marketplace's fictional accepted-withdrawal condition is separate from upstream change propagation and any connector responsibility. Incomplete AIP v0.8 qualification is **not a blocker**. GT may display the demo Promise Contracts separately from v0.8 qualified broker evidence; never present the Promise Contracts as native AIP-qualified behavioral Intent.
 
 **Article lens:** Adapted from [Daniel Kocot, *Integration Beyond the Interface*](https://adorsys.com/en/techradar/integration-beyond-the-interface%20/): Why and for whom is each capability offered? What may the consumer rely on? Is use permitted? Who promises what independently? Can the commitments remain compatible as things change?

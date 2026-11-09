@@ -1,0 +1,152 @@
+{
+  "catalog/product-change-events.yaml": {
+    "audience": [
+      "Existing shop projection consumers"
+    ],
+    "commitment": "In this fictional experiment Catalog offers product-change messages for successfully committed product updates and deletions through its asynchronous outgoing-event mechanism.",
+    "conditions": [
+      "The relevant product update or deletion commits for the tenant",
+      "The audience is the existing modeled shop projection consumers"
+    ],
+    "evidence": [
+      {
+        "source": "https://github.com/Sokol111/ecommerce-catalog-service/blob/e9f147483e6e33ec512851d478169d2985614b09/internal/infrastructure/outbound/kafka/product_event_factory.go",
+        "supports": "Event construction, not owner confirmation"
+      },
+      {
+        "source": "https://github.com/Sokol111/ecommerce-catalog-service/blob/e9f147483e6e33ec512851d478169d2985614b09/AGENTS.md",
+        "supports": "Architecture context, not an owner commitment"
+      },
+      {
+        "source": "https://github.com/Sokol111/ecommerce-catalog-service/blob/e9f147483e6e33ec512851d478169d2985614b09/internal/application/product/update_product.go",
+        "supports": "Outbox implementation, not guaranteed downstream delivery"
+      }
+    ],
+    "evolution": "Only the modeled Catalog owner can revise this fictional offer.",
+    "id": "CAT-OFFER-01",
+    "kind": "offer",
+    "limitations": [
+      "Transaction commit, outbox recording, publication and downstream processing are different stages",
+      "No delivery or latency guarantee is offered",
+      "New consumers or changed purposes need their own applicability and acceptance assessment"
+    ],
+    "promiser": "Catalog service role (fictional)",
+    "rationale": "Change events allow independently maintained shop read projections without requiring synchronous Catalog reads.",
+    "scope": {
+      "environment": "simulated local Sokol111 shop",
+      "fixture_version": 2,
+      "purpose": "Existing shop product-change propagation"
+    },
+    "status": "DEMO_ASSUMED_CONFIRMED",
+    "title": "Catalog product-change events"
+  },
+  "image/image-promotion-information.yaml": {
+    "audience": [
+      "Existing shop image-read and projection consumers"
+    ],
+    "commitment": "In this fictional experiment Image offers information about successfully promoted product images through image-promotion events for existing shop projection consumers.",
+    "conditions": [
+      "The relevant product-media promotion succeeds in the tenant scope",
+      "The consumer is within the modeled existing shop audience"
+    ],
+    "evidence": [
+      {
+        "source": "https://github.com/Sokol111/ecommerce-image-service/blob/f1b97e8402e8183b131847f8a4db8bb00dddb33a/AGENTS.md",
+        "supports": "Image lifecycle design, not owner confirmation"
+      },
+      {
+        "source": "https://github.com/Sokol111/ecommerce-product-query-service/blob/b8f5137b9e6fae3bacbe0319e0c23edfd0d25f19/AGENTS.md",
+        "supports": "Described image-event handling, not an end-to-end guarantee"
+      }
+    ],
+    "evolution": "Only the modeled Image owner can revise this fictional offer.",
+    "id": "IMG-OFFER-01",
+    "kind": "offer",
+    "limitations": [
+      "Image promotion is distinct from Catalog product changes",
+      "Does not authorize additional consumers"
+    ],
+    "promiser": "Image service role (fictional)",
+    "rationale": "Media promotion has an independent lifecycle from product state writes, allowing separately maintained projections.",
+    "scope": {
+      "environment": "simulated local Sokol111 shop",
+      "fixture_version": 2,
+      "purpose": "Promoted product media information"
+    },
+    "status": "DEMO_ASSUMED_CONFIRMED",
+    "title": "Image promotion information"
+  },
+  "product-query/catalog-change-acceptance.yaml": {
+    "audience": [
+      "Catalog product-change producer for the existing shop projection"
+    ],
+    "commitment": "In this fictional experiment Product Query accepts and processes supported Catalog product-update/deletion event formats according to version and tenant semantics, when messages are delivered and processable.",
+    "conditions": [
+      "Events arrive and can be processed for the configured shop projection",
+      "Event format, version and tenant semantics are supported"
+    ],
+    "counterparty": "Catalog product-change offer (CAT-OFFER-01)",
+    "evidence": [
+      {
+        "source": "https://github.com/Sokol111/ecommerce-product-query-service/blob/b8f5137b9e6fae3bacbe0319e0c23edfd0d25f19/AGENTS.md",
+        "supports": "Projection design, not owner confirmation"
+      },
+      {
+        "source": "https://github.com/Sokol111/ecommerce-product-query-service/blob/b8f5137b9e6fae3bacbe0319e0c23edfd0d25f19/internal/infrastructure/inbound/kafka/fxconfig/module.go",
+        "supports": "Registered event consumers, not runtime processing proof"
+      }
+    ],
+    "evolution": "Only the modeled Product Query owner may revise this acceptance; PQ-READ-01 is versioned separately.",
+    "id": "PQ-ACCEPT-01",
+    "kind": "acceptance",
+    "limitations": [
+      "Does not prove actual event-type processing, complete projections, delivery latency or read freshness",
+      "Does not authorize a new consumer or itself offer read APIs"
+    ],
+    "promiser": "Product Query service role (fictional)",
+    "rationale": "Product Query independently accepts the relevant change events to maintain its read model. This acceptance is separate from its read offer.",
+    "scope": {
+      "environment": "simulated local Sokol111 shop",
+      "fixture_version": 3,
+      "purpose": "Existing configured read-projection input"
+    },
+    "status": "DEMO_ASSUMED_CONFIRMED",
+    "title": "Product Query Catalog-change acceptance"
+  },
+  "product-query/product-reads.yaml": {
+    "audience": [
+      "Separately provisioned tenant-scoped product-display clients"
+    ],
+    "commitment": "In this fictional experiment Product Query offers tenant-scoped product-list and product-detail reads reflecting the current projection state at query time.",
+    "conditions": [
+      "The client is separately provisioned and authorized for its tenant and purpose",
+      "The request addresses supported tenant products using the published API"
+    ],
+    "evidence": [
+      {
+        "source": "https://github.com/Sokol111/ecommerce-product-query-service/blob/b8f5137b9e6fae3bacbe0319e0c23edfd0d25f19/AGENTS.md",
+        "supports": "Read model design context, not owner confirmation"
+      },
+      {
+        "source": "https://github.com/Sokol111/ecommerce-product-query-service-api/tree/692895e8f23a7d8b87befa7ae345d05f74ebe6a9",
+        "supports": "Published API context, not proof of provisioned access"
+      }
+    ],
+    "evolution": "Only the modeled Product Query owner may revise this offer, independently of PQ-ACCEPT-01.",
+    "id": "PQ-READ-01",
+    "kind": "offer",
+    "limitations": [
+      "No API credentials or provisioning approval are granted by the offer itself",
+      "No guarantee of freshness relative to the latest Catalog commit"
+    ],
+    "promiser": "Product Query service role (fictional)",
+    "rationale": "A separate read-optimized projection decouples display-client query traffic from Catalog writes, with independently scoped API audiences.",
+    "scope": {
+      "environment": "simulated local Sokol111 shop",
+      "fixture_version": 3,
+      "purpose": "Read current product projection through published API"
+    },
+    "status": "DEMO_ASSUMED_CONFIRMED",
+    "title": "Product Query tenant-scoped product reads"
+  }
+}
