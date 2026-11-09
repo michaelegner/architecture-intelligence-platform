@@ -1,6 +1,6 @@
 Object subclass: #GtAipHostedClient
 	instanceVariableNames: 'client transport expectedSnapshotId'
-	classVariableNames: ''
+	classVariableNames: 'Session'
 	package: 'AIP-GT-Promises-AIP'!
 
 Object subclass: #GtAipBindingPicture
@@ -29,12 +29,21 @@ scope
 		'broker_ids' -> #('kafka:sokol111-local')
 	} asDictionary! !
 
+!GtAipHostedClient class methodsFor: 'session' stamp: '11/9/2026 21:00'!
+session
+	"The one client of this image's investigation. Its log holds every call made through it."
+	^ Session ifNil: [ Session := self new ]! !
+
+!GtAipHostedClient class methodsFor: 'session' stamp: '11/9/2026 21:00'!
+resetSession
+	Session := nil! !
+
 !GtAipHostedClient class methodsFor: 'investigation page' stamp: '11/9/2026 18:00'!
 createInvestigationPageIn: aCorpus condition: aConditionName
 	^ GtAipInvestigationPage
 		createPageIn: aCorpus
 		condition: aConditionName
-		extraSnippets: #('GtAipHostedClient new bindingPicture')! !
+		extraSnippets: #('GtAipHostedClient session bindingPicture')! !
 
 !GtAipHostedClient methodsFor: 'initialization' stamp: '11/9/2026 18:00'!
 initialize

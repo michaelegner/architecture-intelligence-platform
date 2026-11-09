@@ -15,6 +15,7 @@ Run in GT 1.1.657 on Windows, from the runbook:
 | Connectivity to the hosted endpoint, packages load, contracts view | pass |
 | Investigation page created, its snippets run, and it is kept after save and restart | pass |
 | No AIP classes in an image without the AIP package | waived by the owner |
+| Re-smoke after the review fixes: first impression before the snippets, `DEMO-CONTRACT-001` / `external contract`, `session` drill-down, log with query and evidence calls on the frozen snapshot | pass |
 | Binding picture with 9 rows, evidence drill-down, snapshot mismatch error, log export | pass |
 | Lepiter storage | `Documents\lepiter\default`, outside the image; isolation steps added to the runbook |
 
@@ -32,12 +33,12 @@ Run in GT 1.1.657 on Windows, from the runbook:
 
 - The Contracts view is a flat list of the five contracts, ordered by file path. Every field has equal weight. There is no graph, route or comparison view.
 - Evidence links open the pinned file in the local corpus. A link outside the corpus shows "not in corpus". GT does not open a browser.
-- The investigation page holds the task text and the five "Your answer" items of `task.md`, and nothing else.
+- The investigation page holds the task text and the five "Your answer" items of `task.md`, and nothing else. The first item (first impression) comes before the snippets that open contracts or AIP.
 - The AIP views show every binding-picture row with all of its fields and refs per role. Evidence drill-down works on any row. It fetches all refs in batches of at most 20.
 
 ## Limits
 
 - GT checks the snapshot ID of every AIP answer. The canonical answer digest is checked outside GT, as in the [I1 freeze record](../i1-freeze/README.md).
 - `GtAipHostedClient` asks only the frozen `get_binding_picture` scope (Catalog Management, local broker). The agent + AIP condition can use all seven read-only tools and any scope. The researcher chose this fixed GT view, and GT participants cannot change it.
-- `exportLogTo:` records the session's MCP messages as parsed objects. The log is not byte evidence.
+- `GtAipHostedClient session` is the one client per image. Its `exportLogTo:` records every MCP message sent through it, as parsed objects. The log is not byte evidence. Calls through another client instance are not in it.
 - In I3, humans operate GT and agents operate the other two conditions. Comparisons across operator types are therefore exploratory. GT vs GT + AIP and agent vs agent + AIP are the attribution pairs.

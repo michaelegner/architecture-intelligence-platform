@@ -70,7 +70,9 @@ CodeImporter evaluateFileNamed: '<path>/AIP-GT-Promises-AIP.st'.   "GT + AIP onl
 
 ## 5. Create the investigation page
 
-Each condition gets its own page. The page is empty except for the task text and the five answer headings.
+Create the page in the same GT session as step 4. A restart without saving the image loses the loaded packages. A page created by an older package version keeps its old layout, because `createPageIn:` returns an existing page unchanged.
+
+Each condition gets its own page. It holds the task text, the first answer item (first impression), the snippets that open the contracts (and in GT + AIP the binding picture), and then answer items 2–5. Nothing else is on it.
 
 ```smalltalk
 "GT, no AIP"
@@ -89,14 +91,16 @@ GtAipHostedClient
 Report each check as pass or fail.
 
 1. The packages load without errors. In the no-AIP image, `Smalltalk globals includesKey: #GtAipHostedClient` is `false`.
-2. The Contracts view lists five contracts. Each one shows its Fields and Raw views. In the Evidence view, a source opens a local corpus file.
+2. The Contracts view lists five contracts, the Markdown one as `DEMO-CONTRACT-001` with kind `external contract`. All five show a Raw view. The four YAML contracts also show Fields and Evidence. In the Evidence view, a source opens a local corpus file.
 3. The investigation page exists, and its snippets run.
 4. Type a test line on the page, save the image, restart GT and reopen the page. The line is still there.
 5. GT + AIP only:
-   - `GtAipHostedClient new bindingPicture` shows 9 rows with every field.
+   - `GtAipHostedClient session bindingPicture` shows 9 rows with every field.
    - The Evidence view of any row resolves all of its refs.
    - `GtAipHostedClient new expectedSnapshotId: 'x'; bindingPicture` signals `Snapshot mismatch`.
-   - `| c | c := GtAipHostedClient new. c bindingPicture. c exportLogTo: '<file>'` writes a file. The log records the session as parsed messages. It is not byte evidence.
+   - `GtAipHostedClient session exportLogTo: '<file>'` writes a file that contains the calls made above through `session`, including evidence drill-down. The log records the session as parsed messages. It is not byte evidence.
+
+**Session log in I3.** Every AIP call of a participant goes through `GtAipHostedClient session`: the page snippet uses it, and its views reuse it for drill-down. At the end of the session, run `GtAipHostedClient session exportLogTo: '<file>'`. A client that a participant creates with `GtAipHostedClient new` is not in that log. Record any such use as a deviation.
 6. Report where the database stores its pages: inspect `LeDatabasesRegistry defaultPrimaryDatabase` and copy its storage location. The smoke run on 2026-11-09 reported `Documents\lepiter\default`.
 
 After the smoke test, delete the test page or use a new GT extraction for I3.

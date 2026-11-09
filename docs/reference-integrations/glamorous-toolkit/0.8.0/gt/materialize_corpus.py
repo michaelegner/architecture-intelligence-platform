@@ -89,9 +89,9 @@ def render_contracts(repo: Path) -> bytes:
 
 def check_rendering(repo: Path) -> bytes:
     committed = (Path(__file__).parent / "contracts.json").read_bytes()
-    rendered = json.loads(render_contracts(repo))
-    if json.loads(committed) != rendered:
-        raise Stop("contracts.json differs from the frozen YAML contracts")
+    rendered = render_contracts(repo)
+    if committed != rendered:
+        raise Stop("contracts.json differs from the rendering of the frozen YAML contracts")
     return committed
 
 

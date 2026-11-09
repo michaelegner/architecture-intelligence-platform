@@ -72,7 +72,10 @@ localFileFor: aUrlString
 	sha := parts fourth.
 	(self pinnedShaFor: repository) = sha ifFalse: [ ^ nil ].
 	file := directory / 'sokol111' / repository.
-	(parts allButFirst: 4) do: [ :segment | file := file / segment ].
+	(parts allButFirst: 4) do: [ :segment |
+		(segment isEmpty or: [ segment = '.' or: [ segment = '..' or: [ segment includes: $\ ] ] ])
+			ifTrue: [ ^ nil ].
+		file := file / segment ].
 	^ file exists ifTrue: [ file ] ifFalse: [ nil ]! !
 
 !GtAipPromiseCorpus methodsFor: 'views' stamp: '11/9/2026 18:00'!
@@ -141,7 +144,8 @@ field: aKey
 
 !GtAipPromiseContract methodsFor: 'accessing' stamp: '11/9/2026 18:00'!
 id
-	data ifNil: [ ^ (self raw lines first allButFirst: 2) trimBoth ].
+	"A Markdown contract's id is the first word of its '# ' heading."
+	data ifNil: [ ^ (self raw lines first allButFirst: 2) substrings first ].
 	^ self field: 'id'! !
 
 !GtAipPromiseContract methodsFor: 'accessing' stamp: '11/9/2026 18:00'!
@@ -151,6 +155,7 @@ promiser
 
 !GtAipPromiseContract methodsFor: 'accessing' stamp: '11/9/2026 18:00'!
 kind
+	data ifNil: [ ^ 'external contract' ].
 	^ self field: 'kind'! !
 
 !GtAipPromiseContract methodsFor: 'accessing' stamp: '11/9/2026 18:00'!
@@ -233,11 +238,13 @@ createPageIn: aCorpus condition: aConditionName extraSnippets: someCodeStrings
 		ifTrue: [ Error signal: 'This database holds another condition''s investigation page' ].
 	database pageNamed: title ifPresent: [ :existing | ^ existing ] ifAbsent: [ ].
 	page := LePage named: title.
+	"The first impression comes before any snippet that opens a contract, source or tool."
 	page addSnippet: (LeTextSnippet string: aCorpus task).
+	page addSnippet: (LeTextSnippet string: self answerHeadings first).
 	page addSnippet: (LePharoSnippet code:
 		'GtAipPromiseCorpus onDirectory: ''' , aCorpus directory fullName , '''').
 	someCodeStrings do: [ :each | page addSnippet: (LePharoSnippet code: each) ].
-	self answerHeadings do: [ :each |
+	self answerHeadings allButFirst do: [ :each |
 		page addSnippet: (LeTextSnippet string: each) ].
 	database addPage: page.
 	^ page! !
