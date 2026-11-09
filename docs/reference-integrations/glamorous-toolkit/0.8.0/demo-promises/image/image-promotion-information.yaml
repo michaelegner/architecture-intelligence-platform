@@ -7,7 +7,7 @@ audience:
   - "Existing shop image-read and projection consumers"
 scope:
   environment: "simulated local Sokol111 shop"
-  fixture_version: 1
+  fixture_version: 2
   purpose: "Promoted product media information"
 commitment: "In this fictional experiment Image offers information about successfully promoted product images through image-promotion events for existing shop projection consumers."
 conditions:
@@ -15,14 +15,13 @@ conditions:
   - "The consumer is within the modeled existing shop audience"
 limitations:
   - "Image promotion is distinct from Catalog product changes"
-  - "Does not determine marketplace presentation or additional consumer authorization"
-  - "Source and broker attachment evidence are not owner approval or proof of event delivery"
+  - "Does not authorize additional consumers"
 rationale: "Media promotion has an independent lifecycle from product state writes, allowing separately maintained projections."
 evidence:
   -
-    source: "https://github.com/Sokol111/ecommerce-image-service/blob/master/AGENTS.md"
+    source: "https://github.com/Sokol111/ecommerce-image-service/blob/f1b97e8402e8183b131847f8a4db8bb00dddb33a/AGENTS.md"
     supports: "Image lifecycle design, not owner confirmation"
   -
-    source: "https://github.com/Sokol111/ecommerce-product-query-service/blob/master/AGENTS.md"
+    source: "https://github.com/Sokol111/ecommerce-product-query-service/blob/b8f5137b9e6fae3bacbe0319e0c23edfd0d25f19/AGENTS.md"
     supports: "Described image-event handling, not an end-to-end guarantee"
-evolution: "Only the modeled Image owner can revise this fictional offer; separately verify consumer acceptance."
+evolution: "Only the modeled Image owner can revise this fictional offer."

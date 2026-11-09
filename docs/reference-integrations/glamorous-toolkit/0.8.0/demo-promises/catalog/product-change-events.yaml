@@ -7,7 +7,7 @@ audience:
   - "Existing shop projection consumers"
 scope:
   environment: "simulated local Sokol111 shop"
-  fixture_version: 1
+  fixture_version: 2
   purpose: "Existing shop product-change propagation"
 commitment: "In this fictional experiment Catalog offers product-change messages for successfully committed product updates and deletions through its asynchronous outgoing-event mechanism."
 conditions:
@@ -17,16 +17,15 @@ limitations:
   - "Transaction commit, outbox recording, publication and downstream processing are different stages"
   - "No delivery or latency guarantee is offered"
   - "New consumers or changed purposes need their own applicability and acceptance assessment"
-  - "Does not grant marketplace access or any future connector commitment"
 rationale: "Change events allow independently maintained shop read projections without requiring synchronous Catalog reads."
 evidence:
   -
-    source: "https://github.com/Sokol111/ecommerce-catalog-service/blob/master/internal/infrastructure/outbound/kafka/product_event_factory.go"
+    source: "https://github.com/Sokol111/ecommerce-catalog-service/blob/e9f147483e6e33ec512851d478169d2985614b09/internal/infrastructure/outbound/kafka/product_event_factory.go"
     supports: "Event construction, not owner confirmation"
   -
-    source: "https://github.com/Sokol111/ecommerce-catalog-service/blob/master/AGENTS.md"
+    source: "https://github.com/Sokol111/ecommerce-catalog-service/blob/e9f147483e6e33ec512851d478169d2985614b09/AGENTS.md"
     supports: "Architecture context, not an owner commitment"
   -
-    source: "https://github.com/Sokol111/ecommerce-catalog-service/blob/master/internal/application/product/update_product.go"
+    source: "https://github.com/Sokol111/ecommerce-catalog-service/blob/e9f147483e6e33ec512851d478169d2985614b09/internal/application/product/update_product.go"
     supports: "Outbox implementation, not guaranteed downstream delivery"
-evolution: "Only the modeled Catalog owner can revise this fictional offer; separately freeze source and AIP evidence."
+evolution: "Only the modeled Catalog owner can revise this fictional offer."

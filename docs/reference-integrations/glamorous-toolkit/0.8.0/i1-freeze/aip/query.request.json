@@ -1,0 +1,1 @@
+{"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "get_binding_picture", "arguments": {"request": {"mode": "query", "bounded_context_id": "catalog-management", "environment": "local", "broker_ids": ["kafka:sokol111-local"]}}}}

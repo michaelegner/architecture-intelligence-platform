@@ -1,6 +1,6 @@
 # AIP × Glamorous Toolkit — v0.8 contract reference experiment
 
-**Status:** lightweight **pre-v0.9** experiment; Draft 0.16, demonstration only, GT implementation/evaluation pending  
+**Status:** lightweight **pre-v0.9** experiment; Draft 0.16, demonstration only; **I1 frozen** ([freeze record](i1-freeze/README.md)); GT implementation/evaluation pending  
 **GT baseline:** official v1.1.657, bundled gt4llm v0.7.341  
 **AIP source:** public read-only Sokol111 MCP `https://mcp.daip.io/mcp` (frozen pre-wave-1 C1 evidence)
 

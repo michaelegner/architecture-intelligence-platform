@@ -7,24 +7,21 @@ audience:
   - "Separately provisioned tenant-scoped product-display clients"
 scope:
   environment: "simulated local Sokol111 shop"
-  fixture_version: 2
+  fixture_version: 3
   purpose: "Read current product projection through published API"
 commitment: "In this fictional experiment Product Query offers tenant-scoped product-list and product-detail reads reflecting the current projection state at query time."
 conditions:
   - "The client is separately provisioned and authorized for its tenant and purpose"
   - "The request addresses supported tenant products using the published API"
-  - "A future sales-channel adapter is eligible only with separately approved access"
 limitations:
-  - "No API credentials, marketplace rights or provisioning approval granted by the offer itself"
+  - "No API credentials or provisioning approval are granted by the offer itself"
   - "No guarantee of freshness relative to the latest Catalog commit"
-  - "PQ-ACCEPT-01 does not guarantee this read offer for new clients"
-  - "AIP C1 broker attachments do not verify read results or client authorization"
 rationale: "A separate read-optimized projection decouples display-client query traffic from Catalog writes, with independently scoped API audiences."
 evidence:
   -
-    source: "https://github.com/Sokol111/ecommerce-product-query-service/blob/master/AGENTS.md"
+    source: "https://github.com/Sokol111/ecommerce-product-query-service/blob/b8f5137b9e6fae3bacbe0319e0c23edfd0d25f19/AGENTS.md"
     supports: "Read model design context, not owner confirmation"
   -
-    source: "https://github.com/Sokol111/ecommerce-product-query-service-api"
+    source: "https://github.com/Sokol111/ecommerce-product-query-service-api/tree/692895e8f23a7d8b87befa7ae345d05f74ebe6a9"
     supports: "Published API context, not proof of provisioned access"
 evolution: "Only the modeled Product Query owner may revise this offer, independently of PQ-ACCEPT-01."
