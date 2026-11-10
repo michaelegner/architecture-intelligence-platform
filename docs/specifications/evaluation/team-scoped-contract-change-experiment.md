@@ -1,6 +1,6 @@
 # Experiment: team-scoped contract change with human plan review
 
-**Status:** Draft 0.1 (2026-11-10)
+**Status:** Draft 0.2 (2026-11-10; #686 review corrections)
 **Inputs:** [ROADMAP v0.9](../../../ROADMAP.md) ("customer problem first"), the
 [v0.8 showcase value qualification](v08-showcase-value-qualification-experiment.md) and its
 [result](v08-showcase-value-qualification-result.md), the
@@ -67,14 +67,26 @@ Step 1 needs the Sokol111 clones and the existing matrix. It needs no environmen
 
 1. Fix the breaking change. Record the producer location and the consumer handler locations in both
    query services.
-2. Write the task card in two variants, T+ and T−. Start from the
-   [T cards](v08-value-qualification-evidence/cards/) of the value qualification. Replace the goal.
-   Keep the access text, the request channel and the evidence schema.
-3. Write the plan key (§5.1) and the review key (§6.3).
-4. Freeze the cards, the keys, the settings and the reviewer packet template with their digests.
+2. Record for each consumer whether its handler reads the changed event and field: `yes`, `no` or
+   `cannot tell`, with the source location. This is a separate record from the topic attachment.
+   An attachment does not establish it.
+3. Write the task card in two variants, T+ and T−. Start from the
+   [T cards](v08-value-qualification-evidence/cards/) of the value qualification.
+   - **Keep:** the environment and access text, the request channel, the `evidence[]` schema and the
+     isolation rules.
+   - **Replace:** the goal, the first message, the migration constraints (MirrorMaker, the functional
+     test, the "lossless" and "exactly-once" text), the plan schema (no `allow_lists` field), and
+     the permitted outputs. The permitted outputs are `plan.json`, `plan.md`, `involve.json` and
+     `requests.json`.
+   - **Remove:** `answers.json` and its five questions.
+4. Write the settings from the [T settings](v08-value-qualification-evidence/settings/). Change only
+   the write permissions, to the permitted outputs of the new card.
+5. Write the claim rules (§5.2), the plan key (§5.1) and the review measures (§6.3).
+6. Freeze the cards, the settings, the rules, the keys and the reviewer packet template with their
+   digests.
 
-Reused unchanged from the value qualification: the team-scoped settings, the request catalogue
-(R1, the R2 list, R3), the claim rules U1–U6, the comparison criteria and the audit.
+Reused unchanged from the value qualification: the request catalogue (R1, the R2 list, R3), the
+comparison criteria and the audit.
 
 **Owner checkpoint 1:** the owner approves the breaking change, the cards and the keys. Nothing is
 frozen before this checkpoint.
@@ -114,10 +126,23 @@ frozen before this checkpoint.
 
 The scorer decides P1–P4 mechanically. The owner gives a verdict with a one-line reason on P5–P7.
 
-### 5.2 Counts
+P1–P3 score the topic attachment. Both consumer owners are parties to involve, also when Step 1
+records that a handler does not read the changed field: only the owner of the consumer can confirm
+that.
 
-Requests, unsupported claims (U1–U6), tool calls, active agent time and output tokens. For every
-count, lower is better. The result shows the counts next to P1–P3 of the same type, because fewer
+### 5.2 Claim rules and counts
+
+The claim rules are those of the value qualification (§5.3 there), with these changes:
+
+- **Scope:** the scorer reads `plan.json`, `plan.md` and `involve.json`.
+- **U1–U5:** unchanged.
+- **U6:** an unsupported claim states a result of the contract change as established, in place of a
+  check to run. Examples: "the change is backward compatible", "both consumers keep working",
+  "the deployment order is safe".
+- **Not counted:** claims that the new card forbids.
+
+The counts are requests, unsupported claims (U1–U6), tool calls, active agent time and output
+tokens. For every count, lower is better. The result shows the counts next to P1–P3 of the same type, because fewer
 requests with a consumer missed is not a better result.
 
 ### 5.3 Criteria
@@ -145,21 +170,27 @@ ranges per count, and `NOT DISTINGUISHABLE` when ranges overlap. A result of no 
 4. The reviewer has at most 25 minutes per plan and fills one form:
    - the decision: accept, accept with conditions, or reject, with the conditions;
    - for each binding claim that the packet lists: supported, not supported, or cannot tell;
-   - the parties the reviewer would involve before the change ships;
    - the minutes used and the confidence in the decision (low, medium, high);
    - one sentence on what was hard to judge.
 5. After both plans, the reviewer answers one question: which packet was easier to judge, and why?
 
 The operator gives the packets and the form unchanged and answers no content question.
 
-### 6.3 Review key and measures
+### 6.3 Review measures
+
+Part B measures how a reviewer judges the **claims that the plan presents**. A packet holds only the
+evidence that the plan cites, so it cannot reveal a consumer or an owner that the plan omits.
+Completeness is scored in Part A only (P1–P4). No reviewer is scored on something the packet cannot
+reveal.
+
+A **binding claim** is a claim with a consumer × topic subject (rules U2–U5). The packet lists each
+one.
 
 | Measure | Source |
 |---|---|
-| Claim verdicts that agree with the scorer's verdicts for the same claims | the Part A claim scoring |
-| Unsupported claims of the plan that the reviewer marked "not supported" or "cannot tell" | the Part A claim scoring |
-| The reviewer names both consumer owners as parties to involve | P1–P3 |
-| The decision fits the plan: a plan with a `DIFFERENT` or missing P1–P3 item is not accepted without a condition that covers it | the Part A plan scoring |
+| Binding-claim agreement: the reviewer's verdicts that agree with the scorer's verdicts for the same binding claims | the Part A claim scoring |
+| Binding-claim detection: the unsupported binding claims that the reviewer marked "not supported" or "cannot tell" | the Part A claim scoring |
+| Decision fit: a plan with an unsupported binding claim is not accepted without a condition that covers that claim | the Part A claim scoring and the form |
 | Minutes used, confidence, the "easier to judge" answer | the form |
 
 The result reports Part B per reviewer and per plan. It does not aggregate and it draws no
@@ -189,7 +220,7 @@ The result record contains:
 | PR | Content |
 |---|---|
 | 1 | this specification |
-| 2 | Step 1 and owner checkpoint 1; the frozen materials; the harness changes with unit tests (`involve.json`, the P items, the reviewer packet builder); the 6 sessions; the reviews; the scoring; the result record |
+| 2 | Step 1 and owner checkpoint 1; the frozen materials; the harness changes with unit tests (the new plan schema, `involve.json`, the P items, the adapted U6, the reviewer packet builder); the 6 sessions; the reviews; the scoring; the result record |
 
 The 6 sessions need one bring-up and fit one usage window. The reviews depend on the reviewers'
 availability and can follow days later; PR 2 stays open until they are in.
