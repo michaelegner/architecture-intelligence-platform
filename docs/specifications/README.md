@@ -24,7 +24,9 @@ shipped: [`ROADMAP.md`](../../ROADMAP.md) is the single source for that.
 
 Model-validation experiments live in [`evaluation/`](evaluation/): the
 [EventCatalog semantic mapping experiment](evaluation/eventcatalog-semantic-mapping-experiment.md)
-and its [result](evaluation/eventcatalog-semantic-mapping-result.md).
+and its [result](evaluation/eventcatalog-semantic-mapping-result.md). The pre-v0.9
+[team-scoped contract change experiment](evaluation/team-scoped-contract-change-experiment.md) is
+also there.
 
 See [`docs/architecture.md`](../architecture.md#architecture-principles) and
 [`docs/adr/`](../adr/) for how these design decisions map onto the system as it exists today, and
