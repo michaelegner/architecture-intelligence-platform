@@ -1,0 +1,9 @@
+{
+  "session": "GA-1",
+  "verdict": "CLEAN",
+  "snapshots_seen": [],
+  "violations": [],
+  "notes": [
+    "AIP answer without a snapshot (not scorable): GA client log"
+  ]
+}

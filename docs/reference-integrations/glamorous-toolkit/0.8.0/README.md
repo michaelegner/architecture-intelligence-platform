@@ -1,6 +1,6 @@
 # AIP × Glamorous Toolkit — v0.8 contract reference experiment
 
-**Status:** lightweight **pre-v0.9** experiment; Draft 0.16, demonstration only; **I1 frozen** ([freeze record](i1-freeze/README.md)); GT implementation/evaluation pending  
+**Status:** lightweight **pre-v0.9** experiment; Draft 0.16, demonstration only; **I1 frozen** ([freeze record](i1-freeze/README.md)); **I3 evaluated** ([report](i3/report.md))  
 **GT baseline:** official v1.1.657, bundled gt4llm v0.7.341  
 **AIP source:** public read-only Sokol111 MCP `https://mcp.daip.io/mcp` (frozen pre-wave-1 C1 evidence)
 
@@ -12,7 +12,9 @@
 
 **Central question:** Can an architect use the existing local offers and evidence to **derive a justified decision about whether the connector should accept and make any new promises**? The business deadline is the requirement—not an automatically accepted outward commitment. A valid outcome may be to defer or decline that promise.
 
-**[GT tooling (I2)](gt/README.md):** neutral GT 1.1.657 views, the participant-corpus builder and an empty investigation page. The I2 done-when is assessed in I3.
+**[GT tooling (I2)](gt/README.md):** neutral GT 1.1.657 views, the participant-corpus builder and an empty investigation page.
+
+**[Evaluation (I3)](i3/report.md):** four agent arms (files, files + AIP, GT, GT + AIP), one run each. All four reached the same conditional-proceed decision. E1 was not shown: the GT + AIP agent never queried AIP, and direct AIP added no decision-relevant fact. GT navigation by an agent is feasible but added no value here. The I2 done-when (a human investigator) was not evaluated. [Scoring](i3/scoring.md), [harness](i3/harness/README.md).
 
 **[Read the specification](specification.md)** — three increments: (1) freeze four existing-service Promise Contracts, one external-marketplace contract and evidence; (2) one promise-first GT/Lepiter investigation **that produces a consumer decision, not a seeded promise**; (3) fair comparison and findings. The marketplace's fictional accepted-withdrawal condition is separate from upstream change propagation and any connector responsibility. Incomplete AIP v0.8 qualification is **not a blocker**. GT may display the demo Promise Contracts separately from v0.8 qualified broker evidence; never present the Promise Contracts as native AIP-qualified behavioral Intent.
 

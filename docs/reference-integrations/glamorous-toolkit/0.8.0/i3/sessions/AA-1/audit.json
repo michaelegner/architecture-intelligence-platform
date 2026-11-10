@@ -1,0 +1,9 @@
+{
+  "session": "AA-1",
+  "verdict": "CLEAN",
+  "snapshots_seen": [
+    "aip:snapshot:v1:7f171aea2d3c5070e6be3dd9c6b53a234ad75934be5724681b95cd3e1705c413"
+  ],
+  "violations": [],
+  "notes": []
+}

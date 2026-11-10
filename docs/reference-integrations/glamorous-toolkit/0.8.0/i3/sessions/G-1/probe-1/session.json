@@ -1,0 +1,80 @@
+{
+  "session": "G-1",
+  "arm": "G",
+  "created_utc": "2026-11-10T08:38:53Z",
+  "model": "claude-opus-5-5",
+  "gt_zip_sha256": "19ae8ba3edd80a786a56d44d35f52b7d4796312da676d1104fcef7b4fecfd4da",
+  "corpus_sha256sums_sha256": "a9d9d99d8c49ccdc2134b7f9c6b48b193681597e7bd08308377ee2f2124be1cd",
+  "started_utc": "2026-11-10T09:28:30Z",
+  "ended_utc": "2026-11-10T09:28:55Z",
+  "duration_s": 24,
+  "exit_code": 0,
+  "claude_code_version": "2.1.322",
+  "model_reported": "claude-opus-5-5",
+  "tools_offered": [
+    "Read",
+    "ToolSearch",
+    "Write",
+    "mcp__gt__getLepiterPageContents",
+    "mcp__gt__getViewText",
+    "mcp__gt__listObjectStorage",
+    "mcp__gt__selectViewItem"
+  ],
+  "mcp_servers": [
+    {
+      "name": "gt",
+      "status": "connected",
+      "source": "dynamic"
+    }
+  ],
+  "usage": {
+    "num_turns": 11,
+    "duration_ms": 23307,
+    "total_cost_usd": 0.1415164,
+    "tokens": {
+      "input_tokens": 14,
+      "cache_creation_input_tokens": 12649,
+      "cache_read_input_tokens": 55742,
+      "output_tokens": 1456,
+      "output_tokens_details": {
+        "thinking_tokens": 324
+      },
+      "server_tool_use": {
+        "web_search_requests": 0,
+        "web_fetch_requests": 0
+      },
+      "service_tier": "standard",
+      "cache_creation": {
+        "ephemeral_1h_input_tokens": 12649,
+        "ephemeral_5m_input_tokens": 0
+      },
+      "inference_geo": "global",
+      "iterations": [
+        {
+          "input_tokens": 2,
+          "output_tokens": 299,
+          "cache_read_input_tokens": 14903,
+          "cache_creation_input_tokens": 187,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 187
+          },
+          "type": "message"
+        }
+      ],
+      "speed": "standard",
+      "fallback_credit": null
+    },
+    "permission_denials": 4,
+    "is_error": false
+  },
+  "tool_calls": {
+    "Read": 3,
+    "ToolSearch": 1,
+    "Write": 3,
+    "mcp__gt__getLepiterPageContents": 1,
+    "mcp__gt__getViewText": 1,
+    "mcp__gt__listObjectStorage": 1
+  },
+  "secret_scan": "clean"
+}

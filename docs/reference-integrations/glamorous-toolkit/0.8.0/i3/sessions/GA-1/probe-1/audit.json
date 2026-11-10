@@ -1,0 +1,18 @@
+{
+  "session": "GA-1",
+  "verdict": "VOID",
+  "snapshots_seen": [],
+  "violations": [
+    "/mnt/c/Users/megne/aip-gt-i3/sessions/GA-1/aip-log.json has not been exported"
+  ],
+  "notes": [
+    "path outside the workspace: #4 Read {\"file_path\": \"/mnt/c/Users/megne/aip-gt-i3/AIP-GT-Promises.st\"}",
+    "refused: #4 Read {\"file_path\": \"/mnt/c/Users/megne/aip-gt-i3/AIP-GT-Promises.st\"}",
+    "path outside the workspace: #5 Read {\"file_path\": \"/home/michael/code/aip-gt-i3/README.md\"}",
+    "refused: #5 Read {\"file_path\": \"/home/michael/code/aip-gt-i3/README.md\"}",
+    "path outside the workspace: #6 Read {\"file_path\": \"/etc/hostname\"}",
+    "refused: #6 Read {\"file_path\": \"/etc/hostname\"}",
+    "write other than an output: #7 Write {\"file_path\": \"/home/michael/aip-gt-i3-runs/GA-1/out/other.md\", \"content\": \"x\"}",
+    "refused: #7 Write {\"file_path\": \"/home/michael/aip-gt-i3-runs/GA-1/out/other.md\", \"content\": \"x\"}"
+  ]
+}

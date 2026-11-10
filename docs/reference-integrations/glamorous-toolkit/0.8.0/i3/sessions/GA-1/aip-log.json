@@ -1,0 +1,47 @@
+[
+	{
+		"id" : 1,
+		"method" : "initialize",
+		"params" : {
+			"capabilities" : {
+				"roots" : { },
+				"sampling" : { },
+				"elicitation" : { }
+			},
+			"protocolVersion" : "2024-11-05",
+			"clientInfo" : {
+				"version" : "1.0.0",
+				"name" : "Glamorous Toolkit",
+				"title" : "Glamorous Toolkit LLM Integration"
+			}
+		},
+		"jsonrpc" : "2.0"
+	},
+	{
+		"jsonrpc" : "2.0",
+		"result" : {
+			"capabilities" : {
+				"resources" : {
+					"listChanged" : false,
+					"subscribe" : false
+				},
+				"tools" : {
+					"listChanged" : false
+				},
+				"prompts" : {
+					"listChanged" : false
+				}
+			},
+			"protocolVersion" : "2024-11-05",
+			"serverInfo" : {
+				"version" : "0.8.0",
+				"name" : "architecture-intelligence-platform"
+			}
+		},
+		"id" : 1
+	},
+	{
+		"jsonrpc" : "2.0",
+		"method" : "notifications/initialized"
+	}
+]

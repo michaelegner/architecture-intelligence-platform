@@ -1,0 +1,3 @@
+# First impression (provisional, written before opening any contract, source file or tool)
+
+Conditional proceed: syncing catalog data (info, price, availability, images) to the marketplace looks feasible from the shop's product events, but the 15-minute withdrawal guarantee is an end-to-end outcome that no single party controls, so I expect it to be achievable only if the product service, the broker/operations side, the new connector and the marketplace each make bounded commitments (event publication on disable/delete, delivery latency, connector processing, and marketplace withdrawal time) that together fit within 15 minutes — otherwise defer the hard guarantee.
