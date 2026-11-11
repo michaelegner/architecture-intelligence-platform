@@ -25,6 +25,8 @@ aren't yet guaranteed stable pre-1.0.
   `opentelemetry-api` 1.45.1, which fixes GHSA-xcq7-p3pf-p88h (unbounded `tracestate` parsing).
   The other OpenTelemetry packages move with it to 1.45.1 / 0.66b1. The harness is not part of the
   AIP image. The frozen copy in `tests/fixtures/locality/two-workload-capture/` is not changed.
+- The image base moves from `python:3.14.8-slim` to `python:3.14.10-slim`, pinned to its digest.
+  Python 3.15 is not adopted yet: some locked dependencies (PyYAML among them) have no 3.15 wheels.
 
 ## [0.8.0] - 2026-10-28
 

@@ -1,4 +1,4 @@
-FROM python:3.14.8-slim@sha256:fbecd461fc72d21b2143c6eaba25143738079154a6d0ea3da3aec724f50eed4a
+FROM python:3.14.10-slim@sha256:9aaa474097d094040649f2162a627c0049b408f52138d980916788d80f04802f
 
 # The runtime never uses the system pip (uv installs into /app/.venv, which has no pip); removing it
 # drops pip's bundled certifi/urllib3/setuptools/msgpack from the image and its scan.
