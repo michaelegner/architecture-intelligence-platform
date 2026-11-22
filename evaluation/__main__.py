@@ -97,7 +97,7 @@ def _run(scenario_id: str | None) -> int:
         return scenarios
 
     with Neo4jContainer(
-        "neo4j:5.26.32@sha256:f1e52d4dc6da122468c4a3c1050a4f5e117f6d3268625237c34d49166f0d6082"
+        "neo4j:5.26.33@sha256:577eb43120e8688e62e753e962c47d30044ecaa95147ee5386c29f226b878008"
     ) as container:
         driver = container.get_driver()
         try:
@@ -139,7 +139,7 @@ def _run_answers(scenario_id: str | None, candidate_sha: str | None) -> int:
 
     try:
         with Neo4jContainer(
-            "neo4j:5.26.32@sha256:f1e52d4dc6da122468c4a3c1050a4f5e117f6d3268625237c34d49166f0d6082"
+            "neo4j:5.26.33@sha256:577eb43120e8688e62e753e962c47d30044ecaa95147ee5386c29f226b878008"
         ) as container:
             driver = container.get_driver()
             try:
