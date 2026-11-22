@@ -30,17 +30,15 @@ observed, and unresolved distinct instead of presenting assumptions as facts.
 
 ## The binding picture
 
-**AIP binding picture brings cross-boundary relationships together**
-
 [Sokol111](https://github.com/Sokol111/ecommerce-workspace) is an open-source, event-driven
 e-commerce platform built from independently developed Go microservices. AIP uses it as a
 realistic showcase: when planning a broker migration, understanding one service's documented
 event flows is not enough to know which other services may be affected.
 
 Sokol111's architecture documents show Catalog Management publishing events to Storefront.
-But captured broker attachments reveal more: Catalog and Image also consume tenant events
-from Store Provisioning, and Storefront consumers are attached to attribute events. A migration
-planned from the documentation alone could overlook these relationships.
+But captured broker attachments reveal more: Catalog and Image are also attached to Store
+Provisioning's tenant topic, and Storefront consumers are attached to the attribute topic.
+A migration planned from the documentation alone could overlook these relationships.
 
 ![AIP binding picture showing Catalog Management between Store Provisioning and Storefront: documented product events and additional tenant and attribute event consumer attachments revealed by broker evidence.](images/sokol111-binding-picture.svg)
 
@@ -50,6 +48,7 @@ and coding agents identify which services to investigate—and where the documen
 
 [Explore the hosted binding picture](examples/sokol111-demo/TRY_IT_HOSTED.md) ·
 [Follow the v0.8 migration showcase](docs/release-validation/v0.8.0-release-notes.md)
+
 ## Try AIP
 
 <a id="connect-aip-to-your-coding-agent"></a>
@@ -101,8 +100,6 @@ not re-qualified for v0.8.0.
 
 AIP combines independent sources **without treating declarations, observations, and promises
 as interchangeable**. It projects only what is relevant to a selected architectural question.
-
-
 
 AIP's deterministic architecture service uses Neo4j and makes qualified results available
 through read-only REST and MCP interfaces. **Six MCP tools are enabled by default**;

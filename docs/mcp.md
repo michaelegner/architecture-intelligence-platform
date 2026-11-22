@@ -1,7 +1,9 @@
 # MCP Tools
 
 AIP exposes its validated architecture model to AI agents and other MCP clients as six
-**read-only** tools, mounted at the single public path `/mcp`. As of `v0.5.0` I3 (ADR 0016),
+**read-only** tools by default, plus the experimental
+[`get_binding_picture`](#get_binding_picture-experimental-v08-i2) when its flag is on. They are
+mounted at the single public path `/mcp`. As of `v0.5.0` I3 (ADR 0016),
 `ArchitectureIntelligenceService` is the single semantic owner of this Architecture Knowledge, and
 standard negotiated MCP is one of its two public adapters (the other is [REST](architecture.md#api-surface))
 — the `v0.4.x` AIP-specific "direct mode" envelope is retired; `/mcp` now serves standard negotiated
@@ -38,7 +40,9 @@ fourth tool has its own `"0.6"` contract and the fifth its own `"0.7"` contract.
 
 ## The six tools
 
-`tools/list` always returns exactly these six, in this fixed lexicographic order:
+By default, `tools/list` returns exactly these six, in this fixed lexicographic order. With
+`experimental.binding-picture` on, it also lists the experimental
+[`get_binding_picture`](#get_binding_picture-experimental-v08-i2) in its lexicographic place:
 
 | Tool | Purpose |
 |---|---|
