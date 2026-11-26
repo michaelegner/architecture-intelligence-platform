@@ -772,6 +772,24 @@ v0.8 also adds schema field descriptions for `destination_id` and `broker_id` on
 - **No Context Map patterns:** the showcase shows qualified cross-boundary bindings only. It does not
   classify Context Map patterns, because event bindings do not establish them.
 
+## v0.8.1 — Server-Provided Agent Skills (proposed)
+
+**Interoperability patch release.** It preserves the v0.8 architecture-question space. It adds no
+architecture question, MCP tool or public answer schema, and it changes no answer.
+
+**Goal:** the AIP MCP server serves agent skills through the MCP Skills extension (SEP-2640). A
+skill states how to read AIP's answers: the observation context, the publisher's qualification, the
+evidence references, the snapshot retry, and what AIP cannot know. A skills-capable client gets
+these rules from the same server version as the tools it calls. A second skill covers the
+experimental `get_binding_picture` tool and exists only when that tool exists.
+
+**Why a patch:** the rules already exist in the Pitstop plugin skill and in `docs/mcp.md`. v0.8.1
+delivers them over MCP. It does not change them.
+
+**First step:** a protocol spike. The extension is defined for MCP `2026-07-28`, and AIP serves
+only `2025-11-25` negotiation (ADR 0016). The spike decides whether AIP must also admit
+`2026-07-28`. See the [v0.8.1 specification](docs/specifications/0.8.1/specification.md).
+
 ## v0.9 — Contextual Architecture Intelligence Integration (proposed)
 
 **Goal:** Prepare AIP for customer-based product evaluation by demonstrating that independent
@@ -914,7 +932,8 @@ The planned release sequence is:
 5. **v0.7** — API-aware distributed Current State, followed by broker-mediated consumer attribution.
 6. **v0.7.2** — hosted v0.7.x MCP interoperability and pre-v0.8 product-boundary qualification
    against a mature context engine.
-7. **v0.8** — binding picture showcase on Sokol111 (demonstration release, experimental semantics).
+7. **v0.8** — binding picture showcase on Sokol111 (demonstration release, experimental semantics),
+   followed by the proposed **v0.8.1** interoperability patch (server-provided agent skills).
 8. **Proposed v0.9** — customer-problem-led contextual-tooling integration and evaluation
    preparation; authorize an AIP release only if meaningful AIP-side work is demonstrated.
 9. **Target-customer evaluation** — compare existing tools, contextual tooling alone, and contextual
