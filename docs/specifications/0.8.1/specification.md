@@ -169,11 +169,13 @@ v0.8.1 is complete when:
 |---|---|---|
 | D1 | v0.8.1 is an interoperability patch release: no new question, tool, schema or answer change. | Accepted (owner) |
 | D2 | Build the extension on the SDK `Extension` hook. Do not wait for an SDK Skills helper. | Proposed |
-| D3 | The protocol era on which AIP serves the skills methods. | Open: set by I0 |
+| D3 | AIP serves the skills methods on protocol `2026-07-28` (outcome B; see the [I0 record](i0-protocol-spike-record.md)). `/mcp` also admits that era (ADR 0018, amending ADR 0016). B still fits a patch release: it adds protocol surface with no semantic change, as v0.4.2 did when it added negotiated MCP. | Accepted (owner, 2026-11-26) |
 | D4 | Two skills. The binding-picture skill follows the experimental flag. | Proposed |
 | D5 | No `directoryRead`. Each skill is one file. | Proposed |
 | D6 | The Pitstop plugin skill stays unchanged. Removing its duplicate text is deferred. | Proposed |
 | D7 | If I0 ends in outcome C, stop v0.8.1 and record the finding. | Proposed |
+| D8 | The `2025-11-25` path stays unchanged. Clients fall back to it when the `2026-07-28` probe fails (I0 run R0). A regression test of every tool on both eras is a release blocker. | Accepted (owner, 2026-11-26) |
+| D9 | AIP declines `subscriptions/listen`: it does not serve the method, so the advertised `listChanged` and `subscribe` values are false. AIP's tools and skills are static, so AIP has no list-changed notifications to deliver. I1 verifies two things: that SDK 2.3.0 allows the method to stay unserved, and that Claude Code still loads the skills without it. If either check fails, I1 stops and returns the decision to the owner. I1 does not qualify the stream instead. | Accepted (owner, 2026-11-26) |
 
 ## 8. Baseline carry-forward
 
