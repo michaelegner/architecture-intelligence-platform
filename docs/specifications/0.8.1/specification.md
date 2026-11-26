@@ -1,6 +1,6 @@
 # AIP v0.8.1 — Server-Provided Agent Skills
 
-**Status:** Draft 0.1 (proposed)  
+**Status:** Draft 0.2 (proposed)  
 **Target:** `v0.8.1`  
 **Baseline:** Published and post-release-verified [`v0.8.0`](../../release-validation/v0.8.0-release-record.md)  
 **Scope authority:** [ROADMAP.md — v0.8.1](../../../ROADMAP.md#v081--server-provided-agent-skills-proposed)
@@ -13,7 +13,8 @@ entity or relation, public answer schema or MCP tool. It changes no tool answer.
 The [MCP Skills extension](https://modelcontextprotocol.io/extensions/skills/overview)
 ([SEP-2640](https://modelcontextprotocol.io/seps/2640)) lets a server serve `SKILL.md` files. A client
 finds them with `skills/list` and `skills/get` and reads them with `resources/read`. Claude Code
-supports the extension from version 2.1.331.
+added MCP-server skills (beta) in version 2.1.332
+([changelog](https://code.claude.com/docs/en/changelog)). This release requires 2.1.332 or later.
 
 AIP's rules for reading its answers are server-contract knowledge. Today they exist only in the
 Pitstop Claude Code plugin
@@ -65,15 +66,20 @@ through `MethodBinding`, optionally restricted to given protocol versions.
 2. Connect Claude Code 2.1.332 or later to it and record:
    1. the protocol version that Claude Code uses with AIP today;
    2. whether Claude Code calls `skills/list` on a `2025-11-25` session;
-   3. what Claude Code does when AIP also admits `2026-07-28`.
+   3. what Claude Code does when AIP also admits `2026-07-28`;
+   4. for each case, the actual wire exchange: the capability discovery that the client sees
+      (`capabilities.extensions` and `resources`) and the request and result envelopes of
+      `skills/list`, `skills/get` and `resources/read`.
 3. Write the result to `docs/specifications/0.8.1/i0-protocol-spike-record.md` (one page) and set D3.
+   The record states whether the chosen outcome is a conformant SEP-2640 implementation or a
+   compatibility backport (§3.3).
 
 ### 3.3 Outcomes
 
 | Outcome | Condition | Consequence |
 |---|---|---|
-| **A** | Claude Code requests and loads skills on a `2025-11-25` session. | Serve the skills methods on the existing negotiated session. The guard does not change. |
-| **B** | Claude Code requests skills only on `2026-07-28`. | `/mcp` also admits `2026-07-28`. Write ADR 0018, which amends ADR 0016. Qualify every tool on both eras. The owner confirms that B still fits a patch release before I1 starts. |
+| **A** | Claude Code requests and loads skills on a `2025-11-25` session. | Serve the skills methods on the existing negotiated session. The guard does not change. SEP-2640's discovery and caching model is defined for `2026-07-28` and later, so A is a **documented compatibility backport**, not a conformant implementation. A Claude Code smoke test does not prove full SEP-2640 interoperability. `docs/mcp.md` and the release notes say so. |
+| **B** | Claude Code requests skills only on `2026-07-28`. | `/mcp` also admits `2026-07-28`. Write ADR 0018, which amends ADR 0016. The owner confirms that B still fits a patch release before I1 starts. The I1 gate then includes complete `2026-07-28` discovery tests and a regression test of every tool on both eras, not only a guard test. |
 | **C** | Neither A nor B works. | Stop v0.8.1 and record the finding (D7). |
 
 ## 4. I1 — Skills extension
@@ -85,14 +91,21 @@ through `MethodBinding`, optionally restricted to given protocol versions.
   - declares the `resources` capability, as SEP-2640 requires;
   - binds `skills/list` and `skills/get` through `MethodBinding`, with `protocol_versions` as set by D3;
   - serves each `SKILL.md` through `resources/read`.
-- Each skill URI is `skill://aip/<name>/SKILL.md`. The last path segment equals the frontmatter `name`.
-- `skills/list` and `skills/get` return the frontmatter exactly as it is in the file.
-- `skills/get` with an unknown URI returns JSON-RPC error `-32602`.
-- `ttlMs` and `cacheScope` are deterministic and equal the `tools/list` cache hint in
+- Each skill URI is `skill://aip/<name>/SKILL.md`. The last segment of the skill directory
+  (`<name>`) equals the frontmatter `name`.
+- Each entry in `skills/list` and in `skills/get` contains, as SEP-2640 requires:
+  - `uri`;
+  - `frontmatter`, exactly as it is in the file;
+  - `resources`: a complete manifest of the skill's files, each with its URI, `sha256:` digest and
+    byte size. The skill files are static, so AIP never uses `"dynamic"`.
+- Each `skills/list` and `skills/get` result contains `resultType: "complete"`, `ttlMs` and
+  `cacheScope`. `ttlMs` and `cacheScope` are deterministic and equal the `tools/list` cache hint in
   [`app/mcp/server.py`](../../../app/mcp/server.py) (`public`, `0`).
+- `skills/get` with an unknown URI returns JSON-RPC error `-32602`.
 - `build_mcp_server(binding_picture=...)` passes the flag to the extension, so the skill set follows
   the tool set.
-- The skill files are package data in `app/mcp/skills/<name>/SKILL.md`.
+- The skill files are in `app/mcp/skills/<name>/SKILL.md`, inside the `app` tree that the
+  [`Dockerfile`](../../../Dockerfile) copies into the release image.
 
 ### 4.2 Skills
 
@@ -111,13 +124,18 @@ All tests use the real mounted ASGI transport, as
 - The server advertises `io.modelcontextprotocol/skills` and the `resources` capability.
 - `skills/list`, `skills/get` and `resources/read` round-trip for each listed skill. The returned
   frontmatter equals the file.
+- Wire shape: each list and get entry has `uri`, `frontmatter` and a `resources` manifest. Each
+  manifest digest and size equals the `sha256` and the length of the bytes that `resources/read`
+  returns for that file. Each list and get result has `resultType: "complete"`, `ttlMs` and
+  `cacheScope`.
 - Flag off: `skills/list` lists only `aip-reading-answers`, and `skills/get` for
   `aip-binding-picture` returns `-32602`. Flag on: both skills are listed.
 - `tools/list` is unchanged, flag off and flag on, compared with a stored v0.8.0 fixture.
 - Drift guard: each tool name that a skill names is in `TOOL_NAMES`. Each status, crossing and
   limitation code that a skill names exists in the contract enums.
-- Outcome B only: a guard test for the admitted `2026-07-28` era, proven by disabling the guard
-  change and showing that the test fails.
+- Outcome B only: the `2026-07-28` discovery tests, a regression test of every tool on both eras,
+  and a guard test for the admitted era, proven by disabling the guard change and showing that the
+  test fails.
 
 ## 5. I2 — Qualification and release
 
@@ -126,7 +144,10 @@ Before candidate freeze:
 - I1 acceptance tests pass;
 - full unit and integration suites pass;
 - existing v0.8 golden-path and demo semantics stay unchanged;
-- one recorded Claude Code session against the candidate shows that it found and loaded the AIP
+- a release-artifact test: build the release container image, run it, and fetch both `SKILL.md`
+  resources through its MCP endpoint. AIP publishes no wheel; the image is the release artifact.
+  This proves that the skills are in the published image, not only in the source tree;
+- one recorded Claude Code 2.1.332 or later session against the candidate shows that it found and loaded the AIP
   skills. This is a demonstration: one run, no scoring;
 - [`docs/mcp.md`](../../mcp.md) gets a "Skills" section;
 - CodeQL, dependency and repository security checks satisfy the current release policy;
