@@ -31,9 +31,9 @@ the installed package - it isn't documented on the SDK's own doc pages - and sha
 - Routing between the 2026-07-28 "modern" single-exchange path and the legacy `initialize`/session
   path is header-driven inside the SDK and is NOT controlled by `stateless_http`: confirmed live that
   a request whose `MCP-Protocol-Version` header is absent, or names a pre-2026-07-28 handshake
-  version, is still served (with a normal 200 response) by the legacy path. Per spec §4/§20
-  ("implementation requires initialize while claiming MCP 2026-07-28" is a release blocker),
-  `app.mcp.guard` rejects that case in front of the mounted app.
+  version, is still served (with a normal 200 response) by the legacy path. Until v0.8.0,
+  `app.mcp.guard` rejected a follow-up that named 2026-07-28. Since v0.8.1 (ADR 0018) both eras are
+  served; see the v0.8.1 bullet below.
 - Confirmed live that the SDK's own `tools/call` dispatch turns an unknown tool name into
   `ToolError("Unknown tool: ...")` -> `is_error=True` inside a normal 200 result, not a JSON-RPC
   protocol error, and that the SDK's synthesized argument wrapper silently drops an unexpected
@@ -43,6 +43,12 @@ the installed package - it isn't documented on the SDK's own doc pages - and sha
   fourth tool, `get_service_dependencies_by_locality` (v0.6.0 I3.3b, I3 decision record D12), does
   reject an unexpected top-level key before dispatch: `app.mcp.tools` closes its argument model.
   So does the fifth tool, `get_api_consumer_usage` (v0.7.0 I3.3, decision record D1).
+- v0.8.1 I1 (spec `docs/specifications/0.8.1/specification.md` §4, ADR 0018): the server carries
+  `app.mcp.skills.AipSkillsExtension` (the SEP-2640 Skills extension, with the skill set following
+  `binding_picture`), `subscriptions=False` (D9: `subscriptions/listen` unserved, so `listChanged`
+  and `subscribe` are false) and `legacy_skill_resource_middleware` (D8: no skill resource on
+  `2025-11-25`). The skills results reuse `_TOOLS_LIST_CACHE_HINT` as their `ttlMs` and
+  `cacheScope`.
 """
 
 from __future__ import annotations
@@ -54,6 +60,7 @@ from mcp.server import CacheHint, MCPServer
 from app.architecture_intelligence.contracts import PRODUCER_NAME
 from app.architecture_intelligence.service import ArchitectureIntelligenceService
 from app.mcp import tools as mcp_tools
+from app.mcp.skills import AipSkillsExtension, legacy_skill_resource_middleware
 from app.mcp.tools import register_tools
 from app.version import package_version
 
@@ -74,6 +81,12 @@ def build_mcp_server(
         name=PRODUCER_NAME,
         version=package_version(),
         cache_hints={"tools/list": _TOOLS_LIST_CACHE_HINT},
+        extensions=[
+            AipSkillsExtension(binding_picture=binding_picture, cache_hint=_TOOLS_LIST_CACHE_HINT)
+        ],
+        # v0.8.1 D9: AIP declines `subscriptions/listen`; its tools and skills are static.
+        subscriptions=False,
+        middleware=[legacy_skill_resource_middleware],
     )
     if get_service is None:
         register_tools(server, binding_picture=binding_picture)
