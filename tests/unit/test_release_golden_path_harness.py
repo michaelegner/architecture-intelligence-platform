@@ -538,3 +538,105 @@ def test_the_destination_consumers_reading_check_passes_and_fails():
     assert not dc._resolved(resolved, ["r1", "r2"])
     wrong = [("c1", "rest", {"schema_version": "0.7", "producer": {"version": "0.7.0"}})]
     assert len(dc._identity_problems(wrong, "0.7.1", "a" * 40)) >= 3
+
+
+# --- v0.8.1 I2: the `skills` phase -----------------------------------------------------------------
+
+
+def _load_skills_check():
+    import sys
+
+    sys.path.insert(0, str(GP_DIR))
+    try:
+        spec = importlib.util.spec_from_file_location("skills_check", GP_DIR / "skills_check.py")
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        return module
+    finally:
+        sys.path.remove(str(GP_DIR))
+
+
+def test_the_skills_phase_mounts_only_its_frozen_flag_on_configuration():
+    override = _yaml(GP_DIR / "compose" / "skills.yml")
+    [service] = override["services"].values()
+    assert set(service) == {"volumes"}
+    mount = "./examples/release-golden-path/profile/skills/config.yaml"
+    assert service["volumes"] == [f"{mount}:/app/golden-path/config.yaml:ro"]
+    config = _yaml(GP_DIR / "profile" / "skills" / "config.yaml")["architecture_intelligence"]
+    assert config["experimental"] == {"binding-picture": True}
+    assert "sources" not in config
+
+
+def test_the_skills_phase_reads_the_served_skill_files_from_the_checkout():
+    sk = _load_skills_check()
+    assert sk.SKILL_NAMES == ("aip-reading-answers", "aip-binding-picture")
+    for name in sk.SKILL_NAMES:
+        assert (sk.SKILLS_DIR / name / "SKILL.md").is_file()
+
+
+def _skill_fixture(sk, name: str):
+    source = (sk.SKILLS_DIR / name / "SKILL.md").read_bytes()
+    uri = sk.skill_uri(name)
+    entry = {
+        "uri": uri,
+        "frontmatter": sk.source_frontmatter(source.decode("utf-8")),
+        "resources": [
+            {
+                "uri": uri,
+                "digest": "sha256:" + hashlib.sha256(source).hexdigest(),
+                "size": len(source),
+            }
+        ],
+    }
+    return source, entry, {"resultType": "complete", "skill": dict(entry)}
+
+
+@pytest.mark.parametrize("name", ["aip-reading-answers", "aip-binding-picture"])
+def test_the_skill_content_check_passes_and_fails(name):
+    sk = _load_skills_check()
+    source, entry, got = _skill_fixture(sk, name)
+    assert sk.skill_problems(name, entry, source, source, got) == []
+
+    # Served bytes that are not the checkout's file (the digest then no longer matches either).
+    assert sk.skill_problems(name, entry, source + b"\n", source, got)
+    # A manifest with a wrong digest or size.
+    wrong_digest = dict(entry, resources=[dict(entry["resources"][0], digest="sha256:" + "0" * 64)])
+    assert sk.skill_problems(name, wrong_digest, source, source, dict(got, skill=wrong_digest))
+    wrong_size = dict(entry, resources=[dict(entry["resources"][0], size=1)])
+    assert sk.skill_problems(name, wrong_size, source, source, dict(got, skill=wrong_size))
+    # A different URI, frontmatter or `skills/get` result.
+    assert sk.skill_problems(name, dict(entry, uri="skill://aip/x/SKILL.md"), source, source, got)
+    assert sk.skill_problems(name, dict(entry, frontmatter={"name": name}), source, source, got)
+    assert sk.skill_problems(name, entry, source, source, dict(got, resultType="incomplete"))
+
+
+def test_the_skills_list_and_discover_checks_pass_and_fail():
+    sk = _load_skills_check()
+    listed = {
+        "resultType": "complete",
+        "ttlMs": 0,
+        "cacheScope": "public",
+        "skills": [{"uri": sk.skill_uri(name)} for name in sk.SKILL_NAMES],
+    }
+    assert sk.list_problems(listed) == []
+    assert sk.list_problems(dict(listed, skills=listed["skills"][:1]))
+    assert sk.list_problems(dict(listed, cacheScope="private"))
+
+    discovered = {
+        "capabilities": {
+            "extensions": {sk.SKILLS_EXTENSION: {}},
+            "resources": {"listChanged": False, "subscribe": False},
+        },
+        "_meta": {"io.modelcontextprotocol/serverInfo": {"version": "0.8.1"}},
+    }
+    assert sk.discover_problems(discovered, "0.8.1") == []
+    assert sk.discover_problems(discovered, "0.8.0")
+    subscribing = {
+        **discovered,
+        "capabilities": {
+            **discovered["capabilities"],
+            "resources": {"listChanged": True, "subscribe": True},
+        },
+    }
+    assert sk.discover_problems(subscribing, "0.8.1")
+    assert sk.discover_problems({**discovered, "capabilities": {"resources": {}}}, "0.8.1")

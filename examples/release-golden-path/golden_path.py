@@ -1116,6 +1116,9 @@ def main(argv: list[str]) -> int:
             image_ref=image_ref, sha=sha, out_dir=out_dir
         )
     )
+    import skills_check
+
+    results.append(skills_check.run_skills_phase(image_ref=image_ref, sha=sha, out_dir=out_dir))
     summary = {
         "image_ref": image_ref,
         "release_candidate_sha": sha,

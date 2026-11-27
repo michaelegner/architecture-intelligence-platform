@@ -14,6 +14,8 @@ for the decision record, and
 [`docs/adr/0014-negotiated-mcp-client-interoperability.md`](adr/0014-negotiated-mcp-client-interoperability.md)
 (superseded by 0016 for the active `v0.5+` architecture) for the historical `v0.4.2` dual-mode record.
 
+The server also serves two [agent skills](#skills-v081) that state how to read its answers.
+
 A standard MCP client connects in one of two ways, both handled by the pinned MCP SDK:
 
 - **`2025-11-25`:** a markerless `initialize` request followed by ordinary
@@ -335,6 +337,40 @@ lexicographic order and adds `POST /api/binding-picture` and `POST /api/binding-
   between brokers is never established (`CROSS_BROKER_DELIVERY_NOT_ESTABLISHED`).
 - **Contract:** the frozen schemas are in `schemas/architecture_intelligence/v0.8/`. The semantics
   are experimental and not a v1.0 contract. See `docs/specifications/0.8.0/i2-assessment-projection-and-tool.md`.
+
+## Skills (v0.8.1)
+
+Since `v0.8.1`, the server also serves **agent skills** through the MCP Skills extension
+([SEP-2640](https://modelcontextprotocol.io/seps/2640), identifier `io.modelcontextprotocol/skills`).
+A skill is static text in the package. It states how to read AIP's answers correctly, so that a
+skills-capable client gets the reading rules from the same server version as the tools it calls.
+A skill adds no tool, answer or schema, and changes none.
+
+| Skill | Served | Content |
+|---|---|---|
+| `aip-reading-answers` | Always | The general reading rules: use AIP read-only; report limitations and `NOT_ANSWERED` statements as unknowns; no payload knowledge; no evidence is not non-use; the snapshot retry (at most three attempts). The observation context of the dependency and drift tools (whole UTC days in the past; an inclusive window from `T00:00:00Z` to `T23:59:59Z`). The publisher's qualification and `evidence_refs` against `resolution_evidence_refs`. The distinctions of the locality, API usage and destination-consumer tools. |
+| `aip-binding-picture` | Only with `experimental.binding-picture` | The two modes of `get_binding_picture`, its crossing and status values, and its limits. The semantics are experimental. |
+
+- **Location.** Each skill is one file, `app/mcp/skills/<name>/SKILL.md`, served at
+  `skill://aip/<name>/SKILL.md`. AIP does not offer `directoryRead`. The frontmatter holds only
+  `name` and `description`: a skill does not depend on host permission fields such as
+  `allowed-tools`.
+- **Era.** `skills/list` and `skills/get` are served only on MCP `2026-07-28`, the era the extension
+  is defined for ([ADR 0018](adr/0018-admit-mcp-2026-07-28.md)). On `2025-11-25` they return
+  `METHOD_NOT_FOUND` (`-32601`), and the skill resources are not listed or readable, so that path is
+  unchanged from `v0.8.0`.
+- **Results.** Each `skills/list` and `skills/get` result has `resultType: "complete"`, `ttlMs: 0`
+  and `cacheScope: "public"`, the same cache hint as `tools/list`. Each entry has `uri`,
+  `frontmatter` (the file's YAML frontmatter as an object) and a complete `resources` manifest: the
+  `SKILL.md` URI, its `sha256:` digest and its byte size. `skills/get` with an unknown URI returns
+  `-32602`. Read the file itself with `resources/read`.
+- **Clients.** Claude Code 2.1.332 or later finds and loads the skills (its MCP-server skills are
+  in beta). Claude Code lists them as `<server>:aip-reading-answers` and
+  `<server>:aip-binding-picture`. The Pitstop Claude Code plugin keeps its own skill, which also
+  holds the Pitstop service ids.
+- **Keeping skills current.** A release that changes how a tool's answer is read updates the
+  matching skill in the same release. Tests check that each tool name and each code that a skill
+  names exists (`tests/unit/test_mcp_skills.py`); the text itself is a review responsibility.
 
 ## Connecting a negotiated client
 

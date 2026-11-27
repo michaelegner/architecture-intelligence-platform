@@ -1,0 +1,11 @@
+# AIP configuration for the `skills` golden-path phase (v0.8.1 I2). The phase imports nothing: it
+# reads the two MCP skills only. `experimental.binding-picture` is on, so both skills are served.
+architecture_intelligence:
+  experimental:
+    binding-picture: true
+  graph:
+    uri: bolt://localhost:7687
+    database: neo4j
+    max_traversal_depth: 5
+  llm:
+    enabled: false
