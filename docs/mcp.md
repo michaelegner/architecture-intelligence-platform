@@ -6,16 +6,24 @@ AIP exposes its validated architecture model to AI agents and other MCP clients 
 mounted at the single public path `/mcp`. As of `v0.5.0` I3 (ADR 0016),
 `ArchitectureIntelligenceService` is the single semantic owner of this Architecture Knowledge, and
 standard negotiated MCP is one of its two public adapters (the other is [REST](architecture.md#api-surface))
-— the `v0.4.x` AIP-specific "direct mode" envelope is retired; `/mcp` now serves standard negotiated
-MCP only. See
+— the `v0.4.x` AIP-specific "direct mode" envelope is retired. `/mcp` serves standard MCP through
+the pinned SDK: the negotiated `initialize` era (`2025-11-25`) and, since `v0.8.1`
+([ADR 0018](adr/0018-admit-mcp-2026-07-28.md)), the `2026-07-28` era. See
 [`docs/adr/0016-public-architecture-knowledge-adapters.md`](adr/0016-public-architecture-knowledge-adapters.md)
 for the decision record, and
 [`docs/adr/0014-negotiated-mcp-client-interoperability.md`](adr/0014-negotiated-mcp-client-interoperability.md)
 (superseded by 0016 for the active `v0.5+` architecture) for the historical `v0.4.2` dual-mode record.
 
-A standard MCP client connects with a markerless `initialize` request followed by ordinary
-`MCP-Protocol-Version`-headed traffic, handled by the pinned MCP SDK — see `## Connecting a
-negotiated client` below.
+A standard MCP client connects in one of two ways, both handled by the pinned MCP SDK:
+
+- **`2025-11-25`:** a markerless `initialize` request followed by ordinary
+  `MCP-Protocol-Version`-headed traffic — see `## Connecting a negotiated client` below. This path
+  is unchanged from `v0.8.0`.
+- **`2026-07-28`** (since `v0.8.1`): each request names the era in its `MCP-Protocol-Version`
+  header and carries `_meta`; discovery is `server/discover`. The SDK also requires the `mcp-method`
+  header, and `mcp-name` on `tools/call` and `resources/read`. The tools, their schemas and their
+  answers are the same on both eras. AIP does not serve `subscriptions/listen` on either era: its
+  tools are static, so `listChanged` and `subscribe` are advertised as false.
 
 `/mcp` supports `POST` only in this stateless release. Every other HTTP method — `GET`, `DELETE`,
 `HEAD`, and everything else — returns `405 Method Not Allowed` with `Allow: POST` before dispatch
@@ -356,7 +364,7 @@ curl -s http://localhost:8000/mcp \
           "observation_context": {
             "environment": "demo",
             "window_start": "2026-08-26T00:00:00.000000Z",
-            "window_end": "2026-08-27T00:00:00.000000Z"
+            "window_end": "2026-08-26T23:59:59.000000Z"
           }
         }
       }

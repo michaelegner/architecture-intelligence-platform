@@ -2,22 +2,17 @@
 plus the request/response contract shape).
 
 v0.5.0 I3 slice 5a retires the v0.4.x AIP-specific "direct mode" envelope (ADR 0016, spec §14.1):
-`app.mcp.guard.ModernProtocolGuard` no longer classifies any request as "direct" - every request
-that reaches `/mcp` either matches its narrow retained checks (HTTP method, body size, the retired-
-era-on-a-markerless-follow-up rejection) or is forwarded to the SDK's own negotiated dispatch
-unmodified. Every `mcp-method`/`mcp-name`-header test this file used to run is gone: those headers
-are now ordinary, inert HTTP headers the guard never inspects. What remains is this project's own
+`app.mcp.guard.McpIngressGuard` no longer classifies any request as "direct" - every request
+that reaches `/mcp` either matches its narrow retained checks (HTTP method, body size) or is
+forwarded to the SDK unmodified. Since v0.8.1 I1 (ADR 0018) the guard no longer rejects a request that names the `2026-07-28` era; `tests/unit/test_mcp_skills.py` covers that
+era in full. Every `mcp-method`/`mcp-name`-header test this file used to run is gone: those headers
+are headers the guard never inspects (since v0.8.1 the SDK reads them on the `2026-07-28` era). What remains is this project's own
 negotiated-only contract - the routing-truth-table coverage `docs/specifications/0.4.2/
 i1-dual-mode-mcp-transport.md` §11.1/§28/§30 originally introduced, minus everything that was
 direct-mode-specific.
 
-**Disclosed scope decision, carried over from `app/mcp/guard.py`'s own module docstring**: the
-v0.4.2 `_DIRECT_MODE_METHODS` allowlist (protection against a real, verified `subscriptions/listen`
-SDK-hang DoS) is retired along with direct-marker classification and is NOT reintroduced for
-negotiated traffic. This file deliberately does not exercise `subscriptions/listen` (or any other
-non-allowlisted method) at all - doing so could hang the pytest process, exactly the failure mode
-`tests/integration/test_mcp_direct_marker_dos_regression.py` (deleted this slice) existed to catch
-when this protection still applied to direct-marked traffic.
+`subscriptions/listen` is unserved since v0.8.1 I1 (D9); `tests/unit/test_mcp_skills.py` checks
+that it returns `METHOD_NOT_FOUND` on the modern era.
 
 Two checks below (`_check_unknown_tool_name_is_a_tool_execution_error_not_a_protocol_error`,
 `_check_unexpected_top_level_argument_no_longer_fails_before_dispatch`) replace this file's former
@@ -57,6 +52,7 @@ from app.architecture_intelligence import service as service_module
 from app.mcp import server as server_module
 from app.mcp.app import build_mcp_app, mcp_session_manager_lifespan
 from app.mcp.tools import TOOL_NAMES, register_tools
+from tests.support.modern_mcp_client import post_modern
 
 _ALLOWED_ORIGIN = "http://localhost"
 _ALLOWED_HOST = "localhost"
@@ -524,14 +520,13 @@ async def _check_markerless_tools_call_without_header_falls_back_to_sdk(
     assert result["content"][0]["text"] == "Error executing tool get_architecture_drift"
 
 
-async def _check_retired_era_header_on_a_follow_up_is_rejected(client: httpx.AsyncClient) -> None:
-    """A follow-up naming the retired direct/single-exchange `2026-07-28` era must never be served
-    as negotiated traffic - that combination is rejected outright, not delegated to the SDK."""
-    headers = _negotiated_headers(protocol_version="2026-07-28")
-    response = await client.post("/mcp", headers=headers, json=_negotiated_tools_list_body())
-    assert response.status_code == 400
-    assert response.json()["error"]["code"] == -32600
-    assert "result" not in response.json()
+async def _check_modern_era_follow_up_is_served(client: httpx.AsyncClient) -> None:
+    """v0.8.1 I1 (ADR 0018): a follow-up that names the `2026-07-28` era reaches the SDK's modern
+    path and is served. Until v0.8.0 the guard rejected it with HTTP 400 and `-32600`."""
+    response = await post_modern(client, origin=_ALLOWED_ORIGIN, method="tools/list")
+    assert response.status_code == 200
+    names = [tool["name"] for tool in response.json()["result"]["tools"]]
+    assert names == SIX_TOOLS
 
 
 async def _check_session_id_header_alone_does_not_change_routing(
@@ -550,7 +545,7 @@ async def _check_session_id_header_alone_does_not_change_routing(
 async def _check_unrecognized_protocol_version_is_handled_by_sdk_without_dispatch(
     client: httpx.AsyncClient,
 ) -> None:
-    """A `MCP-Protocol-Version` value that is neither the retired era nor a known handshake era is
+    """A `MCP-Protocol-Version` value that is neither a modern nor a known handshake era is
     still delegated to the pinned SDK rather than guard-rejected (spec: "use pinned SDK
     recognition/error semantics") - confirmed live that the SDK's own streamable-HTTP dispatch
     produces a real JSON-RPC error and never reaches tool dispatch for this case on its own."""
@@ -692,7 +687,7 @@ async def test_mcp_protocol_and_discovery() -> None:
             await _check_protocol_version_header_alone_reaches_negotiated_dispatch(client)
             await _check_markerless_tools_list_without_header_falls_back_to_sdk(client)
             await _check_markerless_tools_call_without_header_falls_back_to_sdk(client)
-            await _check_retired_era_header_on_a_follow_up_is_rejected(client)
+            await _check_modern_era_follow_up_is_served(client)
             await _check_session_id_header_alone_does_not_change_routing(client)
             await _check_unrecognized_protocol_version_is_handled_by_sdk_without_dispatch(client)
             await _check_malformed_json_reaches_sdk_parse_handler(client)

@@ -1,5 +1,5 @@
 """v0.4.0 I2.1 - assembles the mounted `/mcp` ASGI app: the SDK's streamable HTTP app, wrapped by
-`ModernProtocolGuard`, configured for JSON-only stateless responses and Origin allow-listing (spec
+`McpIngressGuard`, configured for JSON-only stateless responses and Origin allow-listing (spec
 §15).
 
 Both functions default to the shared `app.mcp.server.mcp_server` singleton (with both tools already
@@ -18,7 +18,7 @@ from mcp.server import MCPServer
 from mcp.server.transport_security import TransportSecuritySettings
 from starlette.types import ASGIApp
 
-from app.mcp.guard import ModernProtocolGuard
+from app.mcp.guard import McpIngressGuard
 from app.mcp.server import mcp_server as _default_mcp_server
 
 
@@ -45,7 +45,7 @@ def build_mcp_app(
             allowed_origins=allowed_origins, allowed_hosts=allowed_hosts
         ),
     )
-    return ModernProtocolGuard(inner)
+    return McpIngressGuard(inner)
 
 
 @asynccontextmanager
