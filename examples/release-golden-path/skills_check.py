@@ -127,6 +127,23 @@ def _error_code(body: Any) -> Any:
     return (body or {}).get("error", {}).get("code") if isinstance(body, dict) else None
 
 
+def legacy_problems(
+    resources_status: int, resources: Any, skills_status: int, skills: Any
+) -> list[str]:
+    """The `2025-11-25` path: `resources/list` must succeed with a list and no `skill://` entry,
+    and `skills/list` must return METHOD_NOT_FOUND. An error envelope is never an empty list."""
+    result = resources.get("result") if isinstance(resources, dict) else None
+    listed = result.get("resources") if isinstance(result, dict) else None
+    problems = []
+    if resources_status != 200 or not isinstance(listed, list):
+        problems.append(f"legacy resources/list: {resources_status} {resources}")
+    elif any(str((r or {}).get("uri", "")).startswith("skill://") for r in listed):
+        problems.append(f"legacy resources/list lists skills: {[r.get('uri') for r in listed]}")
+    if _error_code(skills) != METHOD_NOT_FOUND:
+        problems.append(f"legacy skills/list: {skills_status} {skills}")
+    return problems
+
+
 def _drive(checks: dict[str, Any], output: Path) -> None:
     def record(check: str, problems: list[str]) -> None:
         checks[check] = {"passed": not problems, "detail": problems}
@@ -163,15 +180,7 @@ def _drive(checks: dict[str, Any], output: Path) -> None:
     client = gp.McpClient()
     status, resources = client._post({"method": "resources/list", "params": {}})
     status_skills, skills = client._post({"method": "skills/list", "params": {}})
-    legacy = []
-    listed_uris = [
-        r.get("uri", "") for r in ((resources or {}).get("result") or {}).get("resources", [])
-    ]
-    if status != 200 or any(uri.startswith("skill://") for uri in listed_uris):
-        legacy.append(f"legacy resources/list: {status} {listed_uris}")
-    if _error_code(skills) != METHOD_NOT_FOUND:
-        legacy.append(f"legacy skills/list: {status_skills} {skills}")
-    record("legacy-unchanged", legacy)
+    record("legacy-unchanged", legacy_problems(status, resources, status_skills, skills))
 
 
 def run_skills_phase(*, image_ref: str, sha: str, out_dir: Path) -> dict[str, Any]:

@@ -640,3 +640,25 @@ def test_the_skills_list_and_discover_checks_pass_and_fail():
     }
     assert sk.discover_problems(subscribing, "0.8.1")
     assert sk.discover_problems({**discovered, "capabilities": {"resources": {}}}, "0.8.1")
+
+
+def test_the_legacy_check_requires_a_successful_resources_list():
+    sk = _load_skills_check()
+    not_found = {
+        "jsonrpc": "2.0",
+        "id": 1,
+        "error": {"code": -32601, "message": "Method not found"},
+    }
+    empty = {"jsonrpc": "2.0", "id": 1, "result": {"resources": []}}
+    assert sk.legacy_problems(200, empty, 200, not_found) == []
+    other = {"result": {"resources": [{"uri": "aip://x"}]}}
+    assert sk.legacy_problems(200, other, 200, not_found) == []
+
+    # An HTTP-200 error envelope is not an empty list (the false pass found in review of #718).
+    assert sk.legacy_problems(200, not_found, 200, not_found)
+    assert sk.legacy_problems(200, {"result": {}}, 200, not_found)
+    assert sk.legacy_problems(500, empty, 200, not_found)
+    # A skill resource on the legacy path, or a served legacy `skills/list`.
+    listed = {"result": {"resources": [{"uri": sk.skill_uri("aip-reading-answers")}]}}
+    assert sk.legacy_problems(200, listed, 200, not_found)
+    assert sk.legacy_problems(200, empty, 200, {"result": {"skills": []}})

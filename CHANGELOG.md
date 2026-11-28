@@ -26,8 +26,9 @@ answer schema changes.
   returns the file. See [Skills](docs/mcp.md#skills-v081) (v0.8.1 I1).
 - **MCP protocol `2026-07-28`** on `/mcp`, beside the negotiated `2025-11-25` era
   ([ADR 0018](docs/adr/0018-admit-mcp-2026-07-28.md), amending ADR 0016). The skills methods are
-  served only on `2026-07-28`. On `2025-11-25`, `initialize`, `resources/list` and `tools/list` are
-  unchanged from v0.8.0 and the skills are not reachable (v0.8.1 I1).
+  served only on `2026-07-28`. On `2025-11-25`, `initialize`, `resources/list`, `tools/list` and
+  the tool answers are unchanged from v0.8.0 apart from release-version metadata
+  (`serverInfo.version`, `producer.version`), and the skills are not reachable (v0.8.1 I1).
 - A ninth release golden-path phase, `skills`, which reads both skill files through the image's MCP
   endpoint and compares them with the tagged source (v0.8.1 I2).
 

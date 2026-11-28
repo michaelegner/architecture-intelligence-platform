@@ -20,7 +20,8 @@ A standard MCP client connects in one of two ways, both handled by the pinned MC
 
 - **`2025-11-25`:** a markerless `initialize` request followed by ordinary
   `MCP-Protocol-Version`-headed traffic — see `## Connecting a negotiated client` below. This path
-  is unchanged from `v0.8.0`.
+  is unchanged from `v0.8.0` apart from release-version metadata (`serverInfo.version`,
+  `producer.version`).
 - **`2026-07-28`** (since `v0.8.1`): each request names the era in its `MCP-Protocol-Version`
   header and carries `_meta`; discovery is `server/discover`. The SDK also requires the `mcp-method`
   header, and `mcp-name` on `tools/call` and `resources/read`. The tools, their schemas and their
@@ -358,7 +359,7 @@ A skill adds no tool, answer or schema, and changes none.
 - **Era.** `skills/list` and `skills/get` are served only on MCP `2026-07-28`, the era the extension
   is defined for ([ADR 0018](adr/0018-admit-mcp-2026-07-28.md)). On `2025-11-25` they return
   `METHOD_NOT_FOUND` (`-32601`), and the skill resources are not listed or readable, so that path is
-  unchanged from `v0.8.0`.
+  unchanged from `v0.8.0` apart from release-version metadata.
 - **Results.** Each `skills/list` and `skills/get` result has `resultType: "complete"`, `ttlMs: 0`
   and `cacheScope: "public"`, the same cache hint as `tools/list`. Each entry has `uri`,
   `frontmatter` (the file's YAML frontmatter as an object) and a complete `resources` manifest: the
