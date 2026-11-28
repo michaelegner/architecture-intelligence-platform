@@ -37,7 +37,7 @@ def _print_snapshot(
     # (evaluation/__main__.py's ANSWER_SCENARIOS_DIR, the test suite's SCENARIOS_DIR) does.
     scenario_path = Path(scenario_dir)
     with Neo4jContainer(
-        "neo4j:5.26.33@sha256:577eb43120e8688e62e753e962c47d30044ecaa95147ee5386c29f226b878008"
+        "neo4j:5.26.33@sha256:51d0314ef86074f519003da8dd4daaa9fff72b8479672b742d7cab7f3064e3ed"
     ) as container:
         driver = container.get_driver()
         try:
