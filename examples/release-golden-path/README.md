@@ -210,3 +210,29 @@ are untouched.
 - `SHA256SUMS` re-pins `expected.json`, `examples/mcp-clients/cursor.md`, `vscode.md` and
   `examples/runtime-demo/hero-demo.md`, and adds the new profile, compose file, harness and the
   frozen I4.1 `expected.json`.
+
+## v0.8.1 addition: the `skills` phase
+
+v0.8.1 (Server-Provided Agent Skills) adds a ninth phase. The earlier phases, their pins and
+`expected.json` are unchanged.
+- **The `skills` phase** runs last, through `skills_check.py`, in its own Compose project and with
+  its own fresh graph. It never rebuilds the supplied image, and it imports nothing. Its
+  configuration turns `experimental.binding-picture` on, so both skills are served. Over MCP
+  `2026-07-28` it checks:
+  - `server/discover`: the `io.modelcontextprotocol/skills` extension, `listChanged` and
+    `subscribe` false, and the package version;
+  - `skills/list`: the two skill URIs in order;
+  - each `resources/read` result: equal, byte for byte, to `app/mcp/skills/<name>/SKILL.md` in the
+    checkout that runs the harness, with a matching manifest digest and size, and the same entry
+    from `skills/get`;
+  - `subscriptions/listen`: METHOD_NOT_FOUND.
+
+  Over `2025-11-25` it checks that `resources/list` has no `skill://` entry and that `skills/list`
+  is METHOD_NOT_FOUND. It also checks the running image, its `AIP_BUILD_REVISION` and its user, as
+  the `destination-consumers` phase does. Results are under `<OUT_DIR>/skills/`.
+- **Why it exists:** v0.8.1 publishes no wheel, so the image is the release artifact. Run against
+  the published digest from the tagged-source clone, this phase proves that the image serves the
+  tagged skill files, not only that the source tree contains them (spec §5).
+- **Standalone use.** `RELEASE_CANDIDATE_SHA=<40-hex> python examples/release-golden-path/skills_check.py <IMAGE_REF> <OUT_DIR>`
+  runs only this phase.
+- `SHA256SUMS` adds the new profile, compose file and harness.

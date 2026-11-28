@@ -4,7 +4,7 @@ FROM python:3.14.10-slim@sha256:9aaa474097d094040649f2162a627c0049b408f52138d980
 # drops pip's bundled certifi/urllib3/setuptools/msgpack from the image and its scan.
 RUN /usr/local/bin/python -m pip uninstall --yes pip
 
-COPY --from=ghcr.io/astral-sh/uv:0.12.19@sha256:04d046b13e60d6bcec73cbc5e1cad25d680dea90c8573340950a0ac2d1aef424 /uv /uvx /bin/
+COPY --from=ghcr.io/astral-sh/uv:0.13.10@sha256:a3ea1357342c1a4bf9a0c53a3deb1b55379aefa037338d8113d5771efa01774f /uv /uvx /bin/
 
 # Non-root runtime user (12G container verification: the image must not run as root).
 RUN groupadd --gid 1000 app && useradd --uid 1000 --gid app --create-home --shell /usr/sbin/nologin app
