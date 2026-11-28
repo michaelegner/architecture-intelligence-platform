@@ -1,6 +1,7 @@
 # 16. Use REST and standard negotiated MCP as the public Architecture Knowledge adapters
 
-Status: Accepted — implemented in `v0.5.0` I3 Slice 5a.
+Status: Accepted — implemented in `v0.5.0` I3 Slice 5a. Amended by [ADR 0018](0018-admit-mcp-2026-07-28.md)
+(`v0.8.1`): `/mcp` also serves MCP protocol `2026-07-28`.
 
 ## Context
 
