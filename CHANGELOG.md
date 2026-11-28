@@ -9,8 +9,39 @@ aren't yet guaranteed stable pre-1.0.
 
 ## [Unreleased]
 
+## [0.8.1] - 2026-11-27
+
+### v0.8.1 — Server-Provided Agent Skills (interoperability patch release)
+
+See the [release notes](docs/release-validation/v0.8.1-release-notes.md). No tool, answer or public
+answer schema changes.
+
+### Added
+
+- **Agent skills over MCP** (the MCP Skills extension, SEP-2640): `aip-reading-answers` (always)
+  and `aip-binding-picture` (only with `experimental.binding-picture`), each one static
+  `SKILL.md` in `app/mcp/skills/`, served at `skill://aip/<name>/SKILL.md`. `skills/list` and
+  `skills/get` return the SEP-2640 entry (`uri`, `frontmatter`, a complete `sha256:` digest and size
+  manifest) with `resultType: "complete"`, `ttlMs: 0` and `cacheScope: "public"`; `resources/read`
+  returns the file. See [Skills](docs/mcp.md#skills-v081) (v0.8.1 I1).
+- **MCP protocol `2026-07-28`** on `/mcp`, beside the negotiated `2025-11-25` era
+  ([ADR 0018](docs/adr/0018-admit-mcp-2026-07-28.md), amending ADR 0016). The skills methods are
+  served only on `2026-07-28`. On `2025-11-25`, `initialize`, `resources/list`, `tools/list` and
+  the tool answers are unchanged from v0.8.0 apart from release-version metadata
+  (`serverInfo.version`, `producer.version`), and the skills are not reachable (v0.8.1 I1).
+- A ninth release golden-path phase, `skills`, which reads both skill files through the image's MCP
+  endpoint and compares them with the tagged source (v0.8.1 I2).
+
 ### Changed
 
+- The `/mcp` ingress guard (`McpIngressGuard`, formerly `ModernProtocolGuard`) no longer rejects a
+  request that names `2026-07-28`. It keeps the `405` for non-POST methods and the 1 MiB body limit.
+- `subscriptions/listen` is not served on either era, so `listChanged` and `subscribe` are advertised
+  as `false`. AIP's tools and skills are static (v0.8.1 D9).
+- The locked `fastapi` moves to 0.163.1, `starlette` to 1.10.0, `pydantic` to 2.14.3, `openai` to
+  3.55.1, `opentelemetry-api` to 1.45.2 and `opentelemetry-proto` to 1.45.2. The Neo4j image moves
+  to 5.26.33 in `docker-compose.yml`, `docker-compose.demo.yml`, the integration-test fixture, the
+  evaluation runner and the benchmarks. The MCP SDK stays at `mcp==2.3.0`.
 - The public hosted instance (`https://mcp.daip.io/mcp`) serves the v0.8.0 image with the
   experimental `get_binding_picture` tool (seven tools), on the frozen v0.8 Sokol111 C1 package
   ([record](docs/release-validation/v0.8.0-hosted-record.md)). `verify_public_edge.py` has a new
@@ -18,6 +49,13 @@ aren't yet guaranteed stable pre-1.0.
 - The [hosted walkthrough](examples/sokol111-demo/TRY_IT_HOSTED.md) tells one story, from the
   documented architecture to the binding picture and a migration checklist for Catalog Management
   ([spec](docs/specifications/evaluation/sokol111-v08-demo.md)).
+
+### Fixed
+
+- The ingress guard replays the buffered request body once and then passes the server's own
+  `receive` on. Before, it returned the body on every call, so the SDK's wait for a client
+  disconnect on its SSE path could never suspend and blocked the event loop. That path became
+  reachable with `2026-07-28` (v0.8.1 I1).
 
 ### Security
 
@@ -30,6 +68,9 @@ aren't yet guaranteed stable pre-1.0.
   1.45.2 / 0.66b2. The frozen fixture copy is not changed.
 - The image base moves from `python:3.14.8-slim` to `python:3.14.10-slim`, pinned to its digest.
   Python 3.15 is not adopted yet: some locked dependencies (PyYAML among them) have no 3.15 wheels.
+- The build-time `uv` binary moves from 0.12.19 to 0.13.10, pinned to its digest. It bundles `rustls`
+  0.23.46, which fixes GHSA-c8m5-c952-6cm4, GHSA-h2v8-394m-p7vv, GHSA-vp88-798v-h67f and
+  GHSA-w44r-93j7-qv28, accepted for v0.8.0. The container still starts `uvicorn`, not `uv`.
 
 ## [0.8.0] - 2026-10-28
 

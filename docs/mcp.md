@@ -6,16 +6,27 @@ AIP exposes its validated architecture model to AI agents and other MCP clients 
 mounted at the single public path `/mcp`. As of `v0.5.0` I3 (ADR 0016),
 `ArchitectureIntelligenceService` is the single semantic owner of this Architecture Knowledge, and
 standard negotiated MCP is one of its two public adapters (the other is [REST](architecture.md#api-surface))
-— the `v0.4.x` AIP-specific "direct mode" envelope is retired; `/mcp` now serves standard negotiated
-MCP only. See
+— the `v0.4.x` AIP-specific "direct mode" envelope is retired. `/mcp` serves standard MCP through
+the pinned SDK: the negotiated `initialize` era (`2025-11-25`) and, since `v0.8.1`
+([ADR 0018](adr/0018-admit-mcp-2026-07-28.md)), the `2026-07-28` era. See
 [`docs/adr/0016-public-architecture-knowledge-adapters.md`](adr/0016-public-architecture-knowledge-adapters.md)
 for the decision record, and
 [`docs/adr/0014-negotiated-mcp-client-interoperability.md`](adr/0014-negotiated-mcp-client-interoperability.md)
 (superseded by 0016 for the active `v0.5+` architecture) for the historical `v0.4.2` dual-mode record.
 
-A standard MCP client connects with a markerless `initialize` request followed by ordinary
-`MCP-Protocol-Version`-headed traffic, handled by the pinned MCP SDK — see `## Connecting a
-negotiated client` below.
+The server also serves two [agent skills](#skills-v081) that state how to read its answers.
+
+A standard MCP client connects in one of two ways, both handled by the pinned MCP SDK:
+
+- **`2025-11-25`:** a markerless `initialize` request followed by ordinary
+  `MCP-Protocol-Version`-headed traffic — see `## Connecting a negotiated client` below. This path
+  is unchanged from `v0.8.0` apart from release-version metadata (`serverInfo.version`,
+  `producer.version`).
+- **`2026-07-28`** (since `v0.8.1`): each request names the era in its `MCP-Protocol-Version`
+  header and carries `_meta`; discovery is `server/discover`. The SDK also requires the `mcp-method`
+  header, and `mcp-name` on `tools/call` and `resources/read`. The tools, their schemas and their
+  answers are the same on both eras. AIP does not serve `subscriptions/listen` on either era: its
+  tools are static, so `listChanged` and `subscribe` are advertised as false.
 
 `/mcp` supports `POST` only in this stateless release. Every other HTTP method — `GET`, `DELETE`,
 `HEAD`, and everything else — returns `405 Method Not Allowed` with `Allow: POST` before dispatch
@@ -328,6 +339,40 @@ lexicographic order and adds `POST /api/binding-picture` and `POST /api/binding-
 - **Contract:** the frozen schemas are in `schemas/architecture_intelligence/v0.8/`. The semantics
   are experimental and not a v1.0 contract. See `docs/specifications/0.8.0/i2-assessment-projection-and-tool.md`.
 
+## Skills (v0.8.1)
+
+Since `v0.8.1`, the server also serves **agent skills** through the MCP Skills extension
+([SEP-2640](https://modelcontextprotocol.io/seps/2640), identifier `io.modelcontextprotocol/skills`).
+A skill is static text in the package. It states how to read AIP's answers correctly, so that a
+skills-capable client gets the reading rules from the same server version as the tools it calls.
+A skill adds no tool, answer or schema, and changes none.
+
+| Skill | Served | Content |
+|---|---|---|
+| `aip-reading-answers` | Always | The general reading rules: use AIP read-only; report limitations and `NOT_ANSWERED` statements as unknowns; no payload knowledge; no evidence is not non-use; the snapshot retry (at most three attempts). The observation context of the dependency and drift tools (whole UTC days in the past; an inclusive window from `T00:00:00Z` to `T23:59:59Z`). The publisher's qualification and `evidence_refs` against `resolution_evidence_refs`. The distinctions of the locality, API usage and destination-consumer tools. |
+| `aip-binding-picture` | Only with `experimental.binding-picture` | The two modes of `get_binding_picture`, its crossing and status values, and its limits. The semantics are experimental. |
+
+- **Location.** Each skill is one file, `app/mcp/skills/<name>/SKILL.md`, served at
+  `skill://aip/<name>/SKILL.md`. AIP does not offer `directoryRead`. The frontmatter holds only
+  `name` and `description`: a skill does not depend on host permission fields such as
+  `allowed-tools`.
+- **Era.** `skills/list` and `skills/get` are served only on MCP `2026-07-28`, the era the extension
+  is defined for ([ADR 0018](adr/0018-admit-mcp-2026-07-28.md)). On `2025-11-25` they return
+  `METHOD_NOT_FOUND` (`-32601`), and the skill resources are not listed or readable, so that path is
+  unchanged from `v0.8.0` apart from release-version metadata.
+- **Results.** Each `skills/list` and `skills/get` result has `resultType: "complete"`, `ttlMs: 0`
+  and `cacheScope: "public"`, the same cache hint as `tools/list`. Each entry has `uri`,
+  `frontmatter` (the file's YAML frontmatter as an object) and a complete `resources` manifest: the
+  `SKILL.md` URI, its `sha256:` digest and its byte size. `skills/get` with an unknown URI returns
+  `-32602`. Read the file itself with `resources/read`.
+- **Clients.** Claude Code 2.1.332 or later finds and loads the skills (its MCP-server skills are
+  in beta). Claude Code lists them as `<server>:aip-reading-answers` and
+  `<server>:aip-binding-picture`. The Pitstop Claude Code plugin keeps its own skill, which also
+  holds the Pitstop service ids.
+- **Keeping skills current.** A release that changes how a tool's answer is read updates the
+  matching skill in the same release. Tests check that each tool name and each code that a skill
+  names exists (`tests/unit/test_mcp_skills.py`); the text itself is a review responsibility.
+
 ## Connecting a negotiated client
 
 A standard MCP client — the kind a mainstream coding-agent tool ships out of the box, or a hand-
@@ -356,7 +401,7 @@ curl -s http://localhost:8000/mcp \
           "observation_context": {
             "environment": "demo",
             "window_start": "2026-08-26T00:00:00.000000Z",
-            "window_end": "2026-08-27T00:00:00.000000Z"
+            "window_end": "2026-08-26T23:59:59.000000Z"
           }
         }
       }
