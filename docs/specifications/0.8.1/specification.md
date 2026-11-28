@@ -1,9 +1,9 @@
 # AIP v0.8.1 — Server-Provided Agent Skills
 
-**Status:** Draft 0.2 (proposed)  
+**Status:** Released in [`v0.8.1`](../../release-validation/v0.8.1-release-record.md) (2026-11-28), from Draft 0.2  
 **Target:** `v0.8.1`  
 **Baseline:** Published and post-release-verified [`v0.8.0`](../../release-validation/v0.8.0-release-record.md)  
-**Scope authority:** [ROADMAP.md — v0.8.1](../../../ROADMAP.md#v081--server-provided-agent-skills-proposed)
+**Scope authority:** [ROADMAP.md — v0.8.1](../../../ROADMAP.md#v081--server-provided-agent-skills-shipped)
 
 ## 1. Promise
 
