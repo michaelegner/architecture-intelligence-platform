@@ -145,8 +145,10 @@ on a trusted network. See the [security model](docs/security-model.md).
 [Discussions](https://github.com/michaelegner/architecture-intelligence-platform/discussions) ·
 [Security reports](SECURITY.md)
 
-**Current status:** [v0.8.0](https://github.com/michaelegner/architecture-intelligence-platform/releases/tag/v0.8.0)
-is a shipped **demonstration release**. The binding-picture contract remains experimental.
+**Current status:** [v0.8.1](https://github.com/michaelegner/architecture-intelligence-platform/releases/tag/v0.8.1)
+is a shipped interoperability patch to the v0.8.0 **demonstration release**: the MCP server also
+serves agent skills ([release record](docs/release-validation/v0.8.1-release-record.md)). The
+binding-picture contract remains experimental.
 In a controlled 12-session comparison, AIP reduced information requests in the team-scoped
 setting, but did not show a robust improvement in migration-planning quality. Real customer value
 and the effort of maintaining attributable promises remain to be validated.

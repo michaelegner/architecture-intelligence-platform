@@ -772,7 +772,11 @@ v0.8 also adds schema field descriptions for `destination_id` and `broker_id` on
 - **No Context Map patterns:** the showcase shows qualified cross-boundary bindings only. It does not
   classify Context Map patterns, because event bindings do not establish them.
 
-## v0.8.1 — Server-Provided Agent Skills (proposed)
+## v0.8.1 — Server-Provided Agent Skills (shipped)
+
+Published **v0.8.1 on 2026-11-28**; terminal outcome **SHIPPED_VERIFIED**. AIP serves two agent
+skills on MCP `2026-07-28` (ADR 0018); the `2025-11-25` path is unchanged apart from
+release-version metadata. See the [release record](docs/release-validation/v0.8.1-release-record.md).
 
 **Interoperability patch release.** It preserves the v0.8 architecture-question space. It adds no
 architecture question, MCP tool or public answer schema, and it changes no answer.
@@ -933,7 +937,7 @@ The planned release sequence is:
 6. **v0.7.2** — hosted v0.7.x MCP interoperability and pre-v0.8 product-boundary qualification
    against a mature context engine.
 7. **v0.8** — binding picture showcase on Sokol111 (demonstration release, experimental semantics),
-   followed by the proposed **v0.8.1** interoperability patch (server-provided agent skills).
+   followed by the shipped **v0.8.1** interoperability patch (server-provided agent skills).
 8. **Proposed v0.9** — customer-problem-led contextual-tooling integration and evaluation
    preparation; authorize an AIP release only if meaningful AIP-side work is demonstrated.
 9. **Target-customer evaluation** — compare existing tools, contextual tooling alone, and contextual
